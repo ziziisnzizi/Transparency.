@@ -41,9 +41,17 @@ function card(p) {
   return `<button class="product" data-id="${p.id}" aria-label="${p.name} 상세 보기"><div class="product-image">${bottle(p)}<span class="badge">${p.type}</span><span class="round-arrow" aria-hidden="true">↗</span></div><div class="product-meta"><span>${p.en}</span><span>30 mL</span></div><h3>${p.name}</h3><p>${p.ingredient}<span>성분 확인 ${arrow}</span></p></button>`;
 }
 
+function productResults(list) {
+  return list.map(card).join('') || '<div class="empty"><span class="eyebrow">NO RESULTS</span><h2>일치하는 제품이 없어요.</h2><p>다른 검색어로 찾아보거나 필터를 초기화해 보세요.</p><button class="text-btn" id="reset-search">검색·필터 초기화 ↗</button></div>';
+}
+
+function matchingProducts() {
+  return products.filter(p => (filter === '전체' || filter === p.type) && (p.name + p.ingredient).includes(query));
+}
+
 function explore() {
-  const list = products.filter(p => (filter === '전체' || filter === p.type) && (p.name + p.ingredient).includes(query));
-  return `<section class="section page-section"><div class="eyebrow">EXPLORE / THE FORMULAS</div><h1 class="page-title">성분에 장난 없이.</h1><p class="page-intro">궁금했던 성분부터, 제품의 근거와 사용법까지.</p><div class="search-field"><label class="sr-only" for="search">제품명 또는 성분명</label><input id="search" type="search" placeholder="제품명 또는 성분명으로 검색" value="${escape(query)}"><span aria-hidden="true">⌕</span></div><div class="explore-toolbar"><div class="filters" aria-label="제품 종류 필터">${['전체', '세럼', '크림', '클렌저'].map(x => `<button data-filter="${x}" aria-pressed="${filter === x}" class="${filter === x ? 'chosen' : ''}">${x}</button>`).join('')}</div><span class="result-count">${String(list.length).padStart(2, '0')} PRODUCTS</span></div><div class="cards">${list.map(card).join('') || '<div class="empty"><span class="eyebrow">NO RESULTS</span><h2>일치하는 제품이 없어요.</h2><p>다른 검색어로 찾아보거나 필터를 초기화해 보세요.</p><button class="text-btn" id="reset-search">검색·필터 초기화 ↗</button></div>'}</div></section>`;
+  const list = matchingProducts();
+  return `<section class="section page-section"><div class="eyebrow">EXPLORE / THE FORMULAS</div><h1 class="page-title">성분에 장난 없이.</h1><p class="page-intro">궁금했던 성분부터, 제품의 근거와 사용법까지.</p><div class="search-field"><label class="sr-only" for="search">제품명 또는 성분명</label><input id="search" type="search" placeholder="제품명 또는 성분명으로 검색" value="${escape(query)}"><span aria-hidden="true">⌕</span></div><div class="explore-toolbar"><div class="filters" aria-label="제품 종류 필터">${['전체', '세럼', '크림', '클렌저'].map(x => `<button data-filter="${x}" aria-pressed="${filter === x}" class="${filter === x ? 'chosen' : ''}">${x}</button>`).join('')}</div><span class="result-count">${String(list.length).padStart(2, '0')} PRODUCTS</span></div><div class="cards">${productResults(list)}</div></section>`;
 }
 
 function detail() {
@@ -78,9 +86,36 @@ function persist() {
   localStorage.setItem('transparency-products', JSON.stringify(saved));
   render();
 }
+function bindProductLinks(root = document) {
+  root.querySelectorAll('[data-id]').forEach(e => e.onclick = () => {
+    selected = products.find(p => p.id == e.dataset.id);
+    tab = '성분·함량';
+    render();
+    window.scrollTo(0, 0);
+  });
+}
+function bindSearchReset() {
+  const reset = document.querySelector('#reset-search');
+  if (reset) reset.onclick = () => {
+    query = '';
+    filter = '전체';
+    render();
+    document.querySelector('#search').focus();
+  };
+}
+function refreshSearchResults(value) {
+  query = value;
+  const list = matchingProducts();
+  const results = document.querySelector('.cards');
+  // Preserve the input element, its native IME session, focus and caret.
+  results.innerHTML = productResults(list);
+  document.querySelector('.result-count').textContent = `${String(list.length).padStart(2, '0')} PRODUCTS`;
+  bindProductLinks(results);
+  bindSearchReset();
+}
 function bind() {
   document.querySelectorAll('[data-page]').forEach(e => e.onclick = () => { page = e.dataset.page; selected = null; render(); window.scrollTo(0, 0); });
-  document.querySelectorAll('[data-id]').forEach(e => e.onclick = () => { selected = products.find(p => p.id == e.dataset.id); tab = '성분·함량'; render(); window.scrollTo(0, 0); });
+  bindProductLinks();
   document.querySelectorAll('[data-filter]').forEach(e => e.onclick = () => { filter = e.dataset.filter; render(); });
   document.querySelectorAll('[data-tab]').forEach(e => e.onclick = () => { tab = e.dataset.tab; render(); document.querySelector(`[data-tab="${tab}"]`).focus(); });
   document.querySelector('.tabs')?.addEventListener('keydown', e => {
@@ -92,8 +127,18 @@ function bind() {
     tabs[index].click();
   });
   const input = document.querySelector('#search');
-  if (input) input.oninput = e => { query = e.target.value; render(); document.querySelector('#search').focus(); };
-  document.querySelector('#reset-search')?.addEventListener('click', () => { query = ''; filter = '전체'; render(); document.querySelector('#search').focus(); });
+  if (input) {
+    let composing = false;
+    input.addEventListener('compositionstart', () => { composing = true; });
+    input.addEventListener('compositionend', e => {
+      composing = false;
+      refreshSearchResults(e.target.value);
+    });
+    input.oninput = e => {
+      if (!composing && !e.isComposing) refreshSearchResults(e.target.value);
+    };
+  }
+  bindSearchReset();
   document.querySelector('#back')?.addEventListener('click', () => { selected = null; page = '제품 탐색'; render(); });
   document.querySelector('#register')?.addEventListener('click', () => { if (!saved.some(s => s.id === selected.id)) saved.push({ id: selected.id, date: '', done: false }); selected = null; page = '내 제품'; persist(); window.scrollTo(0, 0); });
   document.querySelectorAll('[data-date]').forEach(e => e.onchange = () => { saved[e.dataset.date].date = e.value; persist(); });
