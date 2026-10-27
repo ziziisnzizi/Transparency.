@@ -1,6 +1,7 @@
 const products = [
   {
     id: 1,
+    slug: 'serum-s1',
     name: '세럼 S.1',
     en: 'Transparency. Serum S.1',
     type: '수분 세럼',
@@ -24,6 +25,7 @@ const products = [
   },
   {
     id: 2,
+    slug: 'toner-t1',
     name: '토너 T.1',
     en: 'Transparency. Toner T.1',
     type: '수분 토너',
@@ -47,6 +49,7 @@ const products = [
   },
   {
     id: 3,
+    slug: 'cream-c1',
     name: '크림 C.1',
     en: 'Transparency. Cream C.1',
     type: '보습 크림',
@@ -72,6 +75,9 @@ const products = [
 let page = '홈', query = '', filter = '전체', selected = null, tab = '성분·함량', questionDraft = '';
 let theme = localStorage.getItem('transparency-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 document.documentElement.dataset.theme = theme;
+const requestedProduct = new URLSearchParams(window.location.search).get('product');
+selected = products.find(product => product.slug === requestedProduct) || null;
+if (selected) page = '제품 탐색';
 let saved = JSON.parse(localStorage.getItem('transparency-products') || '[]');
 const catalogVersion = '2026-10-27-three-concepts';
 if (localStorage.getItem('transparency-catalog-version') !== catalogVersion) {
@@ -173,7 +179,7 @@ function questionContent(p) {
 function detail() {
   const p = selected;
   const contents = { '성분·함량': ingredientContent(p), '효능·근거': evidenceContent(p), '사용 안내': usageContent(p), '질문하기': questionContent(p) };
-  return `<section class="section page-section"><button id="back" class="text-btn">← 제품 목록</button><div class="detail-top"><div class="detail-image">${bottle(p)}<span class="image-caption">TRANSPARENCY. / PRODUCT CONCEPT</span></div><div class="detail-copy"><div class="eyebrow">${p.en.toUpperCase()}</div><h1 class="page-title">${p.name}</h1><div class="detail-rating" aria-label="평점 ${p.rating.toFixed(1)}점, 평가 ${p.reviewCount}개"><span aria-hidden="true">★</span><strong>${p.rating.toFixed(1)}</strong><span>${p.reviewCount}개 평가</span></div><p class="page-intro">${p.desc}</p><p>${p.longDesc}</p><dl class="product-specs"><div><dt>상태</dt><dd>${p.status}</dd></div><div><dt>핵심 성분</dt><dd>${p.ingredient}</dd></div><div><dt>종류 · 용량</dt><dd>${p.type} · ${p.volume}</dd></div><div><dt>제형 · 향</dt><dd>${p.texture} · 향료 무첨가 목표</dd></div></dl><button class="dark" id="register">내 제품에 추가 <span aria-hidden="true">＋</span></button><p class="muted">표시된 별점과 평가 수는 프로토타입용 예시 데이터입니다.</p><p class="muted">가상 설계안 · 처방, 제형, 패키지는 검증 및 확정 전입니다.</p></div></div><div class="tabs" role="tablist" aria-label="제품 정보">${Object.keys(contents).map(t => `<button id="tab-${t}" role="tab" aria-controls="detail-panel" aria-selected="${tab === t}" data-tab="${t}" class="${tab === t ? 'chosen' : ''}">${t}</button>`).join('')}</div><div class="info" id="detail-panel" role="tabpanel" aria-labelledby="tab-${tab}">${contents[tab]}</div></section>`;
+  return `<section class="section page-section"><button id="back" class="text-btn">← 제품 목록</button><div class="detail-top"><div class="detail-image">${bottle(p)}<span class="image-caption">TRANSPARENCY. / PRODUCT CONCEPT</span></div><div class="detail-copy"><div class="eyebrow">${p.en.toUpperCase()}</div><h1 class="page-title">${p.name}</h1><div class="detail-rating" aria-label="평점 ${p.rating.toFixed(1)}점, 평가 ${p.reviewCount}개"><span aria-hidden="true">★</span><strong>${p.rating.toFixed(1)}</strong><span>${p.reviewCount}개 평가</span></div><p class="page-intro">${p.desc}</p><p>${p.longDesc}</p><dl class="product-specs"><div><dt>상태</dt><dd>${p.status}</dd></div><div><dt>핵심 성분</dt><dd>${p.ingredient}</dd></div><div><dt>종류 · 용량</dt><dd>${p.type} · ${p.volume}</dd></div><div><dt>제형 · 향</dt><dd>${p.texture} · 향료 무첨가 목표</dd></div></dl><aside class="product-qr" aria-label="${p.name} 상세 페이지 QR"><img src="/images/qr/${p.slug}.svg" alt="${p.name} 상세 페이지로 연결되는 QR 코드" width="160" height="160"><div><span class="eyebrow">PRODUCT QR</span><h2>스캔해서 바로 확인.</h2><p>이 QR은 ${p.name} 상세 페이지로 직접 연결됩니다.</p><div class="qr-downloads"><a href="/images/qr/${p.slug}.svg" download="Transparency-${p.slug}-QR.svg">SVG</a><a href="/images/qr/${p.slug}.png" download="Transparency-${p.slug}-QR.png">PNG</a></div></div></aside><button class="dark" id="register">내 제품에 추가 <span aria-hidden="true">＋</span></button><p class="muted">표시된 별점과 평가 수는 프로토타입용 예시 데이터입니다.</p><p class="muted">가상 설계안 · 처방, 제형, 패키지는 검증 및 확정 전입니다.</p></div></div><div class="tabs" role="tablist" aria-label="제품 정보">${Object.keys(contents).map(t => `<button id="tab-${t}" role="tab" aria-controls="detail-panel" aria-selected="${tab === t}" data-tab="${t}" class="${tab === t ? 'chosen' : ''}">${t}</button>`).join('')}</div><div class="info" id="detail-panel" role="tabpanel" aria-labelledby="tab-${tab}">${contents[tab]}</div></section>`;
 }
 
 function my() {
@@ -202,6 +208,9 @@ function bindProductLinks(root = document) {
   root.querySelectorAll('[data-id]').forEach(e => e.onclick = () => {
     selected = products.find(p => p.id == e.dataset.id);
     tab = '성분·함량';
+    const url = new URL(window.location.href);
+    url.searchParams.set('product', selected.slug);
+    window.history.pushState({}, '', `${url.pathname}${url.search}`);
     render();
     window.scrollTo(0, 0);
   });
@@ -233,7 +242,7 @@ function bind() {
     render();
     document.querySelector('#theme-toggle')?.focus();
   });
-  document.querySelectorAll('[data-page]').forEach(e => e.onclick = () => { page = e.dataset.page; selected = null; render(); window.scrollTo(0, 0); });
+  document.querySelectorAll('[data-page]').forEach(e => e.onclick = () => { page = e.dataset.page; selected = null; const url = new URL(window.location.href); url.searchParams.delete('product'); window.history.pushState({}, '', `${url.pathname}${url.search}`); render(); window.scrollTo(0, 0); });
   bindProductLinks();
   document.querySelectorAll('[data-filter]').forEach(e => e.onclick = () => { filter = e.dataset.filter; render(); });
   document.querySelectorAll('[data-tab]').forEach(e => e.onclick = () => { tab = e.dataset.tab; render(); document.querySelector(`[data-tab="${tab}"]`).focus(); });
@@ -263,8 +272,8 @@ function bind() {
     document.querySelector('#question-count').textContent = `${questionDraft.length} / 500`;
   };
   bindSearchReset();
-  document.querySelector('#back')?.addEventListener('click', () => { selected = null; page = '제품 탐색'; render(); });
-  document.querySelector('#register')?.addEventListener('click', () => { if (!saved.some(s => s.id === selected.id)) saved.push({ id: selected.id, date: '', done: false }); selected = null; page = '내 제품'; persist(); window.scrollTo(0, 0); });
+  document.querySelector('#back')?.addEventListener('click', () => { selected = null; page = '제품 탐색'; const url = new URL(window.location.href); url.searchParams.delete('product'); window.history.pushState({}, '', `${url.pathname}${url.search}`); render(); });
+  document.querySelector('#register')?.addEventListener('click', () => { if (!saved.some(s => s.id === selected.id)) saved.push({ id: selected.id, date: '', done: false }); selected = null; page = '내 제품'; const url = new URL(window.location.href); url.searchParams.delete('product'); window.history.pushState({}, '', `${url.pathname}${url.search}`); persist(); window.scrollTo(0, 0); });
   document.querySelectorAll('[data-date]').forEach(e => e.onchange = () => { saved[e.dataset.date].date = e.value; persist(); });
   document.querySelectorAll('[data-done]').forEach(e => e.onclick = () => { saved[e.dataset.done].done = !saved[e.dataset.done].done; persist(); });
   document.querySelectorAll('[data-delete]').forEach(e => e.onclick = () => { if (window.confirm('등록한 제품과 사용 기록을 삭제할까요?')) { saved.splice(+e.dataset.delete, 1); persist(); } });
@@ -273,4 +282,10 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Tab') document.body.classList.add('keyboard-navigation');
 });
 document.addEventListener('pointerdown', () => document.body.classList.remove('keyboard-navigation'));
+window.addEventListener('popstate', () => {
+  const slug = new URLSearchParams(window.location.search).get('product');
+  selected = products.find(product => product.slug === slug) || null;
+  if (selected) page = '제품 탐색';
+  render();
+});
 render();

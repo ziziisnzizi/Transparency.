@@ -274,7 +274,9 @@ footer { margin: 0 24px 24px; border: 1px solid #ffffffa8; border-radius: 30px; 
 [data-theme="dark"] .evidence-status,
 [data-theme="dark"] .research-grid article,
 [data-theme="dark"] .question-compose,
-[data-theme="dark"] .info-note { border-color: #ffffff1b; background: #ffffff08; }
+[data-theme="dark"] .info-note,
+[data-theme="dark"] .product-qr { border-color: #ffffff1b; background: #ffffff08; }
+[data-theme="dark"] .qr-downloads a { border-color: #ffffff2b; background: #ffffff0b; }
 [data-theme="dark"] .my-product-image,
 [data-theme="dark"] .my-actions button { border-color: #ffffff20; background: #ffffff0c; }
 [data-theme="dark"] .my-actions .delete-btn { color: #aeb1b7; background: transparent; }
