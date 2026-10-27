@@ -28,7 +28,8 @@ npm 기본 캐시 경로에 쓰기 권한이 없으면 `npm ci --cache /tmp/tran
 - 제품명·성분 검색 및 제품 종류 필터
 - 제품 등록, 개봉일 변경, 사용 완료·재개, 삭제
 - 개인 제품 기록의 브라우저 localStorage 저장
-- 반응형 CSS
+- 흑백·투명 유리 소재를 기준으로 한 전체 화면 디자인
+- 모바일 하단 메뉴 및 반응형 CSS
 
 제품과 성분 수치는 모두 예시입니다. 계정 인증, QR 스캔, AI, 연구 출처 연동, 서버 저장은 구현되지 않았습니다.
 
@@ -36,6 +37,8 @@ npm 기본 캐시 경로에 쓰기 권한이 없으면 `npm ci --cache /tmp/tran
 
 - [전체 진행 내역·파일 경로·남은 작업](docs/project-handoff.md)
 - [화면 정보 구조](docs/information-architecture.md)
+- [상세 사용자 흐름](docs/application-flow.md)
+- [브랜드 문구·디자인 기준과 검증](docs/brand-direction.md)
 - 작업 보드: https://github.com/users/ziziisnzizi/projects/1
 - Vercel: `vercel.json`, Netlify: `netlify.toml`
 - 정적 배포 결과물: `npm run build` 후 `dist/`
