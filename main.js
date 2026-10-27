@@ -70,6 +70,8 @@ const products = [
   },
 ];
 let page = '홈', query = '', filter = '전체', selected = null, tab = '성분·함량', questionDraft = '';
+let theme = localStorage.getItem('transparency-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+document.documentElement.dataset.theme = theme;
 let saved = JSON.parse(localStorage.getItem('transparency-products') || '[]');
 const catalogVersion = '2026-10-27-three-concepts';
 if (localStorage.getItem('transparency-catalog-version') !== catalogVersion) {
@@ -98,7 +100,7 @@ function render() {
     <a class="skip-link" href="#content">본문으로 이동</a>
     <header><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button>
 
-      <button class="account" data-page="내 제품">MY PRODUCTS ${arrow}</button>
+      <div class="header-actions"><button class="theme-toggle" id="theme-toggle" type="button" aria-label="${theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}" aria-pressed="${theme === 'dark'}"><span aria-hidden="true">${theme === 'dark' ? '☀' : '☾'}</span></button><button class="account" data-page="내 제품">MY PRODUCTS ${arrow}</button></div>
     </header>
       <nav aria-label="주요 메뉴">${['홈', '제품 탐색', '내 제품', '더보기'].map(x => `<button ${!selected && page === x ? 'aria-current="page"' : ''} class="${page === x ? 'active' : ''}" data-page="${x}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${navIcons[x]}</svg><span>${x}</span></button>`).join('')}</nav>
     <main id="content" tabindex="-1">${selected ? detail() : page === '홈' ? home() : page === '제품 탐색' ? explore() : page === '내 제품' ? my() : more()}</main>
@@ -224,6 +226,13 @@ function refreshSearchResults(value) {
   bindSearchReset();
 }
 function bind() {
+  document.querySelector('#theme-toggle')?.addEventListener('click', () => {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('transparency-theme', theme);
+    render();
+    document.querySelector('#theme-toggle')?.focus();
+  });
   document.querySelectorAll('[data-page]').forEach(e => e.onclick = () => { page = e.dataset.page; selected = null; render(); window.scrollTo(0, 0); });
   bindProductLinks();
   document.querySelectorAll('[data-filter]').forEach(e => e.onclick = () => { filter = e.dataset.filter; render(); });
