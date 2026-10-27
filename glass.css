@@ -1,0 +1,194 @@
+/* iOS-inspired glass materials. Shared layout and type live in style.css. */
+:root {
+  --glass-fill: linear-gradient(135deg, rgb(255 255 255 / .73), rgb(255 255 255 / .24) 52%, rgb(255 255 255 / .48));
+  --glass-edge: rgb(255 255 255 / .86);
+  --glass-shadow: 0 12px 40px rgb(0 0 0 / .055), inset 0 1px 0 rgb(255 255 255 / .96), inset 0 -1px 0 rgb(255 255 255 / .35);
+  --line: rgb(0 0 0 / .09);
+  background: #e9e9eb;
+}
+body {
+  isolation: isolate;
+  background: radial-gradient(ellipse at 90% 12%, #fff9, transparent 45%), linear-gradient(145deg,#f2f2f3,#dcdcdf 55%,#eeeef0);
+}
+body:before, body:after { content: ''; position: fixed; z-index: -1; pointer-events: none; border-radius: 50%; }
+body:before { width: 75vw; height: 75vw; top: 18vh; left: -35vw; border: 1px solid #fffc; box-shadow: inset -20px -12px 50px #ffffff94, 20px 25px 90px #77777712; background: radial-gradient(circle at 65% 32%,#ffffff7a,transparent 65%); }
+body:after { width: 60vw; height: 60vw; right: -35vw; top: 50vh; border: 2px solid #fff6; box-shadow: inset 12px 15px 50px #ffffffb3; }
+header {
+  width: calc(100% - 64px); max-width: 1600px; margin: 16px auto 0; top: 16px;
+  height: 72px; padding: 0 26px; border: 1px solid var(--glass-edge); border-radius: 30px;
+  background: var(--glass-fill); backdrop-filter: blur(28px) saturate(115%); -webkit-backdrop-filter: blur(28px) saturate(115%);
+  box-shadow: var(--glass-shadow); z-index: 20;
+}
+.logo { font-size: 27px; letter-spacing: -1.4px; }
+nav {
+  position: fixed; top: 28px; left: 50%; transform: translateX(-50%); z-index: 21;
+  height: 48px; padding: 4px; gap: 2px; border-radius: 24px; border: 1px solid #ffffffa6;
+  background: linear-gradient(135deg,#ffffff80,#ffffff26); box-shadow: inset 0 1px 0 #fff9, 0 2px 8px #00000005;
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+}
+nav button { padding: 0 22px; height: 38px; font-size: 12px; border-radius: 21px; color: #555; display: flex; align-items: center; justify-content: center; gap: 7px; }
+nav button.active { background: linear-gradient(160deg,#fffffff2,#ffffff80); box-shadow: 0 2px 7px #0000000d, inset 0 1px 0 white; color: #111; }
+nav button.active:after { display: none; }
+.nav-icon { display: none; width: 21px; height: 21px; }
+.account { border-radius: 24px; min-height: 40px; padding: 10px 16px; border: 1px solid #fff; background: #ffffff40; box-shadow: inset 0 1px 1px white; }
+.account:hover { background: #ffffffb3; color: #171717; }
+.hero { margin: 24px 24px 0; border-radius: 38px; height: 725px; min-height: 660px; border: 1px solid white; box-shadow: 0 14px 50px #0000000a; }
+.hero:after { background: linear-gradient(90deg,#ffffff1a,transparent 60%); }
+.campaign-image { object-position: center 57%; }
+.hero-copy { margin: 52px 0 90px 4%; padding: 34px; width: 430px; max-width: calc(100% - 64px); border: 1px solid #ffffffd1; border-radius: 30px; background: linear-gradient(130deg,#ffffff9e,#ffffff33 80%); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 20px 60px #0000000a, inset 0 1px 0 white, inset 0 -1px 0 #ffffff4d; }
+.hero-copy h1 { font-size: clamp(45px,4.2vw,63px); margin: 26px 0 12px; }
+.hero-brand { font-size: 42px; }
+.hero-copy p { margin-top: 24px; color: #444; }
+.hero-bottom { left: 4%; right: 4%; bottom: 24px; }
+.hero-bottom>span { border: 1px solid #ffffff9e; border-radius: 20px; padding: 10px 16px; background: #ffffff70; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #3d3d3d; }
+.dark { border: 1px solid #ffffff45; border-radius: 25px; background: linear-gradient(155deg,#454545db,#171717f2); box-shadow: 0 5px 14px #00000017, inset 0 1px 1px #ffffff4d; min-height: 48px; }
+.dark:hover { background: linear-gradient(155deg,#555e,#222); box-shadow: 0 8px 20px #00000026,inset 0 1px 0 #ffffff6b; }
+.dark:active { transform: scale(.98); }
+.principles { border-bottom: 0; gap: 16px; padding: 32px 5% 8px; grid-template-columns: .75fr 1fr 1.1fr 1fr; }
+.principle-title { padding: 18px; }
+.principles>div:not(:first-child) { padding: 24px 20px; border: 1px solid var(--glass-edge); border-radius: 24px; background: var(--glass-fill); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: var(--glass-shadow); }
+.principles h2 { white-space: nowrap; }
+.section { padding: 64px 5%; }
+.text-btn { border-bottom: 0; border: 1px solid #ffffffb3; border-radius: 24px; padding: 11px 17px; background: #ffffff47; box-shadow: inset 0 1px 0 #ffffffc9; }
+.text-btn:hover { background: #ffffff94; color: #171717; }
+.product, .bottom-grid>div, .detail-image, .info, .my-row, .empty, .about-banner, .about-list {
+  border: 1px solid var(--glass-edge); border-radius: 30px; background: var(--glass-fill);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); box-shadow: var(--glass-shadow);
+}
+.product { padding: 10px 10px 0; overflow: hidden; }
+.product:hover { transform: translateY(-4px); box-shadow: 0 18px 40px #00000012,inset 0 1px 0 white; background: linear-gradient(135deg,#ffffffc9,#ffffff59); }
+.product-image { border-radius: 22px; border: 1px solid #fff9; background: transparent; }
+.bottle-scene { background: radial-gradient(ellipse at 70% 20%,#fff9,transparent 62%), linear-gradient(140deg,#ffffff26,#ffffff66 45%,#c7c7ca40); }
+.product-meta { margin: 21px 12px 0; color: #555; }
+.product h3 { margin: 10px 12px; }
+.product>p { padding: 0 12px 24px; font-size: 10px; }
+.badge, .round-arrow, .status-badge { border: 1px solid white; background: linear-gradient(130deg,#ffffffb3,#ffffff33); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 3px 10px #00000008,inset 0 1px 0 white; border-radius: 20px; }
+.round-arrow { width: 38px; height: 38px; }
+.brand-statement { margin: 6px 5% 0; border: 1px solid #ffffff6b; border-radius: 34px; background: linear-gradient(130deg,#353535ed,#151515d9); box-shadow: 0 16px 40px #0000000d,inset 0 1px 1px #ffffff70; }
+.brand-statement .text-btn { background: #ffffff0d; border-color: #ffffff38; box-shadow: inset 0 1px 0 #ffffff26; }
+.brand-statement .text-btn:hover { background: #ffffff26; color: white; }
+.bottom-grid { margin: 24px 5% 70px; }
+.bottom-grid>div { padding: 34px; }
+.bottom-grid>div:after { background: radial-gradient(circle at 30% 30%,#fff9,transparent 60%); border-color: #fff9; }
+footer { margin: 0 24px 24px; border: 1px solid #ffffffb3; border-radius: 30px; background: #ffffff33; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 38px 4%; box-shadow: var(--glass-shadow); }
+.search-field input, .date-label input { border: 1px solid #ffffffeb; background: linear-gradient(135deg,#ffffffa6,#ffffff40); border-radius: 22px; box-shadow: 0 6px 20px #00000004,inset 0 1px 0 white; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.search-field input { min-height: 60px; padding-left: 23px; }
+.search-field>span { right: 24px; top: 10px; }
+.filters { padding: 4px; border: 1px solid #ffffffb3; border-radius: 28px; background: #ffffff40; box-shadow: inset 0 1px 1px white; gap: 2px; }
+.filters button { border: 1px solid transparent; border-radius: 24px; padding: 9px 22px; background: transparent; min-height: 40px; }
+.filters button.chosen { border-color: #fff; background: linear-gradient(135deg,#fffffff2,#ffffffa6); box-shadow: 0 3px 8px #0000000a; color: #171717; }
+.detail-top { gap: 50px; }
+.detail-image { overflow: hidden; }
+.detail-image .bottle-scene { background-color: #ffffff1a; }
+.detail-copy { padding: 18px; }
+.product-specs>div { border-color: #00000012; }
+.tabs { background: #ffffff47; padding: 5px; border: 1px solid #ffffffb3; border-radius: 30px; box-shadow: inset 0 1px 0 white; width: fit-content; margin-bottom: 20px; gap: 3px; }
+.tabs button { border: 1px solid transparent; margin: 0; border-radius: 24px; min-height: 44px; padding: 12px 25px; color: #555; }
+.tabs button.chosen { border-color: #fff; background: linear-gradient(135deg,#fffffff2,#ffffffa6); box-shadow: 0 3px 10px #0000000d; }
+.info { padding: 40px; }
+.info-note { padding: 13px 18px; border: 1px solid #ffffffb3; border-radius: 16px; background: #ffffff4d; color: #555; }
+.shelf-summary { background: #ffffff38; border: 1px solid #fff9; border-radius: 24px; padding: 24px; box-shadow: inset 0 1px 0 #fffc; }
+.my-list { display: grid; gap: 18px; margin-top: 24px; }
+.my-row { padding: 22px; }
+.my-product-image { border-radius: 20px; overflow: hidden; border: 1px solid #fff; background: #fff3; }
+.status-badge { padding: 5px 12px; }
+.my-actions button { border-radius: 22px; padding: 12px 18px; background: #ffffff66; border: 1px solid #fff; box-shadow: inset 0 1px 0 #fff9; }
+.my-actions .delete-btn { background: transparent; box-shadow: none; color: #666; }
+.empty { background: linear-gradient(135deg,#ffffff94,#ffffff26); }
+.empty-mark { background: #fff3; border-color: #fffc; box-shadow: inset 1px 2px 6px white,0 8px 15px #00000008; }
+.about-banner { background: linear-gradient(125deg,#ffffffb3,#ffffff33 65%,#ffffff66); }
+.about-list { padding: 10px 28px; }
+.about-list details:last-child { border-bottom: 0; }
+.about-list summary { min-height: 24px; }
+.about-banner .glass-orb { box-shadow: inset 2px 3px 7px #fffb,inset -12px -6px 14px #ffffff6b,15px 25px 20px #00000008; }
+@media(max-width:1100px) and (min-width:751px) {
+  header { width: calc(100% - 36px); padding: 0 20px; }
+  .logo { font-size: 24px; }
+  nav button { padding: 0 15px; font-size: 11px; }
+  .account { font-size: 8px; gap: 12px; padding: 10px 12px; }
+  .principles { grid-template-columns: 1fr 1fr; }
+  .principle-title br { display: none; }
+  .hero-copy { margin-left: 4%; width: 380px; padding: 28px; }
+  .hero-copy h1 { font-size: 50px; }
+  .hero-brand { font-size: 37px; }
+  .my-row { grid-template-columns: 130px minmax(0,1fr) auto; gap: 18px; }
+}
+@media(max-width:750px) {
+  body { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+  header { width: calc(100% - 28px); height: 60px; margin-top: 12px; top: 12px; border-radius: 25px; padding: 0 16px; background: var(--glass-fill); backdrop-filter: blur(26px); -webkit-backdrop-filter: blur(26px); }
+  .logo { font-size: 23px; }
+  .account { font-size: 7px; padding: 9px 10px; gap: 10px; min-height: 35px; }
+  nav { top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); left: 50%; right: auto; width: calc(100% - 32px); max-width: 440px; height: 70px; transform: translateX(-50%); padding: 6px; border-radius: 30px; gap: 3px; border: 1px solid #fffffff2; background: linear-gradient(135deg,#ffffffd1,#ffffff8c); backdrop-filter: blur(32px) saturate(115%); -webkit-backdrop-filter: blur(32px) saturate(115%); box-shadow: 0 10px 30px #0000001a, inset 0 1px 1px white; }
+  nav button { flex: 1; flex-direction: column; height: 56px; border-radius: 24px; padding: 6px 4px; font-size: 9px; gap: 4px; }
+  nav button.active { background: linear-gradient(135deg,#fff,#ffffff9e); box-shadow: 0 2px 8px #0000000d,inset 0 1px 0 white; }
+  .nav-icon { display: block; }
+  .hero { margin: 16px 12px 0; border-radius: 30px; height: 790px; min-height: 0; }
+  .campaign-image { height: 610px; bottom: 0; object-position: 73% center; }
+  .hero:after { background: linear-gradient(180deg,#ffffff59,transparent 60%); }
+  .hero-copy { margin: 22px auto 0; width: calc(100% - 36px); max-width: none; padding: 26px; border-radius: 26px; background: linear-gradient(135deg,#ffffffb3,#ffffff59); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+  .hero-copy h1 { font-size: 44px; margin: 22px 0 12px; }
+  .hero-brand { font-size: 32px; }
+  .hero-copy p { font-size: 12px; margin-top: 18px; }
+  .hero .dark { font-size: 11px; min-height: 44px; padding: 12px 18px; margin-top: 20px; }
+  .hero-bottom { left: 18px; right: 18px; bottom: 18px; gap: 6px; }
+  .hero-bottom>span { padding: 9px 10px; }
+  .hero-bottom span:first-child { font-size: 9px; }
+  .hero-bottom span:last-child { font-size: 6px; letter-spacing: 0; }
+  .principles { padding: 26px 20px 0; grid-template-columns: 1fr; gap: 12px; }
+  .principle-title { padding: 4px 8px; margin-bottom: 6px; font-size: 22px; }
+  .principles>div:not(:first-child) { padding: 20px; border-top: 1px solid #fffc; border-radius: 22px; grid-template-columns: 1fr 1.35fr; }
+  .principles h2 { font-size: 12px; }
+  .section { padding: 42px 20px; }
+  .section-head h2 { font-size: 24px; }
+  .section-head .text-btn { padding: 10px 12px; gap: 7px; }
+  .cards { gap: 20px; }
+  .product { border-radius: 28px; padding: 8px 8px 0; }
+  .product-image { border-radius: 21px; }
+  .product-meta { font-size: 9px; margin: 18px 12px 0; }
+  .product h3 { margin: 10px 12px; }
+  .product>p { padding: 0 12px 23px; font-size: 10px; }
+  .bottle-scene { height: 310px; }
+  .brand-statement { margin: 0 20px; padding: 32px 25px; border-radius: 28px; }
+  .bottom-grid { margin: 18px 20px 42px; gap: 16px; }
+  .bottom-grid>div { padding: 28px 25px; border-radius: 28px; }
+  footer { margin: 0 12px; padding: 30px 22px; border-radius: 28px; }
+  footer .logo { font-size: 24px; }
+  .page-title { font-size: 31px; }
+  .search-field input { border-radius: 22px; padding-left: 18px; min-height: 56px; font-size: 12px; }
+  .filters { gap: 0; padding: 4px; }
+  .filters button { font-size: 10px; min-height: 38px; padding: 8px 17px; }
+  .explore-toolbar { gap: 13px; }
+  .detail-copy { padding: 0 5px; }
+  .detail-image { border-radius: 28px; }
+  .detail-copy .page-title { font-size: 28px; }
+  .tabs { width: 100%; gap: 0; padding: 4px; border-radius: 25px; }
+  .tabs button { min-width: 0; padding: 12px 6px; font-size: 10px; min-height: 44px; }
+  .info { border-radius: 25px; padding: 26px 20px; }
+  .info h2 { font-size: 22px; }
+  .info-note { padding: 12px 13px; font-size: 10px; }
+  .shelf-summary { padding: 20px 14px; gap: 8px; border-radius: 22px; }
+  .shelf-summary>span { font-size: 9px; gap: 4px; }
+  .shelf-summary strong { font-size: 16px; }
+  .my-row { padding: 16px; gap: 13px; grid-template-columns: 80px minmax(0,1fr); border-radius: 26px; }
+  .my-product-image { border-radius: 16px; }
+  .my-product-copy h2 { font-size: 15px; }
+  .my-actions { gap: 16px; }
+  .my-actions button { font-size: 10px; padding: 10px 14px; }
+  .date-label input { border-radius: 10px; }
+  .date-hint { font-size: 8px; }
+  .about-banner { padding: 30px 22px; border-radius: 27px; }
+  .about-list { padding: 6px 20px; border-radius: 27px; }
+  .empty { border-radius: 27px; }
+}
+/* Keep content legible when a browser or accessibility setting removes blur. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  header, nav, .hero-copy, .product, .info, .my-row, .about-list, .empty { background: #f4f4f4; }
+}
+@media(prefers-reduced-transparency:reduce) {
+  header, nav, .hero-copy, .product, .bottom-grid>div, .info, .my-row, .about-list, .empty, .about-banner, .principles>div:not(:first-child) { background: #f4f4f4; backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+@media(prefers-contrast:more) {
+  :root { --muted: #3d3d3d; --glass-edge: #888; }
+  nav, .hero-copy, .product, .info, .my-row, .about-list { background: #fafafa; border-color: #777; }
+  .product-meta, .product p span, .date-hint, .result-count { color: #444; }
+}

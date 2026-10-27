@@ -13,13 +13,21 @@ function bottle(p) {
   return `<div class="bottle-scene" aria-hidden="true"><div class="bottle ${p.type === '크림' ? 'jar' : 'cleanser'}"><div class="cap"></div><div class="label"><strong>Transparency.</strong><span>${p.en.replaceAll(' ', '<br>')}</span><small>${p.ingredient}<br>30 mL / 1.01 fl. oz.</small></div><div class="graduations"><i></i><i></i><i></i></div></div></div>`;
 }
 
+const navIcons = {
+  '홈': '<path d="m3 10 9-7 9 7v10H5V10m4 10v-7h6v7"/>',
+  '제품 탐색': '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+  '내 제품': '<rect x="5" y="6" width="14" height="15" rx="3"/><path d="M9 6V3h6v3m-6 6h6m-6 4h4"/>',
+  '더보기': '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+};
+
 function render() {
   document.querySelector('#app').innerHTML = `
     <a class="skip-link" href="#content">본문으로 이동</a>
     <header><button class="logo" data-page="홈" aria-label="Transparency. 홈">Transparency.</button>
-      <nav aria-label="주요 메뉴">${['홈', '제품 탐색', '내 제품', '더보기'].map(x => `<button ${!selected && page === x ? 'aria-current="page"' : ''} class="${page === x ? 'active' : ''}" data-page="${x}">${x}</button>`).join('')}</nav>
+
       <button class="account" data-page="내 제품">MY PRODUCTS ${arrow}</button>
     </header>
+      <nav aria-label="주요 메뉴">${['홈', '제품 탐색', '내 제품', '더보기'].map(x => `<button ${!selected && page === x ? 'aria-current="page"' : ''} class="${page === x ? 'active' : ''}" data-page="${x}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${navIcons[x]}</svg><span>${x}</span></button>`).join('')}</nav>
     <main id="content" tabindex="-1">${selected ? detail() : page === '홈' ? home() : page === '제품 탐색' ? explore() : page === '내 제품' ? my() : more()}</main>
     <footer><div><button class="logo" data-page="홈">Transparency.</button><p>성분에 장난 없이.</p></div><div class="footer-links"><button data-page="더보기">브랜드 소개 ${arrow}</button><button data-page="더보기">이용 안내 · 개인정보</button></div><small>© 2026 Transparency.<br>프로토타입 · 제품 및 성분 수치는 예시입니다.</small></footer>`;
   bind();
