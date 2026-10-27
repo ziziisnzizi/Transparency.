@@ -11,7 +11,7 @@ const products = [
     status: '개발 콘셉트 · 판매 전',
   },
 ];
-let page = '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
+let page = '홈', query = '', filter = '전체', selected = null, tab = '성분·함량', questionDraft = '';
 let saved = JSON.parse(localStorage.getItem('transparency-products') || '[]');
 saved = saved.filter(item => products.some(product => product.id === item.id));
 const arrow = '<span aria-hidden="true">↗</span>';
@@ -78,7 +78,7 @@ function detail() {
     '성분·함량': `<span class="eyebrow">01 / INGREDIENTS</span><h2>무엇을, 얼마나 담았는지.</h2><div class="ingredient-list"><article><div class="ingredient-row"><h3>글리세린 5.0%</h3><span>보습</span></div><p>수분감과 사용감을 함께 검토하기 위한 개발 목표값입니다.</p></article><article><div class="ingredient-row"><h3>판테놀 1.0%</h3><span>피부 컨디셔닝 · 보습</span></div><p>일상적인 수분 관리 콘셉트에 맞춘 개발 목표값입니다.</p></article><article><div class="ingredient-row"><h3>소듐하이알루로네이트 0.1%</h3><span>보습</span></div><p>제형의 점도와 발림성을 함께 검토하기 위한 개발 목표값입니다.</p></article></div><div class="info-note"><strong>가상 설계안 · 검증 전</strong><br>처방과 전성분은 확정되지 않았습니다. 실제 원료가 혼합물인 경우 원료 투입량과 유효 성분 함량을 구분해 다시 산정합니다.</div><p class="data-date">정보 확인일 2026.10.27</p>`,
     '효능·근거': `<span class="eyebrow">02 / EVIDENCE</span><h2>성분 연구와 완제품 결과를 구분합니다.</h2><div class="evidence-status"><strong>완제품 시험 자료 없음</strong><p>세럼 S.1의 보습 효과와 지속시간을 확인할 수 있는 완제품 시험 자료는 없습니다.</p></div><div class="research-grid"><article><span class="number">REFERENCE 01</span><h3>나이아신아마이드</h3><p>피부 장벽과 피부 톤에 관해 연구된 성분입니다. 피부 장벽을 구성하는 지질의 생성과 멜라노솜 전달 과정에 관여하는 것으로 보고되었습니다. 일부 인체 연구에서는 나이아신아마이드를 함유한 제형을 일정 기간 사용했을 때 색소침착, 잔주름, 탄력의 개선이 관찰되었습니다.</p><small>참고 연구: Tanno 외(2000), Hakozaki 외(2002), Bissett 외(2005)</small><div class="reference-note">현재 S.1 개발 검토 성분 목록에는 포함되어 있지 않은 참고 성분 연구입니다.</div></article><article><span class="number">REFERENCE 02</span><h3>히알루론산</h3><p>수분을 붙잡는 특성을 가진 보습 성분입니다. 여성 76명을 대상으로 한 연구에서는 히알루론산 0.1% 크림을 60일간 사용했을 때 대조 크림보다 피부 수분과 탄력이 개선되었습니다. 일부 분자량에서는 주름 깊이 감소도 관찰되었으며, 결과는 원료의 분자량과 제형에 따라 달라질 수 있습니다.</p><small>참고 연구: Pavicic 외(2011)</small><div class="reference-note">S.1의 소듐하이알루로네이트 또는 완제품 시험 결과와 동일한 자료가 아닙니다.</div></article></div><div class="info-note"><strong>연구 적용 범위</strong><br>위 내용은 해당 성분 또는 성분을 함유한 연구용 제형에 관한 자료입니다. 세럼 S.1의 완제품 시험 결과가 아니며, 실제 제품의 효과는 함량·원료 특성·배합·사용 조건에 따라 달라질 수 있습니다.</div><p class="data-date">자료 확인일 2026.10.27</p>`,
     '사용 안내': `<span class="eyebrow">03 / HOW TO USE</span><h2>첫 사용부터, 마지막 한 방울까지.</h2><div class="guide-grid"><div><span class="number">01 / ROUTINE</span><h3>세안 → 토너 → 세럼 S.1 → 크림</h3><p>약 0.5 mL를 얼굴에 부드럽게 펴 바릅니다. 하루 1~2회 사용을 가정한 임시 기준입니다.</p></div><div><span class="number">02 / STORAGE</span><h3>직사광선과 고온을 피해 보관</h3><p>뚜껑을 닫아 보관하고 스포이트 끝이 피부나 다른 표면에 닿지 않도록 사용합니다.</p></div><div><span class="number">03 / REMAINING</span><h3>5 mL 간격 눈금으로 확인</h3><p>용기를 평평한 곳에 세우고 내용물 높이를 눈금과 비교하세요. 실제 사용량과 용기 내부 잔류량에 따라 차이가 있을 수 있습니다.</p></div><div><span class="number">04 / DISPOSAL</span><h3>부품별 재질 확인 후 분리</h3><p>내용물을 최대한 사용한 뒤 병과 스포이트 캡, 라벨을 분리합니다. 지역 수거 기준을 함께 확인해 주세요.</p></div></div><div class="info-note">사용량·사용 횟수·사용기간은 화면용 임시 설정이며 제품 검증 후 확정합니다.</div>`,
-    '질문하기': `<span class="eyebrow">04 / QUESTIONS</span><h2>궁금한 것은, 남김없이.</h2>${[['어떤 피부 타입을 위한 제품인가요?','일상적인 수분 관리를 원하는 사용자를 위해 기획했습니다. 특정 피부 타입 적합성 시험은 진행하지 않았습니다.'],['1회 사용량은 얼마인가요?','현재는 0.5 mL를 기준으로 화면을 구성했습니다. 실제 권장량과 스포이트 토출량은 검증 전입니다.'],['민감한 피부도 사용할 수 있나요?','민감성 피부 대상 시험 자료가 없어 적합성을 확답하기 어렵습니다.'],['개봉 후 언제까지 사용하나요?','현재 앱에는 6개월을 임시로 설정했습니다. 안정성·보존력 검토 후 확정합니다.']].map(([q,a])=>`<details><summary>${q}</summary><p>${a}</p></details>`).join('')}<div class="info-note">AI 질문 기능은 준비 중입니다. 등록된 자료에서 확인할 수 없는 내용은 추측하지 않습니다.</div>`,
+    '질문하기': `<span class="eyebrow">04 / QUESTIONS</span><h2>궁금한 것은, 남김없이.</h2><div class="question-compose"><label for="ai-question">Transparency.에게 물어보기</label><p>세럼 S.1의 성분, 함량, 사용법에 대해 궁금한 내용을 입력해 보세요.</p><textarea id="ai-question" maxlength="500" rows="5" placeholder="예: 판테놀을 왜 넣었나요?">${escape(questionDraft)}</textarea><div class="question-meta"><span>현재는 텍스트 입력만 가능합니다. 질문은 전송되거나 저장되지 않습니다.</span><output id="question-count" for="ai-question">${questionDraft.length} / 500</output></div></div><h3 class="faq-title">자주 묻는 질문</h3>${[['어떤 피부 타입을 위한 제품인가요?','일상적인 수분 관리를 원하는 사용자를 위해 기획했습니다. 특정 피부 타입 적합성 시험은 진행하지 않았습니다.'],['1회 사용량은 얼마인가요?','현재는 0.5 mL를 기준으로 화면을 구성했습니다. 실제 권장량과 스포이트 토출량은 검증 전입니다.'],['민감한 피부도 사용할 수 있나요?','민감성 피부 대상 시험 자료가 없어 적합성을 확답하기 어렵습니다.'],['개봉 후 언제까지 사용하나요?','현재 앱에는 6개월을 임시로 설정했습니다. 안정성·보존력 검토 후 확정합니다.']].map(([q,a])=>`<details><summary>${q}</summary><p>${a}</p></details>`).join('')}<div class="info-note">AI 답변과 전송 기능은 준비 중입니다. 등록된 자료에서 확인할 수 없는 내용은 추측하지 않습니다.</div>`,
   };
   return `<section class="section page-section"><button id="back" class="text-btn">← 제품 목록</button><div class="detail-top"><div class="detail-image">${bottle(p)}<span class="image-caption">TRANSPARENCY. / PRODUCT CONCEPT</span></div><div class="detail-copy"><div class="eyebrow">${p.en.toUpperCase()}</div><h1 class="page-title">${p.name}</h1><p class="page-intro">${p.desc}</p><p>세럼 S.1은 일상적인 수분 관리를 위해 기획한 기초 세럼입니다. 각 성분의 역할과 배합 기준을 공개하고, 용기 눈금으로 남은 양을 확인하는 것을 목표로 합니다.</p><dl class="product-specs"><div><dt>상태</dt><dd>${p.status}</dd></div><div><dt>핵심 성분</dt><dd>${p.ingredient}</dd></div><div><dt>종류 · 용량</dt><dd>${p.type} · ${p.volume}</dd></div><div><dt>제형 · 향</dt><dd>투명 수용성 젤 · 향료 무첨가 목표</dd></div></dl><button class="dark" id="register">내 제품에 추가 <span aria-hidden="true">＋</span></button><p class="muted">가상 설계안 · 처방, 제형, 패키지는 검증 및 확정 전입니다.</p></div></div><div class="tabs" role="tablist" aria-label="제품 정보">${Object.keys(contents).map(t => `<button id="tab-${t}" role="tab" aria-controls="detail-panel" aria-selected="${tab === t}" data-tab="${t}" class="${tab === t ? 'chosen' : ''}">${t}</button>`).join('')}</div><div class="info" id="detail-panel" role="tabpanel" aria-labelledby="tab-${tab}">${contents[tab]}</div></section>`;
 }
@@ -157,6 +157,11 @@ function bind() {
       if (!composing && !e.isComposing) refreshSearchResults(e.target.value);
     };
   }
+  const questionInput = document.querySelector('#ai-question');
+  if (questionInput) questionInput.oninput = e => {
+    questionDraft = e.target.value;
+    document.querySelector('#question-count').textContent = `${questionDraft.length} / 500`;
+  };
   bindSearchReset();
   document.querySelector('#back')?.addEventListener('click', () => { selected = null; page = '제품 탐색'; render(); });
   document.querySelector('#register')?.addEventListener('click', () => { if (!saved.some(s => s.id === selected.id)) saved.push({ id: selected.id, date: '', done: false }); selected = null; page = '내 제품'; persist(); window.scrollTo(0, 0); });
@@ -164,4 +169,8 @@ function bind() {
   document.querySelectorAll('[data-done]').forEach(e => e.onclick = () => { saved[e.dataset.done].done = !saved[e.dataset.done].done; persist(); });
   document.querySelectorAll('[data-delete]').forEach(e => e.onclick = () => { if (window.confirm('등록한 제품과 사용 기록을 삭제할까요?')) { saved.splice(+e.dataset.delete, 1); persist(); } });
 }
+document.addEventListener('keydown', event => {
+  if (event.key === 'Tab') document.body.classList.add('keyboard-navigation');
+});
+document.addEventListener('pointerdown', () => document.body.classList.remove('keyboard-navigation'));
 render();
