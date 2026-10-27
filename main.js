@@ -6,6 +6,8 @@ const products = [
     type: '수분 세럼',
     kind: 'serum',
     volume: '30 mL',
+    rating: 4.3,
+    reviewCount: 128,
     ingredient: '글리세린 5.0% · 판테놀 1.0% · 소듐하이알루로네이트 0.1%',
     searchTerms: '세럼 수분 보습 글리세린 판테놀 소듐하이알루로네이트 히알루론산',
     desc: '필요한 수분, 확인할 수 있는 성분.',
@@ -27,6 +29,8 @@ const products = [
     type: '수분 토너',
     kind: 'toner',
     volume: '150 mL',
+    rating: 3.8,
+    reviewCount: 46,
     ingredient: '글리세린 3.0% · 판테놀 0.5% · 베타글루칸 0.1%',
     searchTerms: '토너 수분 보습 글리세린 판테놀 베타글루칸 스킨',
     desc: '세안 다음 단계, 필요한 수분만.',
@@ -48,6 +52,8 @@ const products = [
     type: '보습 크림',
     kind: 'cream',
     volume: '50 mL',
+    rating: 3.4,
+    reviewCount: 31,
     ingredient: '글리세린 5.0% · 스쿠알란 3.0% · 세라마이드 NP 0.05%',
     searchTerms: '크림 보습 장벽 글리세린 스쿠알란 세라마이드',
     desc: '수분이 머무는 마지막 단계.',
@@ -112,7 +118,7 @@ function home() {
 }
 
 function card(p) {
-  return `<button class="product" data-id="${p.id}" aria-label="${p.name} 상세 보기"><div class="product-image">${bottle(p)}<span class="badge">${p.type}</span><span class="round-arrow" aria-hidden="true">↗</span></div><div class="product-meta"><span>${p.en}</span><span>${p.volume}</span></div><h3>${p.name}</h3><p>${p.ingredient}<span>성분 확인 ${arrow}</span></p><span class="concept-status">${p.status}</span></button>`;
+  return `<button class="product" data-id="${p.id}" aria-label="${p.name} 상세 보기, 평점 ${p.rating.toFixed(1)}점"><div class="product-image">${bottle(p)}<span class="badge">${p.type}</span><span class="round-arrow" aria-hidden="true">↗</span></div><div class="product-meta"><span>${p.en}</span><span>${p.volume}</span></div><h3>${p.name}</h3><div class="product-rating" aria-label="평점 ${p.rating.toFixed(1)}점, 평가 ${p.reviewCount}개"><span aria-hidden="true">★</span><strong>${p.rating.toFixed(1)}</strong><small>${p.reviewCount} REVIEWS</small></div><p>${p.ingredient}<span>성분 확인 ${arrow}</span></p><span class="concept-status">${p.status}</span></button>`;
 }
 
 function productResults(list) {
@@ -121,12 +127,14 @@ function productResults(list) {
 
 function matchingProducts() {
   const term = query.trim().toLocaleLowerCase('ko-KR');
-  return products.filter(p => (filter === '전체' || filter === p.type) && `${p.name} ${p.en} ${p.ingredient} ${p.searchTerms}`.toLocaleLowerCase('ko-KR').includes(term));
+  return products
+    .filter(p => (filter === '전체' || filter === p.type) && `${p.name} ${p.en} ${p.ingredient} ${p.searchTerms}`.toLocaleLowerCase('ko-KR').includes(term))
+    .sort((a, b) => a.rating - b.rating || b.reviewCount - a.reviewCount);
 }
 
 function explore() {
   const list = matchingProducts();
-  return `<section class="section page-section"><div class="eyebrow">EXPLORE / THE FORMULAS</div><h1 class="page-title">성분에 장난 없이.</h1><p class="page-intro">궁금했던 성분부터, 제품의 근거와 사용법까지.</p><div class="search-field"><label class="sr-only" for="search">제품명 또는 성분명</label><input id="search" type="search" placeholder="제품명 또는 성분명으로 검색" value="${escape(query)}"><span aria-hidden="true">⌕</span></div><div class="explore-toolbar"><div class="filters" aria-label="제품 종류 필터">${['전체', ...products.map(product => product.type)].map(x => `<button data-filter="${x}" aria-pressed="${filter === x}" class="${filter === x ? 'chosen' : ''}">${x}</button>`).join('')}</div><span class="result-count">${String(list.length).padStart(2, '0')} PRODUCTS</span></div><div class="cards">${productResults(list)}</div></section>`;
+  return `<section class="section page-section"><div class="eyebrow">EXPLORE / THE FORMULAS</div><h1 class="page-title">성분에 장난 없이.</h1><p class="page-intro">궁금했던 성분부터, 제품의 근거와 사용법까지.</p><div class="search-field"><label class="sr-only" for="search">제품명 또는 성분명</label><input id="search" type="search" placeholder="제품명 또는 성분명으로 검색" value="${escape(query)}"><span aria-hidden="true">⌕</span></div><div class="explore-toolbar"><div class="filters" aria-label="제품 종류 필터">${['전체', ...products.map(product => product.type)].map(x => `<button data-filter="${x}" aria-pressed="${filter === x}" class="${filter === x ? 'chosen' : ''}">${x}</button>`).join('')}</div><span class="result-count">${String(list.length).padStart(2, '0')} PRODUCTS</span></div><div class="rating-sort-note"><span>★ 별점 낮은 순</span><p>불편을 먼저 보고, 고치고, 반영하기 위한 Transparency.의 기본 정렬입니다.</p></div><div class="cards">${productResults(list)}</div></section>`;
 }
 
 function legacyDetail() {
@@ -162,7 +170,7 @@ function questionContent(p) {
 function detail() {
   const p = selected;
   const contents = { '성분·함량': ingredientContent(p), '효능·근거': evidenceContent(p), '사용 안내': usageContent(p), '질문하기': questionContent(p) };
-  return `<section class="section page-section"><button id="back" class="text-btn">← 제품 목록</button><div class="detail-top"><div class="detail-image">${bottle(p)}<span class="image-caption">TRANSPARENCY. / PRODUCT CONCEPT</span></div><div class="detail-copy"><div class="eyebrow">${p.en.toUpperCase()}</div><h1 class="page-title">${p.name}</h1><p class="page-intro">${p.desc}</p><p>${p.longDesc}</p><dl class="product-specs"><div><dt>상태</dt><dd>${p.status}</dd></div><div><dt>핵심 성분</dt><dd>${p.ingredient}</dd></div><div><dt>종류 · 용량</dt><dd>${p.type} · ${p.volume}</dd></div><div><dt>제형 · 향</dt><dd>${p.texture} · 향료 무첨가 목표</dd></div></dl><button class="dark" id="register">내 제품에 추가 <span aria-hidden="true">＋</span></button><p class="muted">가상 설계안 · 처방, 제형, 패키지는 검증 및 확정 전입니다.</p></div></div><div class="tabs" role="tablist" aria-label="제품 정보">${Object.keys(contents).map(t => `<button id="tab-${t}" role="tab" aria-controls="detail-panel" aria-selected="${tab === t}" data-tab="${t}" class="${tab === t ? 'chosen' : ''}">${t}</button>`).join('')}</div><div class="info" id="detail-panel" role="tabpanel" aria-labelledby="tab-${tab}">${contents[tab]}</div></section>`;
+  return `<section class="section page-section"><button id="back" class="text-btn">← 제품 목록</button><div class="detail-top"><div class="detail-image">${bottle(p)}<span class="image-caption">TRANSPARENCY. / PRODUCT CONCEPT</span></div><div class="detail-copy"><div class="eyebrow">${p.en.toUpperCase()}</div><h1 class="page-title">${p.name}</h1><div class="detail-rating" aria-label="평점 ${p.rating.toFixed(1)}점, 평가 ${p.reviewCount}개"><span aria-hidden="true">★</span><strong>${p.rating.toFixed(1)}</strong><span>${p.reviewCount}개 평가</span></div><p class="page-intro">${p.desc}</p><p>${p.longDesc}</p><dl class="product-specs"><div><dt>상태</dt><dd>${p.status}</dd></div><div><dt>핵심 성분</dt><dd>${p.ingredient}</dd></div><div><dt>종류 · 용량</dt><dd>${p.type} · ${p.volume}</dd></div><div><dt>제형 · 향</dt><dd>${p.texture} · 향료 무첨가 목표</dd></div></dl><button class="dark" id="register">내 제품에 추가 <span aria-hidden="true">＋</span></button><p class="muted">표시된 별점과 평가 수는 프로토타입용 예시 데이터입니다.</p><p class="muted">가상 설계안 · 처방, 제형, 패키지는 검증 및 확정 전입니다.</p></div></div><div class="tabs" role="tablist" aria-label="제품 정보">${Object.keys(contents).map(t => `<button id="tab-${t}" role="tab" aria-controls="detail-panel" aria-selected="${tab === t}" data-tab="${t}" class="${tab === t ? 'chosen' : ''}">${t}</button>`).join('')}</div><div class="info" id="detail-panel" role="tabpanel" aria-labelledby="tab-${tab}">${contents[tab]}</div></section>`;
 }
 
 function my() {
