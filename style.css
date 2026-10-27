@@ -22,7 +22,8 @@ button { transition: background .2s, color .2s, transform .2s; }
 .skip-link { position: fixed; top: -100px; left: 20px; z-index: 20; background: #171717; color: white; padding: 14px; }
 .keyboard-navigation .skip-link:focus { top: 10px; }
 header { height: 88px; padding: 0 5%; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ffffffb3; background: #ffffffc9; backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); position: sticky; top: 0; z-index: 10; }
-.logo { font-family: Arial, Helvetica, sans-serif; font-size: 29px; font-weight: 700; letter-spacing: -1.5px; padding: 0; }
+.logo { display: inline-flex; align-items: center; width: fit-content; max-width: 220px; min-height: 32px; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: clamp(24px, 2vw, 29px); font-weight: 700; line-height: 1; letter-spacing: -1.5px; white-space: nowrap; }
+.logo img { display: block; width: auto; max-width: 100%; height: 32px; object-fit: contain; object-position: left center; }
 nav { display: flex; gap: 38px; height: 100%; align-items: center; }
 nav button { height: 100%; position: relative; font-size: 13px; color: #686868; padding: 0 4px; }
 nav button.active { color: #111; }
@@ -105,7 +106,8 @@ h3 { font-size: 16px; font-weight: 500; margin: 9px 0; letter-spacing: -.5px; }
 .bottom-grid p { font-size: 11px; }
 .panel-number { position: absolute; right: 30px; bottom: 25px; font: 10px Arial,sans-serif; color: #737373; }
 footer { padding: 45px 7%; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 30px; background: #f2f2f2; }
-footer .logo { font-size: 26px; }
+footer .logo { max-width: 200px; min-height: 29px; font-size: 26px; }
+footer .logo img { height: 29px; }
 footer p { margin: 12px 0 0; font-size: 11px; }
 .footer-links { display: grid; gap: 14px; }
 .footer-links button, .footer-links a { font-size: 11px; text-align: left; padding: 0; color: inherit; text-decoration: none; }
@@ -233,7 +235,8 @@ details p { max-width: 730px; margin-bottom: 0; }
 @media(max-width:750px) {
   body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   header { height: 66px; padding: 0 6%; background: #ffffffed; backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .logo { font-size: 25px; }
+  .logo { max-width: min(48vw, 180px); min-height: 27px; font-size: 25px; }
+  .logo img { height: 27px; }
   .account { font-size: 8px; padding: 9px; gap: 12px; }
   nav { position: fixed; bottom: 0; left: 0; right: 0; height: calc(64px + env(safe-area-inset-bottom)); padding: 0 12px env(safe-area-inset-bottom); width: 100%; background: #ffffffed; border-top: 1px solid #d9d9d9; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); justify-content: space-around; gap: 0; }
   nav button { flex: 1; font-size: 11px; }
@@ -278,7 +281,7 @@ details p { max-width: 730px; margin-bottom: 0; }
   .bottom-grid>div { padding: 30px 25px; }
   .bottom-grid h2 { font-size: 24px; }
   footer { padding: 35px 7%; flex-wrap: wrap; gap: 25px; }
-  footer .logo { font-size: 25px; }
+  footer .logo { max-width: 180px; min-height: 27px; font-size: 25px; }
   footer small { width: 100%; text-align: left; font-size: 9px; }
   .footer-links { margin-left: auto; }
   .footer-links button { font-size: 10px; }
