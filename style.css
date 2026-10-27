@@ -74,11 +74,15 @@ h2 { font-size: 31px; font-weight: 500; letter-spacing: -1.5px; line-height: 1.5
 .label small { display: block; font-size: 5px; line-height: 1.7; margin-top: 13px; color: #414141; }
 .graduations { position: absolute; right: 7px; bottom: 35px; display: grid; gap: 10px; }
 .graduations i { display: block; width: 9px; height: 1px; background: #17171780; }
-.jar { height: 96px; width: 143px; border-radius: 9px 9px 16px 16px; background: linear-gradient(90deg,#c3c3c34d,#ffffffdf 12%,#ececec66 40%,#ffffffe6 75%,#c0c0c055); }
-.jar .cap { width: 143px; left: -1px; top: -24px; height: 29px; border-radius: 7px 7px 2px 2px; }
-.jar .label { padding: 12px; }
-.jar .label span { font-size: 8px; margin-top: 5px; }
-.jar .label small { margin-top: 5px; }
+.cream { height: 96px; width: 143px; border-radius: 9px 9px 16px 16px; background: linear-gradient(90deg,#c3c3c34d,#ffffffdf 12%,#ececec66 40%,#ffffffe6 75%,#c0c0c055); }
+.cream .cap { width: 143px; left: -1px; top: -24px; height: 29px; border-radius: 7px 7px 2px 2px; }
+.cream .label { padding: 12px; }
+.cream .label span { font-size: 8px; margin-top: 5px; }
+.cream .label small { margin-top: 5px; }
+.toner { width: 105px; height: 190px; border-radius: 12px 12px 18px 18px; }
+.toner .cap { top: -27px; left: 12px; width: 79px; height: 32px; border-radius: 8px 8px 3px 3px; }
+.toner .label { padding-top: 35px; }
+.toner .label span { font-size: 9px; }
 .badge { position: absolute; left: 17px; top: 17px; font-size: 10px; background: #ffffff6b; backdrop-filter: blur(12px); border: 1px solid #ffffffc9; padding: 5px 11px; }
 .round-arrow { position: absolute; bottom: 16px; right: 16px; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #ffffffed; background: #ffffff66; backdrop-filter: blur(12px); border-radius: 50%; }
 .product:hover .round-arrow { background: #171717; color: white; border-color: #171717; }
