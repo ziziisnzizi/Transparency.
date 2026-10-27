@@ -38,7 +38,8 @@ main { max-width: 1680px; margin: auto; outline: none; }
 .eyebrow, .number { font-family: Arial, sans-serif; font-size: 10px; font-weight: 500; letter-spacing: 1.9px; display: block; }
 .eyebrow i { display: inline-block; width: 5px; height: 5px; background: #171717; border-radius: 50%; margin: 0 8px 2px 0; }
 h1 { font-size: clamp(47px, 4.1vw, 68px); line-height: 1.23; letter-spacing: -.065em; font-weight: 500; margin: 40px 0 14px; }
-.hero-brand { font-family: Arial, Helvetica, sans-serif; font-size: clamp(32px, 3.1vw, 50px); font-weight: 700; letter-spacing: -.06em; }
+.hero-brand { width: clamp(225px, 23vw, 330px); }
+.hero-brand img, .about-logo img { display: block; width: 100%; height: auto; }
 p { font-size: 13px; line-height: 1.95; color: var(--muted); }
 .hero-copy p { margin: 28px 0 0; color: #464646; font-size: 14px; line-height: 1.9; }
 .dark { background: #171717; color: white; padding: 17px 23px; font-size: 12px; display: inline-flex; align-items: center; justify-content: space-between; gap: 48px; min-height: 48px; margin-top: 27px; }
@@ -201,7 +202,7 @@ input::placeholder { color: #757575; }
 .storage-note { margin-top: 25px; font-size: 10px; }
 .about-banner { position: relative; overflow: hidden; isolation: isolate; padding: 50px; background: linear-gradient(125deg,#e8e8e8,#fafafa 55%,#d9d9d9); border: 1px solid #e1e1e1; }
 .about-banner .page-title { font-size: 34px; margin-bottom: 10px; }
-.about-logo { font: 700 43px Arial,sans-serif; letter-spacing: -2px; }
+.about-logo { width: min(330px, 55%); }
 .about-banner p { margin-top: 25px; }
 .about-banner .glass-orb { right: 8%; top: 45px; }
 .about-list { margin-top: 30px; }
@@ -247,7 +248,7 @@ details p { max-width: 730px; margin-bottom: 0; }
   .hero-copy { padding: 42px 7% 270px; max-width: 100%; }
   .hero .eyebrow { font-size: 8px; }
   h1 { font-size: 47px; line-height: 1.2; margin: 25px 0 10px; }
-  .hero-brand { font-size: 34px; }
+  .hero-brand { width: min(72vw, 280px); }
   .hero-copy p { margin-top: 20px; font-size: 12px; }
   .hero .dark { margin-top: 22px; min-height: 42px; padding: 13px 17px; font-size: 10px; gap: 25px; }
   .hero-bottom { left: 7%; right: 7%; bottom: 20px; }
@@ -338,7 +339,7 @@ details p { max-width: 730px; margin-bottom: 0; }
   .about-banner { padding: 30px 22px; }
   .about-banner .eyebrow { font-size: 8px; }
   .about-banner .page-title { font-size: 25px; letter-spacing: -1.5px; }
-  .about-logo { font-size: 32px; letter-spacing: -1.5px; }
+  .about-logo { width: min(270px, 78%); }
   .about-banner p { font-size: 11px; }
   .about-banner .glass-orb { width: 140px; height: 140px; right: -75px; opacity: .5; }
   details { padding: 22px 0; }

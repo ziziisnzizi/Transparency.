@@ -78,6 +78,7 @@ if (localStorage.getItem('transparency-catalog-version') !== catalogVersion) {
   localStorage.setItem('transparency-catalog-version', catalogVersion);
 }
 const arrow = '<span aria-hidden="true">↗</span>';
+const logoMark = '<img src="/images/transparency-logo.svg" alt="" width="2679" height="603">';
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function bottle(p) {
@@ -95,20 +96,20 @@ const navIcons = {
 function render() {
   document.querySelector('#app').innerHTML = `
     <a class="skip-link" href="#content">본문으로 이동</a>
-    <header><button class="logo" data-page="홈" aria-label="Transparency. 홈">Transparency.</button>
+    <header><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button>
 
       <button class="account" data-page="내 제품">MY PRODUCTS ${arrow}</button>
     </header>
       <nav aria-label="주요 메뉴">${['홈', '제품 탐색', '내 제품', '더보기'].map(x => `<button ${!selected && page === x ? 'aria-current="page"' : ''} class="${page === x ? 'active' : ''}" data-page="${x}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${navIcons[x]}</svg><span>${x}</span></button>`).join('')}</nav>
     <main id="content" tabindex="-1">${selected ? detail() : page === '홈' ? home() : page === '제품 탐색' ? explore() : page === '내 제품' ? my() : more()}</main>
-    <footer><div><button class="logo" data-page="홈">Transparency.</button><p>성분에 장난 없이.</p></div><div class="footer-links"><button data-page="더보기">브랜드 소개 ${arrow}</button><a href="mailto:ztheng@inha.edu">ztheng@inha.edu</a></div><small>© 2026 Transparency. All rights reserved.<br>모든 제품은 판매 전 개발 콘셉트입니다.</small></footer>`;
+    <footer><div><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button><p>성분에 장난 없이.</p></div><div class="footer-links"><button data-page="더보기">브랜드 소개 ${arrow}</button><a href="mailto:ztheng@inha.edu">ztheng@inha.edu</a></div><small>© 2026 Transparency. All rights reserved.<br>모든 제품은 판매 전 개발 콘셉트입니다.</small></footer>`;
   bind();
 }
 
 function home() {
   return `<section class="hero" aria-labelledby="hero-title">
     <img class="campaign-image" src="/images/transparency-campaign.png" alt="흑백의 빛과 그림자 속 투명한 플라스크형 세럼 용기, 흰색 패키지와 유리 오브제" fetchpriority="high" width="1536" height="1024">
-    <div class="hero-copy"><div class="eyebrow"><i></i> NOTHING TO HIDE.</div><h1 id="hero-title">가릴 것이<br>없으니까.</h1><div class="hero-brand">Transparency.</div><p>궁금했던 성분부터,<br>나에게 맞는 사용법까지.</p><button class="dark" data-page="제품 탐색">제품 살펴보기 ${arrow}</button></div>
+    <div class="hero-copy"><div class="eyebrow"><i></i> NOTHING TO HIDE.</div><h1 id="hero-title">가릴 것이<br>없으니까.</h1><div class="hero-brand"><img src="/images/transparency-logo.svg" alt="Transparency." width="2679" height="603"></div><p>궁금했던 성분부터,<br>나에게 맞는 사용법까지.</p><button class="dark" data-page="제품 탐색">제품 살펴보기 ${arrow}</button></div>
     <div class="hero-bottom"><span>극도의 투명함, 손안에서.</span><span>BRAND CONCEPT — 01</span></div>
   </section>
   <section class="principles" aria-label="정보 공개 원칙"><div class="principle-title">성분에<br>장난 없이.</div><div><span class="number">01 / INGREDIENTS</span><h2>무엇을 담았는지.</h2><p>성분과 함량을 확인하세요.</p></div><div><span class="number">02 / EVIDENCE</span><h2>어디까지 확인됐는지.</h2><p>근거와 그 한계까지 살펴보세요.</p></div><div><span class="number">03 / YOUR ROUTINE</span><h2>어떻게 사용하는지.</h2><p>첫 사용부터 마지막 한 방울까지.</p></div></section>
@@ -181,7 +182,7 @@ function my() {
 }
 
 function more() {
-  return `<section class="section page-section"><div class="about-banner"><span class="eyebrow">ABOUT TRANSPARENCY.</span><h1 class="page-title">가릴 것이 없으니까.</h1><div class="about-logo">Transparency.</div><p>궁금했던 성분부터, 나에게 맞는 사용법까지.<br>극도의 투명함, 손안에서.</p><div class="glass-orb" aria-hidden="true"></div></div><div class="about-list">${[
+  return `<section class="section page-section"><div class="about-banner"><span class="eyebrow">ABOUT TRANSPARENCY.</span><h1 class="page-title">가릴 것이 없으니까.</h1><div class="about-logo"><img src="/images/transparency-logo.svg" alt="Transparency." width="2679" height="603"></div><p>궁금했던 성분부터, 나에게 맞는 사용법까지.<br>극도의 투명함, 손안에서.</p><div class="glass-orb" aria-hidden="true"></div></div><div class="about-list">${[
     ['01', '브랜드 철학', '알고 선택하고, 납득하며 사용하고, 끝까지 확인하는 것. Transparency.가 생각하는 투명함입니다.'],
     ['02', '정보 공개 원칙', '성분의 역할과 함량 기준을 설명합니다. 효능에는 출처와 한계를 함께 표시합니다. 확인되지 않은 내용은 확인되지 않았다고 안내하고, 정보가 바뀌면 확인일과 변경 내용을 갱신합니다.'],
     ['03', '서비스 이용 안내', '제품을 탐색하고 내 제품으로 등록하세요. 개봉일을 입력하고 사용 상태를 관리할 수 있습니다. 기록은 이 브라우저에만 저장됩니다.'],
