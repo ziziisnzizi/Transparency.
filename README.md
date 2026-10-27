@@ -40,6 +40,7 @@ npm 기본 캐시 경로에 쓰기 권한이 없으면 `npm ci --cache /tmp/tran
 - [상세 사용자 흐름](docs/application-flow.md)
 - [모바일 와이어프레임 20개 화면 · PNG / SVG / PDF](docs/wireframes/README.md)
 - [브랜드 문구·디자인 기준과 검증](docs/brand-direction.md)
+- [콘텐츠 적용 상태와 남은 결정](docs/content-status-2026-10-27.md)
 - 작업 보드: https://github.com/users/ziziisnzizi/projects/1
 - Vercel: `vercel.json`, Netlify: `netlify.toml`
 - 정적 배포 결과물: `npm run build` 후 `dist/`

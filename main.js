@@ -1,15 +1,24 @@
 const products = [
-  { id: 1, name: '데일리 밸런스 세럼', en: 'Daily Balance Serum', type: '세럼', ingredient: '나이아신아마이드 5%', desc: '무엇을, 얼마나 담았는지. 성분부터 살펴보세요.' },
-  { id: 2, name: '베리어 컴포트 크림', en: 'Barrier Comfort Cream', type: '크림', ingredient: '세라마이드 NP 0.1%', desc: '피부에 닿는 성분과 사용법을 확인하세요.' },
-  { id: 3, name: '젠틀 리셋 클렌저', en: 'Gentle Reset Cleanser', type: '클렌저', ingredient: '판테놀 1%', desc: '매일 사용하는 제품, 그 안쪽까지 알아보세요.' },
+  {
+    id: 1,
+    name: '세럼 S.1',
+    en: 'Transparency. Serum S.1',
+    type: '수분 세럼',
+    volume: '30 mL',
+    ingredient: '글리세린 5.0% · 판테놀 1.0% · 소듐하이알루로네이트 0.1%',
+    searchTerms: '세럼 수분 보습 글리세린 판테놀 소듐하이알루로네이트 히알루론산',
+    desc: '필요한 수분, 확인할 수 있는 성분.',
+    status: '개발 콘셉트 · 판매 전',
+  },
 ];
 let page = '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
 let saved = JSON.parse(localStorage.getItem('transparency-products') || '[]');
+saved = saved.filter(item => products.some(product => product.id === item.id));
 const arrow = '<span aria-hidden="true">↗</span>';
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function bottle(p) {
-  if (p.type === '세럼') return '<div class="bottle-scene flask-scene"><img src="/images/transparency-glass.svg" alt="투명한 플라스크형 세럼 용기 콘셉트 일러스트" loading="lazy"></div>';
+  if (p.id === 1) return '<div class="bottle-scene flask-scene"><img src="/images/transparency-glass.svg" alt="투명한 플라스크형 세럼 S.1 콘셉트 일러스트" loading="lazy"></div>';
   return `<div class="bottle-scene" aria-hidden="true"><div class="bottle ${p.type === '크림' ? 'jar' : 'cleanser'}"><div class="cap"></div><div class="label"><strong>Transparency.</strong><span>${p.en.replaceAll(' ', '<br>')}</span><small>${p.ingredient}<br>30 mL / 1.01 fl. oz.</small></div><div class="graduations"><i></i><i></i><i></i></div></div></div>`;
 }
 
@@ -29,7 +38,7 @@ function render() {
     </header>
       <nav aria-label="주요 메뉴">${['홈', '제품 탐색', '내 제품', '더보기'].map(x => `<button ${!selected && page === x ? 'aria-current="page"' : ''} class="${page === x ? 'active' : ''}" data-page="${x}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${navIcons[x]}</svg><span>${x}</span></button>`).join('')}</nav>
     <main id="content" tabindex="-1">${selected ? detail() : page === '홈' ? home() : page === '제품 탐색' ? explore() : page === '내 제품' ? my() : more()}</main>
-    <footer><div><button class="logo" data-page="홈">Transparency.</button><p>성분에 장난 없이.</p></div><div class="footer-links"><button data-page="더보기">브랜드 소개 ${arrow}</button><button data-page="더보기">이용 안내 · 개인정보</button></div><small>© 2026 Transparency.<br>프로토타입 · 제품 및 성분 수치는 예시입니다.</small></footer>`;
+    <footer><div><button class="logo" data-page="홈">Transparency.</button><p>성분에 장난 없이.</p></div><div class="footer-links"><button data-page="더보기">브랜드 소개 ${arrow}</button><a href="mailto:ztheng@inha.edu">ztheng@inha.edu</a></div><small>© 2026 Transparency. All rights reserved.<br>세럼 S.1은 개발 콘셉트이며 판매 전입니다.</small></footer>`;
   bind();
 }
 
@@ -46,7 +55,7 @@ function home() {
 }
 
 function card(p) {
-  return `<button class="product" data-id="${p.id}" aria-label="${p.name} 상세 보기"><div class="product-image">${bottle(p)}<span class="badge">${p.type}</span><span class="round-arrow" aria-hidden="true">↗</span></div><div class="product-meta"><span>${p.en}</span><span>30 mL</span></div><h3>${p.name}</h3><p>${p.ingredient}<span>성분 확인 ${arrow}</span></p></button>`;
+  return `<button class="product" data-id="${p.id}" aria-label="${p.name} 상세 보기"><div class="product-image">${bottle(p)}<span class="badge">${p.type}</span><span class="round-arrow" aria-hidden="true">↗</span></div><div class="product-meta"><span>${p.en}</span><span>${p.volume}</span></div><h3>${p.name}</h3><p>${p.ingredient}<span>성분 확인 ${arrow}</span></p><span class="concept-status">${p.status}</span></button>`;
 }
 
 function productResults(list) {
@@ -54,23 +63,24 @@ function productResults(list) {
 }
 
 function matchingProducts() {
-  return products.filter(p => (filter === '전체' || filter === p.type) && (p.name + p.ingredient).includes(query));
+  const term = query.trim().toLocaleLowerCase('ko-KR');
+  return products.filter(p => (filter === '전체' || filter === p.type) && `${p.name} ${p.en} ${p.ingredient} ${p.searchTerms}`.toLocaleLowerCase('ko-KR').includes(term));
 }
 
 function explore() {
   const list = matchingProducts();
-  return `<section class="section page-section"><div class="eyebrow">EXPLORE / THE FORMULAS</div><h1 class="page-title">성분에 장난 없이.</h1><p class="page-intro">궁금했던 성분부터, 제품의 근거와 사용법까지.</p><div class="search-field"><label class="sr-only" for="search">제품명 또는 성분명</label><input id="search" type="search" placeholder="제품명 또는 성분명으로 검색" value="${escape(query)}"><span aria-hidden="true">⌕</span></div><div class="explore-toolbar"><div class="filters" aria-label="제품 종류 필터">${['전체', '세럼', '크림', '클렌저'].map(x => `<button data-filter="${x}" aria-pressed="${filter === x}" class="${filter === x ? 'chosen' : ''}">${x}</button>`).join('')}</div><span class="result-count">${String(list.length).padStart(2, '0')} PRODUCTS</span></div><div class="cards">${productResults(list)}</div></section>`;
+  return `<section class="section page-section"><div class="eyebrow">EXPLORE / THE FORMULAS</div><h1 class="page-title">성분에 장난 없이.</h1><p class="page-intro">궁금했던 성분부터, 제품의 근거와 사용법까지.</p><div class="search-field"><label class="sr-only" for="search">제품명 또는 성분명</label><input id="search" type="search" placeholder="제품명 또는 성분명으로 검색" value="${escape(query)}"><span aria-hidden="true">⌕</span></div><div class="explore-toolbar"><div class="filters" aria-label="제품 종류 필터">${['전체', '수분 세럼'].map(x => `<button data-filter="${x}" aria-pressed="${filter === x}" class="${filter === x ? 'chosen' : ''}">${x}</button>`).join('')}</div><span class="result-count">${String(list.length).padStart(2, '0')} PRODUCTS</span></div><div class="cards">${productResults(list)}</div></section>`;
 }
 
 function detail() {
   const p = selected;
   const contents = {
-    '성분·함량': `<span class="eyebrow">01 / INGREDIENTS</span><h2>무엇을, 얼마나 담았는지.</h2><div class="ingredient-row"><h3>${p.ingredient}</h3><span>핵심 성분 · 예시</span></div><p>핵심 성분과 함량을 확인하는 화면입니다. 실제 전성분과 함량 설정 이유는 출시 제품 자료가 연결되면 확인할 수 있습니다.</p><div class="info-note">현재 표시된 제품과 성분 수치는 프로토타입을 위한 예시입니다.</div>`,
-    '효능·근거': '<span class="eyebrow">02 / EVIDENCE</span><h2>확인된 만큼만, 정확하게.</h2><p>현재는 데모 제품으로, 완제품 시험 결과나 검증된 연구 자료가 등록되지 않았습니다.</p><div class="info-note">등록된 근거 자료 없음 · 실제 제품의 효능을 보장하지 않습니다.</div>',
-    '사용 안내': '<span class="eyebrow">03 / HOW TO USE</span><h2>첫 사용부터, 마지막 한 방울까지.</h2><div class="guide-grid"><div><span class="number">01</span><h3>사용 순서와 사용량</h3><p>제품 라벨의 사용법과 적정량을 확인하세요. 자극이 발생하면 사용을 중단하세요.</p></div><div><span class="number">02</span><h3>사용 후 분리배출</h3><p>용기의 재질 표기를 확인하고 내용물을 비운 뒤 지역 분리배출 기준을 따라주세요.</p></div></div>',
-    '질문하기': '<span class="eyebrow">04 / QUESTIONS</span><h2>궁금한 것은, 남김없이.</h2><details><summary>개봉일은 어디에서 관리하나요?</summary><p>내 제품에 등록하면 개봉일과 사용 상태를 관리할 수 있습니다.</p></details><div class="info-note">AI 질문과 근거 검색은 준비 중입니다.</div>',
+    '성분·함량': `<span class="eyebrow">01 / INGREDIENTS</span><h2>무엇을, 얼마나 담았는지.</h2><div class="ingredient-list"><article><div class="ingredient-row"><h3>글리세린 5.0%</h3><span>보습</span></div><p>수분감과 사용감을 함께 검토하기 위한 개발 목표값입니다.</p></article><article><div class="ingredient-row"><h3>판테놀 1.0%</h3><span>피부 컨디셔닝 · 보습</span></div><p>일상적인 수분 관리 콘셉트에 맞춘 개발 목표값입니다.</p></article><article><div class="ingredient-row"><h3>소듐하이알루로네이트 0.1%</h3><span>보습</span></div><p>제형의 점도와 발림성을 함께 검토하기 위한 개발 목표값입니다.</p></article></div><div class="info-note"><strong>가상 설계안 · 검증 전</strong><br>처방과 전성분은 확정되지 않았습니다. 실제 원료가 혼합물인 경우 원료 투입량과 유효 성분 함량을 구분해 다시 산정합니다.</div><p class="data-date">정보 확인일 2026.10.27</p>`,
+    '효능·근거': `<span class="eyebrow">02 / EVIDENCE</span><h2>성분 연구와 완제품 결과를 구분합니다.</h2><div class="evidence-status"><strong>완제품 시험 자료 없음</strong><p>세럼 S.1의 보습 효과와 지속시간을 확인할 수 있는 완제품 시험 자료는 없습니다.</p></div><div class="research-grid"><article><span class="number">REFERENCE 01</span><h3>나이아신아마이드</h3><p>피부 장벽과 피부 톤에 관해 연구된 성분입니다. 피부 장벽을 구성하는 지질의 생성과 멜라노솜 전달 과정에 관여하는 것으로 보고되었습니다. 일부 인체 연구에서는 나이아신아마이드를 함유한 제형을 일정 기간 사용했을 때 색소침착, 잔주름, 탄력의 개선이 관찰되었습니다.</p><small>참고 연구: Tanno 외(2000), Hakozaki 외(2002), Bissett 외(2005)</small><div class="reference-note">현재 S.1 개발 검토 성분 목록에는 포함되어 있지 않은 참고 성분 연구입니다.</div></article><article><span class="number">REFERENCE 02</span><h3>히알루론산</h3><p>수분을 붙잡는 특성을 가진 보습 성분입니다. 여성 76명을 대상으로 한 연구에서는 히알루론산 0.1% 크림을 60일간 사용했을 때 대조 크림보다 피부 수분과 탄력이 개선되었습니다. 일부 분자량에서는 주름 깊이 감소도 관찰되었으며, 결과는 원료의 분자량과 제형에 따라 달라질 수 있습니다.</p><small>참고 연구: Pavicic 외(2011)</small><div class="reference-note">S.1의 소듐하이알루로네이트 또는 완제품 시험 결과와 동일한 자료가 아닙니다.</div></article></div><div class="info-note"><strong>연구 적용 범위</strong><br>위 내용은 해당 성분 또는 성분을 함유한 연구용 제형에 관한 자료입니다. 세럼 S.1의 완제품 시험 결과가 아니며, 실제 제품의 효과는 함량·원료 특성·배합·사용 조건에 따라 달라질 수 있습니다.</div><p class="data-date">자료 확인일 2026.10.27</p>`,
+    '사용 안내': `<span class="eyebrow">03 / HOW TO USE</span><h2>첫 사용부터, 마지막 한 방울까지.</h2><div class="guide-grid"><div><span class="number">01 / ROUTINE</span><h3>세안 → 토너 → 세럼 S.1 → 크림</h3><p>약 0.5 mL를 얼굴에 부드럽게 펴 바릅니다. 하루 1~2회 사용을 가정한 임시 기준입니다.</p></div><div><span class="number">02 / STORAGE</span><h3>직사광선과 고온을 피해 보관</h3><p>뚜껑을 닫아 보관하고 스포이트 끝이 피부나 다른 표면에 닿지 않도록 사용합니다.</p></div><div><span class="number">03 / REMAINING</span><h3>5 mL 간격 눈금으로 확인</h3><p>용기를 평평한 곳에 세우고 내용물 높이를 눈금과 비교하세요. 실제 사용량과 용기 내부 잔류량에 따라 차이가 있을 수 있습니다.</p></div><div><span class="number">04 / DISPOSAL</span><h3>부품별 재질 확인 후 분리</h3><p>내용물을 최대한 사용한 뒤 병과 스포이트 캡, 라벨을 분리합니다. 지역 수거 기준을 함께 확인해 주세요.</p></div></div><div class="info-note">사용량·사용 횟수·사용기간은 화면용 임시 설정이며 제품 검증 후 확정합니다.</div>`,
+    '질문하기': `<span class="eyebrow">04 / QUESTIONS</span><h2>궁금한 것은, 남김없이.</h2>${[['어떤 피부 타입을 위한 제품인가요?','일상적인 수분 관리를 원하는 사용자를 위해 기획했습니다. 특정 피부 타입 적합성 시험은 진행하지 않았습니다.'],['1회 사용량은 얼마인가요?','현재는 0.5 mL를 기준으로 화면을 구성했습니다. 실제 권장량과 스포이트 토출량은 검증 전입니다.'],['민감한 피부도 사용할 수 있나요?','민감성 피부 대상 시험 자료가 없어 적합성을 확답하기 어렵습니다.'],['개봉 후 언제까지 사용하나요?','현재 앱에는 6개월을 임시로 설정했습니다. 안정성·보존력 검토 후 확정합니다.']].map(([q,a])=>`<details><summary>${q}</summary><p>${a}</p></details>`).join('')}<div class="info-note">AI 질문 기능은 준비 중입니다. 등록된 자료에서 확인할 수 없는 내용은 추측하지 않습니다.</div>`,
   };
-  return `<section class="section page-section"><button id="back" class="text-btn">← 제품 목록</button><div class="detail-top"><div class="detail-image">${bottle(p)}<span class="image-caption">TRANSPARENCY. / PRODUCT CONCEPT</span></div><div class="detail-copy"><div class="eyebrow">${p.en.toUpperCase()}</div><h1 class="page-title">${p.name}</h1><p class="page-intro">${p.desc}</p><dl class="product-specs"><div><dt>핵심 성분</dt><dd>${p.ingredient}</dd></div><div><dt>종류 · 용량</dt><dd>${p.type} · 30 mL</dd></div></dl><button class="dark" id="register">내 제품에 추가 <span aria-hidden="true">＋</span></button><p class="muted">제품 정보와 이미지는 브랜드 콘셉트를 위한 예시입니다.</p></div></div><div class="tabs" role="tablist" aria-label="제품 정보">${Object.keys(contents).map(t => `<button id="tab-${t}" role="tab" aria-controls="detail-panel" aria-selected="${tab === t}" data-tab="${t}" class="${tab === t ? 'chosen' : ''}">${t}</button>`).join('')}</div><div class="info" id="detail-panel" role="tabpanel" aria-labelledby="tab-${tab}">${contents[tab]}</div></section>`;
+  return `<section class="section page-section"><button id="back" class="text-btn">← 제품 목록</button><div class="detail-top"><div class="detail-image">${bottle(p)}<span class="image-caption">TRANSPARENCY. / PRODUCT CONCEPT</span></div><div class="detail-copy"><div class="eyebrow">${p.en.toUpperCase()}</div><h1 class="page-title">${p.name}</h1><p class="page-intro">${p.desc}</p><p>세럼 S.1은 일상적인 수분 관리를 위해 기획한 기초 세럼입니다. 각 성분의 역할과 배합 기준을 공개하고, 용기 눈금으로 남은 양을 확인하는 것을 목표로 합니다.</p><dl class="product-specs"><div><dt>상태</dt><dd>${p.status}</dd></div><div><dt>핵심 성분</dt><dd>${p.ingredient}</dd></div><div><dt>종류 · 용량</dt><dd>${p.type} · ${p.volume}</dd></div><div><dt>제형 · 향</dt><dd>투명 수용성 젤 · 향료 무첨가 목표</dd></div></dl><button class="dark" id="register">내 제품에 추가 <span aria-hidden="true">＋</span></button><p class="muted">가상 설계안 · 처방, 제형, 패키지는 검증 및 확정 전입니다.</p></div></div><div class="tabs" role="tablist" aria-label="제품 정보">${Object.keys(contents).map(t => `<button id="tab-${t}" role="tab" aria-controls="detail-panel" aria-selected="${tab === t}" data-tab="${t}" class="${tab === t ? 'chosen' : ''}">${t}</button>`).join('')}</div><div class="info" id="detail-panel" role="tabpanel" aria-labelledby="tab-${tab}">${contents[tab]}</div></section>`;
 }
 
 function my() {
@@ -82,11 +92,12 @@ function my() {
 
 function more() {
   return `<section class="section page-section"><div class="about-banner"><span class="eyebrow">ABOUT TRANSPARENCY.</span><h1 class="page-title">가릴 것이 없으니까.</h1><div class="about-logo">Transparency.</div><p>궁금했던 성분부터, 나에게 맞는 사용법까지.<br>극도의 투명함, 손안에서.</p><div class="glass-orb" aria-hidden="true"></div></div><div class="about-list">${[
-    ['01', '브랜드 철학', '성분에 장난 없이. 무엇을 담았는지, 왜 그만큼 담았는지, 어떻게 사용하는지. 제품에 대한 궁금함을 확인할 수 있는 정보로 전합니다.'],
-    ['02', '정보 공개 원칙', '성분·함량과 출처를 공개하고, 확인되지 않은 효능은 주장하지 않습니다. 확인할 수 없는 정보는 그 상태와 이유를 알립니다.'],
+    ['01', '브랜드 철학', '알고 선택하고, 납득하며 사용하고, 끝까지 확인하는 것. Transparency.가 생각하는 투명함입니다.'],
+    ['02', '정보 공개 원칙', '성분의 역할과 함량 기준을 설명합니다. 효능에는 출처와 한계를 함께 표시합니다. 확인되지 않은 내용은 확인되지 않았다고 안내하고, 정보가 바뀌면 확인일과 변경 내용을 갱신합니다.'],
     ['03', '서비스 이용 안내', '제품을 탐색하고 내 제품으로 등록하세요. 개봉일을 입력하고 사용 상태를 관리할 수 있습니다. 기록은 이 브라우저에만 저장됩니다.'],
     ['04', '계정 관리', '현재는 로그인 없이 사용하는 프로토타입입니다. 계정과 기기 간 동기화는 준비 중입니다.'],
-    ['05', '약관·개인정보 처리방침', '앱의 제품 기록 기능은 입력한 기록을 브라우저에 저장합니다. 내 제품에서 기록을 삭제할 수 있습니다. 정식 이용약관과 개인정보 처리방침은 서비스 출시 전 제공됩니다.'],
+    ['05', '정보 상태와 문의', '현재 공개되지 않았거나 확인 가능한 자료가 없는 정보는 그 이유와 확인 가능한 범위를 함께 안내합니다. 문의: ztheng@inha.edu'],
+    ['06', '약관·개인정보 처리방침', '현재는 서비스 구현을 위한 임시 정책입니다. 앱의 제품 기록은 이 브라우저에 저장되며 내 제품에서 삭제할 수 있습니다. 정식 약관은 출시 전 실제 운영 방식에 맞춰 제공합니다.'],
   ].map(([n, a, b]) => `<details><summary><span class="number">${n}</span>${a}</summary><p>${b}</p></details>`).join('')}</div></section>`;
 }
 
