@@ -1,6 +1,6 @@
 /* iOS-inspired glass materials. Shared layout and type live in style.css. */
 :root {
-  --glass-fill: linear-gradient(135deg, rgb(255 255 255 / .73), rgb(255 255 255 / .24) 52%, rgb(255 255 255 / .48));
+  --glass-fill: linear-gradient(135deg, rgb(255 255 255 / .48), rgb(255 255 255 / .10) 52%, rgb(255 255 255 / .25));
   --glass-edge: rgb(255 255 255 / .86);
   --glass-shadow: 0 12px 40px rgb(0 0 0 / .055), inset 0 1px 0 rgb(255 255 255 / .96), inset 0 -1px 0 rgb(255 255 255 / .35);
   --line: rgb(0 0 0 / .09);
@@ -16,44 +16,44 @@ body:after { width: 60vw; height: 60vw; right: -35vw; top: 50vh; border: 2px sol
 header {
   width: calc(100% - 64px); max-width: 1600px; margin: 16px auto 0; top: 16px;
   height: 72px; padding: 0 26px; border: 1px solid var(--glass-edge); border-radius: 30px;
-  background: var(--glass-fill); backdrop-filter: blur(28px) saturate(115%); -webkit-backdrop-filter: blur(28px) saturate(115%);
+  background: var(--glass-fill); backdrop-filter: blur(38px) saturate(120%); -webkit-backdrop-filter: blur(38px) saturate(120%);
   box-shadow: var(--glass-shadow); z-index: 20;
 }
 .logo { font-size: 27px; letter-spacing: -1.4px; }
 nav {
   position: fixed; top: 28px; left: 50%; transform: translateX(-50%); z-index: 21;
   height: 48px; padding: 4px; gap: 2px; border-radius: 24px; border: 1px solid #ffffffa6;
-  background: linear-gradient(135deg,#ffffff80,#ffffff26); box-shadow: inset 0 1px 0 #fff9, 0 2px 8px #00000005;
-  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  background: linear-gradient(135deg,#ffffff70,#ffffff24); box-shadow: inset 0 1px 0 #fff9, 0 2px 8px #00000005;
+  backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px);
 }
 nav button { padding: 0 22px; height: 38px; font-size: 12px; border-radius: 21px; color: #555; display: flex; align-items: center; justify-content: center; gap: 7px; }
 nav button.active { background: linear-gradient(160deg,#fffffff2,#ffffff80); box-shadow: 0 2px 7px #0000000d, inset 0 1px 0 white; color: #111; }
 nav button.active:after { display: none; }
 .nav-icon { display: none; width: 21px; height: 21px; }
-.account { border-radius: 24px; min-height: 40px; padding: 10px 16px; border: 1px solid #fff; background: #ffffff40; box-shadow: inset 0 1px 1px white; }
+.account { border-radius: 24px; min-height: 40px; padding: 10px 16px; border: 1px solid #ffffffb3; background: #ffffff26; box-shadow: inset 0 1px 1px white; backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); }
 .account:hover { background: #ffffffb3; color: #171717; }
 .hero { margin: 24px 24px 0; border-radius: 38px; height: 725px; min-height: 660px; border: 1px solid white; box-shadow: 0 14px 50px #0000000a; }
 .hero:after { background: linear-gradient(90deg,#ffffff1a,transparent 60%); }
 .campaign-image { object-position: center 57%; }
-.hero-copy { margin: 52px 0 90px 4%; padding: 34px; width: 430px; max-width: calc(100% - 64px); border: 1px solid #ffffffd1; border-radius: 30px; background: linear-gradient(130deg,#ffffff9e,#ffffff33 80%); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 20px 60px #0000000a, inset 0 1px 0 white, inset 0 -1px 0 #ffffff4d; }
+.hero-copy { margin: 52px 0 90px 4%; padding: 34px; width: 430px; max-width: calc(100% - 64px); border: 1px solid #ffffffb8; border-radius: 30px; background: linear-gradient(130deg,#ffffff70,#ffffff18 80%); backdrop-filter: blur(34px) saturate(115%); -webkit-backdrop-filter: blur(34px) saturate(115%); box-shadow: 0 20px 60px #0000000a, inset 0 1px 0 white, inset 0 -1px 0 #ffffff4d; }
 .hero-copy h1 { font-size: clamp(45px,4.2vw,63px); margin: 26px 0 12px; }
 .hero-brand { font-size: 42px; }
 .hero-copy p { margin-top: 24px; color: #444; }
 .hero-bottom { left: 4%; right: 4%; bottom: 24px; }
-.hero-bottom>span { border: 1px solid #ffffff9e; border-radius: 20px; padding: 10px 16px; background: #ffffff70; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #3d3d3d; }
+.hero-bottom>span { border: 1px solid #ffffffa8; border-radius: 20px; padding: 10px 16px; background: #ffffff30; backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); color: #3d3d3d; }
 .dark { border: 1px solid #ffffff45; border-radius: 25px; background: linear-gradient(155deg,#454545db,#171717f2); box-shadow: 0 5px 14px #00000017, inset 0 1px 1px #ffffff4d; min-height: 48px; }
 .dark:hover { background: linear-gradient(155deg,#555e,#222); box-shadow: 0 8px 20px #00000026,inset 0 1px 0 #ffffff6b; }
 .dark:active { transform: scale(.98); }
 .principles { border-bottom: 0; gap: 16px; padding: 32px 5% 8px; grid-template-columns: .75fr 1fr 1.1fr 1fr; }
 .principle-title { padding: 18px; }
-.principles>div:not(:first-child) { padding: 24px 20px; border: 1px solid var(--glass-edge); border-radius: 24px; background: var(--glass-fill); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: var(--glass-shadow); }
+.principles>div:not(:first-child) { padding: 24px 20px; border: 1px solid var(--glass-edge); border-radius: 24px; background: var(--glass-fill); backdrop-filter: blur(34px); -webkit-backdrop-filter: blur(34px); box-shadow: var(--glass-shadow); }
 .principles h2 { white-space: nowrap; }
 .section { padding: 64px 5%; }
-.text-btn { border-bottom: 0; border: 1px solid #ffffffb3; border-radius: 24px; padding: 11px 17px; background: #ffffff47; box-shadow: inset 0 1px 0 #ffffffc9; }
+.text-btn { border-bottom: 0; border: 1px solid #ffffffa8; border-radius: 24px; padding: 11px 17px; background: #ffffff24; box-shadow: inset 0 1px 0 #ffffffc9; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
 .text-btn:hover { background: #ffffff94; color: #171717; }
 .product, .bottom-grid>div, .detail-image, .info, .my-row, .empty, .about-banner, .about-list {
   border: 1px solid var(--glass-edge); border-radius: 30px; background: var(--glass-fill);
-  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(38px) saturate(115%); -webkit-backdrop-filter: blur(38px) saturate(115%); box-shadow: var(--glass-shadow);
 }
 .product { padding: 10px 10px 0; overflow: hidden; }
 .product:hover { transform: translateY(-4px); box-shadow: 0 18px 40px #00000012,inset 0 1px 0 white; background: linear-gradient(135deg,#ffffffc9,#ffffff59); }
@@ -70,11 +70,11 @@ nav button.active:after { display: none; }
 .bottom-grid { margin: 24px 5% 70px; }
 .bottom-grid>div { padding: 34px; }
 .bottom-grid>div:after { background: radial-gradient(circle at 30% 30%,#fff9,transparent 60%); border-color: #fff9; }
-footer { margin: 0 24px 24px; border: 1px solid #ffffffb3; border-radius: 30px; background: #ffffff33; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 38px 4%; box-shadow: var(--glass-shadow); }
-.search-field input, .date-label input { border: 1px solid #ffffffeb; background: linear-gradient(135deg,#ffffffa6,#ffffff40); border-radius: 22px; box-shadow: 0 6px 20px #00000004,inset 0 1px 0 white; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+footer { margin: 0 24px 24px; border: 1px solid #ffffffa8; border-radius: 30px; background: #ffffff20; backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px); padding: 38px 4%; box-shadow: var(--glass-shadow); }
+.search-field input, .date-label input { border: 1px solid #ffffffb8; background: linear-gradient(135deg,#ffffff59,#ffffff18); border-radius: 22px; box-shadow: 0 6px 20px #00000004,inset 0 1px 0 white; backdrop-filter: blur(34px); -webkit-backdrop-filter: blur(34px); }
 .search-field input { min-height: 60px; padding-left: 23px; }
 .search-field>span { right: 24px; top: 10px; }
-.filters { padding: 4px; border: 1px solid #ffffffb3; border-radius: 28px; background: #ffffff40; box-shadow: inset 0 1px 1px white; gap: 2px; }
+.filters { padding: 4px; border: 1px solid #ffffffa8; border-radius: 28px; background: #ffffff20; box-shadow: inset 0 1px 1px white; backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px); gap: 2px; }
 .filters button { border: 1px solid transparent; border-radius: 24px; padding: 9px 22px; background: transparent; min-height: 40px; }
 .filters button.chosen { border-color: #fff; background: linear-gradient(135deg,#fffffff2,#ffffffa6); box-shadow: 0 3px 8px #0000000a; color: #171717; }
 .detail-top { gap: 50px; }
@@ -82,12 +82,12 @@ footer { margin: 0 24px 24px; border: 1px solid #ffffffb3; border-radius: 30px; 
 .detail-image .bottle-scene { background-color: #ffffff1a; }
 .detail-copy { padding: 18px; }
 .product-specs>div { border-color: #00000012; }
-.tabs { background: #ffffff47; padding: 5px; border: 1px solid #ffffffb3; border-radius: 30px; box-shadow: inset 0 1px 0 white; width: fit-content; margin-bottom: 20px; gap: 3px; }
+.tabs { background: #ffffff20; padding: 5px; border: 1px solid #ffffffa8; border-radius: 30px; box-shadow: inset 0 1px 0 white; width: fit-content; margin-bottom: 20px; gap: 3px; backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px); }
 .tabs button { border: 1px solid transparent; margin: 0; border-radius: 24px; min-height: 44px; padding: 12px 25px; color: #555; }
 .tabs button.chosen { border-color: #fff; background: linear-gradient(135deg,#fffffff2,#ffffffa6); box-shadow: 0 3px 10px #0000000d; }
 .info { padding: 40px; }
 .info-note { padding: 13px 18px; border: 1px solid #ffffffb3; border-radius: 16px; background: #ffffff4d; color: #555; }
-.shelf-summary { background: #ffffff38; border: 1px solid #fff9; border-radius: 24px; padding: 24px; box-shadow: inset 0 1px 0 #fffc; }
+.shelf-summary { background: #ffffff20; border: 1px solid #ffffffa8; border-radius: 24px; padding: 24px; box-shadow: inset 0 1px 0 #fffc; backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px); }
 .my-list { display: grid; gap: 18px; margin-top: 24px; }
 .my-row { padding: 22px; }
 .my-product-image { border-radius: 20px; overflow: hidden; border: 1px solid #fff; background: #fff3; }
@@ -115,17 +115,17 @@ footer { margin: 0 24px 24px; border: 1px solid #ffffffb3; border-radius: 30px; 
 }
 @media(max-width:750px) {
   body { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
-  header { width: calc(100% - 28px); height: 60px; margin-top: 12px; top: 12px; border-radius: 25px; padding: 0 16px; background: var(--glass-fill); backdrop-filter: blur(26px); -webkit-backdrop-filter: blur(26px); }
+  header { width: calc(100% - 28px); height: 60px; margin-top: 12px; top: 12px; border-radius: 25px; padding: 0 16px; background: var(--glass-fill); backdrop-filter: blur(38px); -webkit-backdrop-filter: blur(38px); }
   .logo { font-size: 23px; }
   .account { font-size: 7px; padding: 9px 10px; gap: 10px; min-height: 35px; }
-  nav { top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); left: 50%; right: auto; width: calc(100% - 32px); max-width: 440px; height: 70px; transform: translateX(-50%); padding: 6px; border-radius: 30px; gap: 3px; border: 1px solid #fffffff2; background: linear-gradient(135deg,#ffffffd1,#ffffff8c); backdrop-filter: blur(32px) saturate(115%); -webkit-backdrop-filter: blur(32px) saturate(115%); box-shadow: 0 10px 30px #0000001a, inset 0 1px 1px white; }
+  nav { top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); left: 50%; right: auto; width: calc(100% - 32px); max-width: 440px; height: 70px; transform: translateX(-50%); padding: 6px; border-radius: 30px; gap: 3px; border: 1px solid #ffffffc9; background: linear-gradient(135deg,#ffffff73,#ffffff24); backdrop-filter: blur(44px) saturate(120%); -webkit-backdrop-filter: blur(44px) saturate(120%); box-shadow: 0 10px 30px #0000001a, inset 0 1px 1px white; }
   nav button { flex: 1; flex-direction: column; height: 56px; border-radius: 24px; padding: 6px 4px; font-size: 9px; gap: 4px; }
   nav button.active { background: linear-gradient(135deg,#fff,#ffffff9e); box-shadow: 0 2px 8px #0000000d,inset 0 1px 0 white; }
   .nav-icon { display: block; }
   .hero { margin: 16px 12px 0; border-radius: 30px; height: 790px; min-height: 0; }
   .campaign-image { height: 610px; bottom: 0; object-position: 73% center; }
   .hero:after { background: linear-gradient(180deg,#ffffff59,transparent 60%); }
-  .hero-copy { margin: 22px auto 0; width: calc(100% - 36px); max-width: none; padding: 26px; border-radius: 26px; background: linear-gradient(135deg,#ffffffb3,#ffffff59); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+  .hero-copy { margin: 22px auto 0; width: calc(100% - 36px); max-width: none; padding: 26px; border-radius: 26px; background: linear-gradient(135deg,#ffffff73,#ffffff1f); backdrop-filter: blur(36px) saturate(115%); -webkit-backdrop-filter: blur(36px) saturate(115%); }
   .hero-copy h1 { font-size: 44px; margin: 22px 0 12px; }
   .hero-brand { font-size: 32px; }
   .hero-copy p { font-size: 12px; margin-top: 18px; }
