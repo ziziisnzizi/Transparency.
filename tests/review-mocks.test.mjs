@@ -3,9 +3,9 @@ import { afterEach, beforeEach, test } from 'node:test';
 import { MOCK_PRODUCT_REVIEWS } from '../review-mocks.js';
 import {
   REVIEW_STORAGE_KEY,
+  getProductReviewFeed,
   getReviewSummary,
   normalizeReviews,
-  renderMockReviewPreview,
   renderProductReviews,
 } from '../reviews.js';
 
@@ -38,7 +38,7 @@ afterEach(() => {
   else delete globalThis.localStorage;
 });
 
-test('the preview dataset has exactly ten valid, distinct reviews per product and all five ratings', () => {
+test('the example dataset has exactly ten valid, distinct reviews per product and all five ratings', () => {
   assert.equal(MOCK_PRODUCT_REVIEWS.length, 30);
   assert.equal(normalizeReviews(MOCK_PRODUCT_REVIEWS).length, 30);
   assert.equal(new Set(MOCK_PRODUCT_REVIEWS.map(review => review.id)).size, 30);
@@ -54,22 +54,35 @@ test('the preview dataset has exactly ten valid, distinct reviews per product an
   }
 });
 
-test('each rendered preview contains only that product’s ten reviews in lowest-rating order', () => {
-  const byId = new Map(MOCK_PRODUCT_REVIEWS.map(review => [review.id, review]));
+function renderedEntries(html) {
+  const list = html.match(/<ol class="review-list"[^>]*>([\s\S]*?)<\/ol>/)?.[1];
+  assert.ok(list, 'a single shared review list is rendered');
+  return [...list.matchAll(/<article\b([^>]*)>([\s\S]*?)<\/article>/g)].map(([, attributes, content]) => ({
+    source: attributes.match(/data-review-source="([^"]+)"/)?.[1],
+    id: attributes.match(/data-(?:review-id|example-review)="([^"]+)"/)?.[1],
+    content,
+    attributes,
+  }));
+}
+
+test('each product renders its examples in one lowest-rating-first list with truthful source labels', () => {
   const sourceBefore = JSON.stringify(MOCK_PRODUCT_REVIEWS);
 
   for (const product of products) {
-    const html = renderMockReviewPreview(product);
-    const ids = [...html.matchAll(/data-mock-review="([^"]+)"/g)].map(match => match[1]);
-    assert.equal(ids.length, 10);
-    assert.equal(new Set(ids).size, 10);
-    const rendered = ids.map(id => byId.get(id));
-    assert.ok(rendered.every(review => review?.productSlug === product.slug));
-    assert.equal(rendered[0].rating, 1);
-    assert.equal(rendered.at(-1).rating, 5);
-    assert.ok(rendered.every((review, index) => index === 0 || rendered[index - 1].rating <= review.rating));
-    assert.ok(html.includes('목업 10개'));
-    assert.ok(html.includes('실제 사용자 후기가 아니며'));
+    const feed = getProductReviewFeed(product.slug);
+    assert.equal(feed.length, 10);
+    assert.ok(feed.every(review => review.productSlug === product.slug && review.source === 'example'));
+    assert.equal(feed[0].rating, 1);
+    assert.equal(feed.at(-1).rating, 5);
+    assert.ok(feed.every((review, index) => index === 0 || feed[index - 1].rating <= review.rating));
+
+    const html = renderProductReviews(product);
+    const entries = renderedEntries(html);
+    assert.equal((html.match(/<ol class="review-list"/g) || []).length, 1);
+    assert.equal(entries.length, 10);
+    assert.deepEqual(entries.map(entry => entry.id), feed.map(review => review.id));
+    assert.ok(entries.every(entry => entry.source === 'example' && entry.content.includes('예시')));
+    assert.doesNotMatch(html, /목업|미리보기|review-preview|<details\b/);
     assert.ok(!html.includes('data-review-id='));
     assert.ok(!html.includes('<time'));
   }
@@ -77,13 +90,35 @@ test('each rendered preview contains only that product’s ten reviews in lowest
   assert.equal(JSON.stringify(MOCK_PRODUCT_REVIEWS), sourceBefore);
 });
 
-test('viewing mock reviews never creates stored reviews or a real rating summary', () => {
+test('newest user reviews merge with examples by rating without leaking other products or mutating inputs', () => {
+  const userReviews = [
+    { id: 'user-high', productSlug: 'serum-s1', rating: 5, body: '세럼을 사용한 뒤 느낀 만족스러운 사용 경험입니다.', createdAt: '2026-11-03T11:00:00Z' },
+    { id: 'user-low', productSlug: 'serum-s1', rating: 1, body: '세럼을 덜어내는 과정에서 불편했던 사용 경험입니다.', createdAt: '2026-11-03T10:00:00Z' },
+    { id: 'other-family', productSlug: 'toner-t1', rating: 1, body: '토너에서만 느낀 불편했던 사용 경험입니다.', createdAt: '2026-11-03T12:00:00Z' },
+  ];
+  const before = JSON.stringify(userReviews);
+
+  const feed = getProductReviewFeed('serum-s1', userReviews);
+
+  assert.equal(feed.length, 12);
+  assert.equal(feed.filter(review => review.source === 'user').length, 2);
+  assert.equal(feed.filter(review => review.source === 'example').length, 10);
+  assert.ok(feed.every(review => review.productSlug === 'serum-s1'));
+  assert.equal(feed[0].id, 'user-low', 'a new one-star review precedes older one-star examples');
+  const fiveStar = feed.filter(review => review.rating === 5);
+  assert.equal(fiveStar[0].id, 'user-high', 'newest-first tie breaking also spans the two sources');
+  assert.ok(feed.every((review, index) => index === 0 || feed[index - 1].rating <= review.rating));
+  assert.ok(!feed.some(review => review.id === 'other-family'));
+  assert.equal(JSON.stringify(userReviews), before);
+});
+
+test('reading the combined list never creates stored user reviews or a real rating summary', () => {
   for (const product of products) {
     assert.deepEqual(getReviewSummary(product.slug), { count: 0, average: null });
-    renderMockReviewPreview(product);
+    assert.equal(getProductReviewFeed(product.slug).length, 10);
     const page = renderProductReviews(product);
     assert.ok(page.includes('0개 리뷰'));
-    assert.ok(page.includes('아직 등록된 리뷰가 없습니다.'));
+    assert.equal(renderedEntries(page).filter(entry => entry.source === 'user').length, 0);
     assert.deepEqual(getReviewSummary(product.slug), { count: 0, average: null });
   }
 
@@ -91,7 +126,7 @@ test('viewing mock reviews never creates stored reviews or a real rating summary
   assert.equal(storedValues.size, 0);
 });
 
-test('mock previews leave existing stored user reviews and their product-specific summaries unchanged', () => {
+test('the combined list leaves stored user reviews and product-specific summaries unchanged', () => {
   const ratings = [5, 2, 4];
   storedValues.set(REVIEW_STORAGE_KEY, JSON.stringify(products.map((product, index) => ({
     id: `user-${index}`,
@@ -106,8 +141,15 @@ test('mock previews leave existing stored user reviews and their product-specifi
   for (const [index, product] of products.entries()) {
     const expected = { count: 1, average: ratings[index] };
     assert.deepEqual(getReviewSummary(product.slug), expected);
-    renderMockReviewPreview(product, false);
-    renderProductReviews(product);
+    assert.equal(getProductReviewFeed(product.slug).length, 11);
+    const entries = renderedEntries(renderProductReviews(product));
+    assert.equal(entries.filter(entry => entry.source === 'example').length, 10);
+    const userEntries = entries.filter(entry => entry.source === 'user');
+    assert.equal(userEntries.length, 1);
+    assert.equal(userEntries[0].id, `user-${index}`);
+    assert.match(userEntries[0].content, new RegExp(`data-review-delete="user-${index}"`));
+    assert.ok(entries.filter(entry => entry.source === 'example').every(entry => !entry.content.includes('data-review-delete=')));
+    assert.equal(entries.filter(entry => entry.attributes.includes('data-review-id=')).length, 1);
     assert.deepEqual(getReviewSummary(product.slug), expected);
   }
 

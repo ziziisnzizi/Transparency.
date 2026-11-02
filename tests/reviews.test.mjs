@@ -128,10 +128,11 @@ test('counts and average ratings come only from valid reviews of the selected pr
   assert.deepEqual(getReviewSummary('cream-c1'), { count: 0, average: null });
 });
 
-test('an empty browser has no invented ratings or reviews', () => {
+test('an empty browser shows labelled examples without invented user ratings or stored reviews', () => {
   assert.deepEqual(getReviewSummary(serum.slug), { count: 0, average: null });
   const html = renderProductReviews(serum);
-  assert.ok(html.includes('아직 등록된 리뷰가 없습니다.'));
+  assert.equal((html.match(/data-review-source="example"/g) || []).length, 10);
+  assert.equal((html.match(/data-review-source="user"/g) || []).length, 0);
   assert.ok(html.includes('0개 리뷰'));
   assert.ok(html.includes('<strong>—</strong>'));
   assert.ok(!html.includes('data-review-id='));

@@ -29,7 +29,7 @@ npm 기본 캐시 경로에 쓰기 권한이 없으면 `npm ci --cache /tmp/tran
 - 제품명·성분 검색 및 제품 종류 필터
 - 홈·제품 탐색의 루틴 순서 표시: 토너 → 세럼 → 크림
 - 제품별 사용자 리뷰 작성·삭제와 낮은 별점순 표시, 해당 제품의 평균·개수 집계
-- 제품별 목업 리뷰 10개씩 별도 미리보기(실제 리뷰·평점 집계에서 제외)
+- 제품별 예시 리뷰 10개와 직접 입력한 리뷰를 한 목록에서 낮은 별점순 표시(예시는 실제 평점 집계에서 제외)
 - 제품 등록, 개봉일 변경, 사용 완료·재개, 삭제
 - AI 질문용 텍스트 입력과 글자 수 표시(전송·답변·저장 미연결)
 - 개인 제품 기록과 리뷰의 브라우저 localStorage 저장(다른 사용자·기기와 공유되지 않음)
@@ -47,7 +47,7 @@ npm 기본 캐시 경로에 쓰기 권한이 없으면 `npm ci --cache /tmp/tran
 - [모바일 와이어프레임 20개 화면 · PNG / SVG / PDF](docs/wireframes/README.md)
 - [브랜드 문구·디자인 기준과 검증](docs/brand-direction.md)
 - [콘텐츠 적용 상태와 남은 결정](docs/content-status-2026-10-27.md)
-- [제품별 목업 리뷰 30개](docs/mock-reviews.md)
+- [제품별 예시 리뷰 30개](docs/mock-reviews.md)
 - 작업 보드: https://github.com/users/ziziisnzizi/projects/1
 - Vercel: `vercel.json`, Netlify: `netlify.toml`
 - 정적 배포 결과물: `npm run build` 후 `dist/`

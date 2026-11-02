@@ -5,6 +5,7 @@ export const REVIEW_STORAGE_KEY = 'transparency-reviews';
 const drafts = new Map();
 const feedback = new Map();
 const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+const compareReviews = (a, b) => a.rating - b.rating || Date.parse(b.createdAt) - Date.parse(a.createdAt) || a.id.localeCompare(b.id);
 const validSlug = value => typeof value === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) && value.length <= 80;
 
 export function normalizeReviews(value) {
@@ -39,7 +40,13 @@ function readReviewState() {
 export function sortProductReviews(reviews, productSlug) {
   return normalizeReviews(reviews)
     .filter(review => review.productSlug === productSlug)
-    .sort((a, b) => a.rating - b.rating || Date.parse(b.createdAt) - Date.parse(a.createdAt) || a.id.localeCompare(b.id));
+    .sort(compareReviews);
+}
+
+export function getProductReviewFeed(productSlug, userReviews = readReviewState().reviews) {
+  const written = sortProductReviews(userReviews, productSlug).map(review => ({ ...review, source: 'user' }));
+  const examples = sortProductReviews(MOCK_PRODUCT_REVIEWS, productSlug).map(review => ({ ...review, source: 'example' }));
+  return [...written, ...examples].sort(compareReviews);
 }
 
 export function getReviewSummary(productSlug) {
@@ -54,29 +61,30 @@ function reviewDate(value) {
   return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Seoul' }).format(new Date(value));
 }
 
-export function renderMockReviewPreview(product, expanded = true) {
-  const reviews = sortProductReviews(MOCK_PRODUCT_REVIEWS, product.slug);
-  if (!reviews.length) return '';
-  return `<details class="review-preview" ${expanded ? 'open' : ''}>
-    <summary><span>리뷰 미리보기</span><span class="review-preview-count">목업 ${reviews.length}개</span></summary>
-    <p class="review-preview-notice">아래 리뷰는 화면 미리보기를 위해 작성한 목업입니다. 실제 사용자 후기가 아니며, 제품의 별점과 리뷰 수에 포함되지 않습니다.</p>
-    <ol class="review-preview-list" aria-label="${escape(product.name)} 목업 리뷰, 별점 낮은 순">${reviews.map(review => `<li><article class="mock-review-entry" data-mock-review="${escape(review.id)}"><div class="review-entry-head"><span class="review-stars" aria-label="5점 만점에 ${review.rating}점"><span aria-hidden="true">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</span><strong>${review.rating}.0</strong></span><span class="review-preview-label">목업 리뷰</span></div><p class="review-body">${escape(review.body)}</p></article></li>`).join('')}</ol>
-  </details>`;
+function renderReviewEntry(review) {
+  const isExample = review.source === 'example';
+  const sourceAttribute = isExample ? `data-example-review="${escape(review.id)}"` : `data-review-id="${escape(review.id)}"`;
+  const metadata = isExample
+    ? '<span class="review-source-badge">예시</span>'
+    : `<time datetime="${escape(review.createdAt)}">${escape(reviewDate(review.createdAt))}</time>`;
+  const actions = isExample ? '' : `<div class="review-entry-foot"><span>이 브라우저에서 작성한 리뷰</span><button type="button" class="review-delete" data-review-delete="${escape(review.id)}" aria-label="${review.rating}점 리뷰 삭제">삭제</button></div>`;
+  return `<li><article class="review-entry" data-review-source="${review.source}" ${sourceAttribute}><div class="review-entry-head"><span class="review-stars" aria-label="5점 만점에 ${review.rating}점"><span aria-hidden="true">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</span><strong>${review.rating}.0</strong></span>${metadata}</div><p class="review-body">${escape(review.body)}</p>${actions}</article></li>`;
 }
 
 export function renderProductReviews(product) {
   const state = readReviewState();
-  const reviews = sortProductReviews(state.reviews, product.slug);
+  const reviews = getProductReviewFeed(product.slug, state.reviews);
+  const exampleCount = reviews.filter(review => review.source === 'example').length;
   const summary = getReviewSummary(product.slug);
   const draft = drafts.get(product.slug) || { rating: '', body: '' };
   const message = feedback.get(product.slug);
   const prefix = `reviews-${product.slug}`;
   return `<section class="product-reviews" id="${escape(prefix)}" aria-labelledby="${escape(prefix)}-heading">
-    <div class="review-heading"><div><span class="eyebrow">05 / USER REVIEWS</span><h2 id="${escape(prefix)}-heading" tabindex="-1">사용자의 경험을 먼저 봅니다.</h2></div><div class="review-summary" aria-label="${summary.count ? `리뷰 ${summary.count}개, 평균 ${summary.average.toFixed(1)}점` : '등록된 리뷰 없음'}"><strong>${summary.average === null ? '—' : summary.average.toFixed(1)}</strong><span>${summary.count}개 리뷰</span></div></div>
+    <div class="review-heading"><div><span class="eyebrow">05 / USER REVIEWS</span><h2 id="${escape(prefix)}-heading" tabindex="-1">사용자의 경험을 먼저 봅니다.</h2></div><div class="review-summary" aria-label="${summary.count ? `리뷰 ${summary.count}개, 평균 ${summary.average.toFixed(1)}점` : '등록된 리뷰 없음'}"><strong>${summary.average === null ? '—' : summary.average.toFixed(1)}</strong><span>${summary.count}개 리뷰</span><small>직접 작성 기준</small></div></div>
     <div class="review-order-note"><strong>★ 별점 낮은 순</strong><p>${escape(product.name)}에 남긴 리뷰를 낮은 별점부터 보여드립니다. 불편한 경험을 먼저 듣고, 개선에 반영하겠습니다.</p></div>
     ${state.error ? `<p class="review-load-error" role="alert">${escape(state.error)}</p>` : ''}
-    <ol class="review-list" aria-label="${escape(product.name)} 사용자 리뷰, 별점 낮은 순">${reviews.map(review => `<li><article class="review-entry" data-review-id="${escape(review.id)}"><div class="review-entry-head"><span class="review-stars" aria-label="5점 만점에 ${review.rating}점"><span aria-hidden="true">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</span><strong>${review.rating}.0</strong></span><time datetime="${escape(review.createdAt)}">${escape(reviewDate(review.createdAt))}</time></div><p class="review-body">${escape(review.body)}</p><div class="review-entry-foot"><span>이 브라우저에서 작성한 리뷰</span><button type="button" class="review-delete" data-review-delete="${escape(review.id)}" aria-label="${review.rating}점 리뷰 삭제">삭제</button></div></article></li>`).join('') || '<li class="review-empty"><h3>아직 등록된 리뷰가 없습니다.</h3><p>사용하며 느낀 점을 가장 먼저 남겨 주세요.</p></li>'}</ol>
-    ${renderMockReviewPreview(product, summary.count === 0)}
+    ${exampleCount ? `<p class="review-example-note">목록에는 예시 리뷰 ${exampleCount}개가 함께 표시됩니다. ‘예시’가 표시된 글은 실제 이용자 후기가 아니며, 평균 별점과 리뷰 수에는 직접 작성한 리뷰만 반영합니다.</p>` : ''}
+    <ol class="review-list" aria-label="${escape(product.name)} 리뷰, 별점 낮은 순">${reviews.map(renderReviewEntry).join('') || '<li class="review-empty"><h3>아직 등록된 리뷰가 없습니다.</h3><p>사용하며 느낀 점을 가장 먼저 남겨 주세요.</p></li>'}</ol>
     <form class="review-form" novalidate aria-describedby="${escape(prefix)}-storage">
       <h3>사용 경험을 들려주세요.</h3>
       <fieldset class="review-rating-options" aria-describedby="${escape(prefix)}-rating-help ${escape(prefix)}-feedback"><legend>별점 선택 <span>필수</span></legend><p id="${escape(prefix)}-rating-help">1점은 아쉬웠어요, 5점은 만족했어요.</p><div class="review-rating-grid">${[1, 2, 3, 4, 5].map(rating => `<label><input type="radio" name="review-rating" value="${rating}" required ${String(draft.rating) === String(rating) ? 'checked' : ''}><span><b aria-hidden="true">★</b> ${rating}점</span></label>`).join('')}</div></fieldset>

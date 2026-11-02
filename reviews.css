@@ -4,17 +4,14 @@
 .product-reviews .review-summary { display: grid; gap: 3px; text-align: right; flex: 0 0 auto; }
 .product-reviews .review-summary strong { font: 500 32px/1.2 Arial, sans-serif; }
 .product-reviews .review-summary span { color: var(--muted); font-size: 10px; }
+.product-reviews .review-summary small { color: var(--muted); font-size: 9px; }
 .product-reviews .review-order-note { display: grid; gap: 6px; padding: 17px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .product-reviews .review-order-note strong { font-size: 12px; font-weight: 600; }
 .product-reviews .review-order-note p { margin: 0; font-size: 11px; line-height: 1.8; }
-.product-reviews .review-list, .product-reviews .review-preview-list { list-style: none; padding: 0; margin: 22px 0 32px; display: grid; gap: 15px; }
-.product-reviews .review-entry, .product-reviews .mock-review-entry, .product-reviews .review-form, .product-reviews .review-empty { padding: 24px; border: 1px solid var(--glass-edge, #ddd); border-radius: 22px; background: #ffffff26; }
-.product-reviews .review-preview { padding: 0; margin: 26px 0; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; }
-.product-reviews .review-preview summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 42px 20px 20px; font-size: 13px; }
-.product-reviews .review-preview summary:after { top: 16px; right: 18px; }
-.product-reviews .review-preview-count, .product-reviews .review-preview-label { color: var(--muted); font-size: 10px; white-space: nowrap; }
-.product-reviews .review-preview-notice { margin: 0; padding: 0 20px; color: var(--muted); font-size: 11px; line-height: 1.8; }
-.product-reviews .review-preview-list { margin: 18px 14px 14px; }
+.product-reviews .review-list { list-style: none; padding: 0; margin: 22px 0 32px; display: grid; gap: 15px; }
+.product-reviews .review-entry, .product-reviews .review-form, .product-reviews .review-empty { padding: 24px; border: 1px solid var(--glass-edge, #ddd); border-radius: 22px; background: #ffffff26; }
+.product-reviews .review-example-note { margin: 16px 0 0; color: var(--muted); font-size: 10px; line-height: 1.8; }
+.product-reviews .review-source-badge { padding: 3px 8px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-size: 10px; white-space: nowrap; }
 .product-reviews .review-entry-head, .product-reviews .review-entry-foot { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
 .product-reviews .review-stars { display: inline-flex; align-items: center; gap: 10px; font: 12px/1.5 Arial, sans-serif; }
 .product-reviews .review-stars>span { letter-spacing: 2px; }
@@ -53,7 +50,6 @@
 .product-reviews .review-submit:hover { background: #333; }
 
 [data-theme="dark"] .product-reviews .review-entry,
-[data-theme="dark"] .product-reviews .mock-review-entry,
 [data-theme="dark"] .product-reviews .review-form,
 [data-theme="dark"] .product-reviews .review-empty { border-color: #ffffff20; background: #ffffff07; }
 [data-theme="dark"] .product-reviews .review-rating-grid input:checked+span { color: #111; border-color: #eeeeee; background: #eeeeee; }
@@ -68,10 +64,7 @@
   .product-reviews .review-heading h2 { font-size: 20px; line-height: 1.5; }
   .product-reviews .review-summary strong { font-size: 26px; }
   .product-reviews .review-summary span { font-size: 9px; }
-  .product-reviews .review-entry, .product-reviews .mock-review-entry, .product-reviews .review-form, .product-reviews .review-empty { padding: 18px 14px; border-radius: 18px; }
-  .product-reviews .review-preview summary { padding-left: 14px; }
-  .product-reviews .review-preview-notice { padding: 0 14px; font-size: 10px; }
-  .product-reviews .review-preview-list { margin: 16px 8px 8px; }
+  .product-reviews .review-entry, .product-reviews .review-form, .product-reviews .review-empty { padding: 18px 14px; border-radius: 18px; }
   .product-reviews .review-rating-grid { gap: 5px; }
   .product-reviews .review-rating-grid label>span { gap: 3px; padding: 10px 2px; border-radius: 11px; font-size: 10px; }
   .product-reviews .review-rating-grid b { font-size: 10px; }

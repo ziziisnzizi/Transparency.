@@ -1,4 +1,4 @@
-// Fictional review content for the clearly labelled mock preview only.
+// Fictional content labelled as examples in the shared product review list.
 // Keep this separate from stored user reviews and actual rating summaries.
 export const MOCK_PRODUCT_REVIEWS = [
   {
