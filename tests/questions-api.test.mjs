@@ -262,7 +262,13 @@ test('provider failures expose only actionable allowlisted categories, never raw
     [429, { status: 'RESOURCE_EXHAUSTED' }, 'quota_exceeded'],
     [404, { status: 'NOT_FOUND' }, 'model_unavailable'],
     [400, { status: 'INVALID_ARGUMENT' }, 'request_rejected'],
-    [503, { status: 'UNAVAILABLE' }, 'unavailable'],
+    [500, { status: 'INTERNAL' }, 'service_unavailable'],
+    [502, {}, 'service_unavailable'],
+    [503, { status: 'UNAVAILABLE' }, 'service_unavailable'],
+    [504, { status: 'DEADLINE_EXCEEDED' }, 'service_unavailable'],
+    [499, { status: 'UNAVAILABLE' }, 'service_unavailable'],
+    [408, { status: 'DEADLINE_EXCEEDED' }, 'service_unavailable'],
+    [418, { status: 'UNKNOWN' }, 'unavailable'],
   ];
   for (const [status, providerError, expected] of cases) {
     const handler = createAskHandler({
@@ -284,7 +290,9 @@ test('provider failures expose only actionable allowlisted categories, never raw
 test('untrusted errors and malformed provider responses cannot leak or forge diagnostic fields', async () => {
   assert.equal(getProviderIssue({ providerIssue: 'key_invalid', message: fakeKey }), 'unavailable');
   const providers = [
-    [async () => { throw { providerIssue: 'key_invalid', message: fakeKey }; }, 'unavailable'],
+    [async () => { throw { providerIssue: 'key_invalid', message: fakeKey }; }, 'connection_failed'],
+    [async () => { throw new TypeError(`fetch failed: ${fakeKey}`); }, 'connection_failed'],
+    [async () => ({ ok: false, status: 502, json: async () => { throw Error(fakeKey); } }), 'service_unavailable'],
     [async () => ({ ok: false, status: 429, json: async () => { throw Error(fakeKey); } }), 'quota_exceeded'],
     [async () => ({ ok: true, json: async () => { throw Error(fakeKey); } }), 'invalid_response'],
     [async () => ({ ok: true, json: async () => ({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: fakeKey }] } }] }) }), 'invalid_response'],
