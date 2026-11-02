@@ -6,6 +6,10 @@ const products = [
     en: 'Transparency. Serum S.1',
     type: '수분 세럼',
     kind: 'serum',
+    image: '/images/products/serum-s1.webp',
+    imageWidth: 1024,
+    imageHeight: 1536,
+    textureImage: '/images/textures/serum-s1.webp',
     volume: '30 mL',
     rating: 4.3,
     reviewCount: 128,
@@ -30,6 +34,10 @@ const products = [
     en: 'Transparency. Toner T.1',
     type: '수분 토너',
     kind: 'toner',
+    image: '/images/products/toner-t1.webp',
+    imageWidth: 1024,
+    imageHeight: 1536,
+    textureImage: '/images/textures/toner-t1.webp',
     volume: '150 mL',
     rating: 3.8,
     reviewCount: 46,
@@ -54,6 +62,10 @@ const products = [
     en: 'Transparency. Cream C.1',
     type: '보습 크림',
     kind: 'cream',
+    image: '/images/products/cream-c1.webp',
+    imageWidth: 1230,
+    imageHeight: 1278,
+    textureImage: '/images/textures/cream-c1.webp',
     volume: '50 mL',
     rating: 3.4,
     reviewCount: 31,
@@ -90,8 +102,7 @@ const logoMark = '<img src="/images/transparency-logo.svg" alt="" width="2679" h
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function bottle(p) {
-  if (p.kind === 'serum') return '<div class="bottle-scene flask-scene"><img src="/images/transparency-glass.svg" alt="투명한 플라스크형 세럼 S.1 콘셉트 일러스트" loading="lazy"></div>';
-  return `<div class="bottle-scene" aria-hidden="true"><div class="bottle ${p.kind}"><div class="cap"></div><div class="label"><strong>Transparency.</strong><span>${p.en.replaceAll(' ', '<br>')}</span><small>${p.ingredient}<br>${p.volume}</small></div><div class="graduations"><i></i><i></i><i></i></div></div></div>`;
+  return `<div class="bottle-scene product-visual"><img class="product-packshot" src="${p.image}" alt="${p.name} 제품 콘셉트 이미지" width="${p.imageWidth}" height="${p.imageHeight}" loading="${selected?.id === p.id ? 'eager' : 'lazy'}" decoding="async"><img class="product-texture" src="${p.textureImage}" alt="" aria-hidden="true" width="1536" height="1024" loading="lazy" decoding="async"></div>`;
 }
 
 const navIcons = {
