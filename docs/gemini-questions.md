@@ -6,20 +6,28 @@ answers, citations, cancellation/retry controls, and the existing FAQ.
 ## Enable Gemini on Vercel
 
 1. Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/apikey).
-2. Open the Vercel project → Settings → Environment Variables. Set
+2. Open the Vercel project serving the intended production domain → Settings → Environment Variables. Set
    `GEMINI_API_KEY` for Production and Preview as needed. Enter the real value
    only in that settings screen; never put it in a chat, source file, or `VITE_`
    variable. `GOOGLE_API_KEY` is accepted as a server-side fallback.
 3. Redeploy the project so its server function receives the variable.
 
-Optional `GEMINI_MODEL` defaults to `gemini-2.5-flash`. The model is configurable
+The existing shared domain `transparency-web-five.vercel.app` is served by the
+`transparency-web` project. The separate `transparency` project serves
+`transparency-six.vercel.app`; their environment variables are independent.
+
+Optional `GEMINI_MODEL` defaults to `gemini-3.8-flash`. The model is configurable
 with a model identifier, not an arbitrary API URL. The provider host is fixed to
-Google's Gemini API and the key travels in the `x-goog-api-key` header.
+Google's Gemini API and the key travels in the `x-goog-api-key` header. Current
+models use the Interactions API with `store: false`; explicitly selected
+`gemini-2.*` models retain the legacy generateContent adapter.
 
 `GET /api/ask` returns `{ aiAvailable, mode }`. This checks configuration presence,
 not provider authorization or remaining quota. A successful POST with `mode: ai`
 demonstrates that a Gemini answer was returned. A configured but unavailable
-provider returns an explicitly labelled reference answer instead.
+provider returns an explicitly labelled reference answer instead. A failed
+provider request includes only an allowlisted `providerIssue` category, never
+the upstream error text, key, prompt, or model configuration.
 
 ## Local development
 
@@ -72,6 +80,7 @@ configuration, needs an equivalent API adapter to provide question answers.
 
 ## Provider references
 
-- [generateContent API](https://ai.google.dev/api/generate-content)
+- [Interactions API](https://ai.google.dev/api/interactions-api)
+- [Legacy generateContent API](https://ai.google.dev/api/generate-content)
 - [Gemini models](https://ai.google.dev/gemini-api/docs/models)
 - [Model lifecycle](https://ai.google.dev/gemini-api/docs/deprecations)
