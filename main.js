@@ -143,11 +143,11 @@ function home() {
 }
 
 function ratingSummary(p, isDetail = false) {
-  const { count, average } = getReviewSummary(p.slug);
+  const { count, average, writtenCount, exampleCount } = getReviewSummary(p.slug);
   const label = average === null ? '아직 평가 없음' : `평점 ${average.toFixed(1)}점`;
   const tag = isDetail ? 'button' : 'div';
   const attrs = isDetail ? 'type="button" id="show-reviews"' : '';
-  return `<${tag} class="${isDetail ? 'detail-rating' : 'product-rating'}" ${attrs} aria-label="${p.name} ${label}, ${count}개 리뷰${isDetail ? ', 리뷰 보기' : ''}"><span aria-hidden="true">${average === null ? '☆' : '★'}</span>${average === null ? '<span class="rating-empty">아직 평가 없음</span>' : `<strong>${average.toFixed(1)}</strong>`}${isDetail ? `<span>${count}개 리뷰</span>` : `<small>${count} REVIEWS</small>`}</${tag}>`;
+  return `<${tag} class="${isDetail ? 'detail-rating' : 'product-rating'}" ${attrs} aria-label="${p.name} ${label}, 전체 ${count}개 리뷰, 작성 ${writtenCount}개, 예시 ${exampleCount}개${isDetail ? ', 리뷰 보기' : ''}"><span aria-hidden="true">${average === null ? '☆' : '★'}</span>${average === null ? '<span class="rating-empty">아직 평가 없음</span>' : `<strong>${average.toFixed(1)}</strong>`}${isDetail ? `<span>전체 ${count}개 리뷰</span>` : `<small>전체 ${count}개 리뷰</small>`}<small class="review-count-context">작성 ${writtenCount} · 예시 ${exampleCount}</small></${tag}>`;
 }
 
 function card(p) {

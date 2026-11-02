@@ -47,5 +47,6 @@ favicon remain in use.
 
 Prepared review cards use the same visual layout as written reviews without
 an individual source badge. A visible note before the combined list states that
-prepared content is not actual purchase testimony. Only directly written reviews
-contribute to aggregate ratings and review counts.
+prepared content is not actual purchase testimony. Total review counts include
+both prepared and directly written entries with a visible breakdown. Only
+directly written reviews contribute to average ratings.

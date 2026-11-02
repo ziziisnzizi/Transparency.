@@ -5,6 +5,7 @@
 .product-reviews .review-summary strong { font: 500 32px/1.2 Arial, sans-serif; }
 .product-reviews .review-summary span { color: var(--muted); font-size: 10px; }
 .product-reviews .review-summary small { color: var(--muted); font-size: 9px; }
+.product-reviews .review-summary { max-width: 130px; }
 .product-reviews .review-order-note { display: grid; gap: 6px; padding: 17px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .product-reviews .review-order-note strong { font-size: 12px; font-weight: 600; }
 .product-reviews .review-order-note p { margin: 0; font-size: 11px; line-height: 1.8; }

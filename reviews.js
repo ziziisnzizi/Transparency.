@@ -51,9 +51,12 @@ export function getProductReviewFeed(productSlug, userReviews = readReviewState(
 
 export function getReviewSummary(productSlug) {
   const reviews = readReviewState().reviews.filter(review => review.productSlug === productSlug);
+  const exampleCount = sortProductReviews(MOCK_PRODUCT_REVIEWS, productSlug).length;
   return {
-    count: reviews.length,
+    count: reviews.length + exampleCount,
     average: reviews.length ? Math.round(reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length * 10) / 10 : null,
+    writtenCount: reviews.length,
+    exampleCount,
   };
 }
 
@@ -78,10 +81,10 @@ export function renderProductReviews(product) {
   const message = feedback.get(product.slug);
   const prefix = `reviews-${product.slug}`;
   return `<section class="product-reviews" id="${escape(prefix)}" aria-labelledby="${escape(prefix)}-heading">
-    <div class="review-heading"><div><span class="eyebrow">05 / USER REVIEWS</span><h2 id="${escape(prefix)}-heading" tabindex="-1">사용자의 경험을 먼저 봅니다.</h2></div><div class="review-summary" aria-label="${summary.count ? `리뷰 ${summary.count}개, 평균 ${summary.average.toFixed(1)}점` : '등록된 리뷰 없음'}"><strong>${summary.average === null ? '—' : summary.average.toFixed(1)}</strong><span>${summary.count}개 리뷰</span><small>직접 작성 기준</small></div></div>
+    <div class="review-heading"><div><span class="eyebrow">05 / USER REVIEWS</span><h2 id="${escape(prefix)}-heading" tabindex="-1">사용자의 경험을 먼저 봅니다.</h2></div><div class="review-summary" aria-label="전체 리뷰 ${summary.count}개, 작성 ${summary.writtenCount}개, 예시 ${summary.exampleCount}개, ${summary.average === null ? '직접 작성한 별점 없음' : `작성 리뷰 평균 ${summary.average.toFixed(1)}점`}"><strong>${summary.average === null ? '—' : summary.average.toFixed(1)}</strong><span>전체 ${summary.count}개 리뷰</span><small>작성 ${summary.writtenCount} · 예시 ${summary.exampleCount}</small><small>별점은 작성 리뷰 기준</small></div></div>
     <div class="review-order-note"><strong>★ 별점 낮은 순</strong><p>${escape(product.name)}에 남긴 리뷰를 낮은 별점부터 보여드립니다. 불편한 경험을 먼저 듣고, 개선에 반영하겠습니다.</p></div>
     ${state.error ? `<p class="review-load-error" role="alert">${escape(state.error)}</p>` : ''}
-    ${exampleCount ? '<p class="review-source-note">리뷰 목록에는 화면 구성을 위해 작성된 콘텐츠가 포함되어 있습니다. 해당 글은 실제 구매 후기가 아니며, 직접 작성한 리뷰만 평균 별점과 리뷰 수에 반영됩니다.</p>' : ''}
+    ${exampleCount ? '<p class="review-source-note">전체 리뷰 수에는 화면 구성을 위해 작성한 글이 포함됩니다. 해당 글은 실제 구매 후기가 아니며, 평균 별점은 직접 작성한 리뷰만 반영합니다.</p>' : ''}
     <ol class="review-list" aria-label="${escape(product.name)} 리뷰, 별점 낮은 순">${reviews.map(renderReviewEntry).join('') || '<li class="review-empty"><h3>아직 등록된 리뷰가 없습니다.</h3><p>사용하며 느낀 점을 가장 먼저 남겨 주세요.</p></li>'}</ol>
     <form class="review-form" novalidate aria-describedby="${escape(prefix)}-storage">
       <h3>사용 경험을 들려주세요.</h3>
