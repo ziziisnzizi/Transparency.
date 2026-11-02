@@ -1,5 +1,5 @@
 // Fictional content labelled as examples in the shared product review list.
-// Keep this separate from stored user reviews and actual rating summaries.
+// Include these in displayed totals and averages without copying them into storage.
 export const MOCK_PRODUCT_REVIEWS = [
   {
     id: 'mock-toner-t1-01', productSlug: 'toner-t1', rating: 1,

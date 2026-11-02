@@ -48,5 +48,6 @@ favicon remain in use.
 Prepared review cards use the same visual layout as written reviews without
 an individual source badge. A visible note before the combined list states that
 prepared content is not actual purchase testimony. Total review counts include
-both prepared and directly written entries with a visible breakdown. Only
-directly written reviews contribute to average ratings.
+both prepared and directly written entries with a visible breakdown. Average
+ratings use those same entries, so prepared reviews also contribute before a
+visitor writes a review.

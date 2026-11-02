@@ -114,7 +114,7 @@ test('normalizing and sorting do not mutate the source reviews or their order', 
   assert.deepEqual(sorted.map(item => item.id), ['low', 'high']);
 });
 
-test('totals include product examples while averages use only valid written reviews of that product', () => {
+test('totals and averages combine examples with only valid written reviews of the selected product', () => {
   storeReviews([
     review({ id: 'serum-two', rating: 2 }),
     review({ id: 'serum-three', rating: 3 }),
@@ -124,28 +124,29 @@ test('totals include product examples while averages use only valid written revi
   ]);
 
   assert.deepEqual(getReviewSummary(serum.slug), { count: 13, average: 3.3, writtenCount: 3, exampleCount: 10 });
-  assert.deepEqual(getReviewSummary('toner-t1'), { count: 11, average: 1, writtenCount: 1, exampleCount: 10 });
-  assert.deepEqual(getReviewSummary('cream-c1'), { count: 10, average: null, writtenCount: 0, exampleCount: 10 });
+  assert.deepEqual(getReviewSummary('toner-t1'), { count: 11, average: 2.9, writtenCount: 1, exampleCount: 10 });
+  assert.deepEqual(getReviewSummary('cream-c1'), { count: 10, average: 3, writtenCount: 0, exampleCount: 10 });
 });
 
-test('an empty browser counts ten examples without inventing a written average or stored reviews', () => {
-  assert.deepEqual(getReviewSummary(serum.slug), { count: 10, average: null, writtenCount: 0, exampleCount: 10 });
+test('an empty browser displays the ten prepared ratings without creating stored user reviews', () => {
+  assert.deepEqual(getReviewSummary(serum.slug), { count: 10, average: 3.3, writtenCount: 0, exampleCount: 10 });
   const html = renderProductReviews(serum);
   assert.equal((html.match(/data-review-source="example"/g) || []).length, 10);
   assert.equal((html.match(/data-review-source="user"/g) || []).length, 0);
   assert.ok(html.includes('10개 리뷰'));
-  assert.ok(html.includes('<strong>—</strong>'));
+  assert.ok(html.includes('<strong>3.3</strong>'));
+  assert.ok(!html.includes('<strong>—</strong>'));
   assert.ok(!html.includes('data-review-id='));
 });
 
-test('adding and removing a written review changes only its product total and written average', () => {
-  const baseline = { count: 10, average: null, writtenCount: 0, exampleCount: 10 };
+test('adding and removing a written review updates its combined average without changing other products', () => {
+  const baseline = { count: 10, average: 3.3, writtenCount: 0, exampleCount: 10 };
   assert.deepEqual(getReviewSummary(serum.slug), baseline);
   storeReviews([review({ id: 'new-written-review', rating: 5 })]);
 
-  assert.deepEqual(getReviewSummary(serum.slug), { count: 11, average: 5, writtenCount: 1, exampleCount: 10 });
-  assert.deepEqual(getReviewSummary('toner-t1'), baseline);
-  assert.deepEqual(getReviewSummary('cream-c1'), baseline);
+  assert.deepEqual(getReviewSummary(serum.slug), { count: 11, average: 3.5, writtenCount: 1, exampleCount: 10 });
+  assert.deepEqual(getReviewSummary('toner-t1'), { count: 10, average: 3.1, writtenCount: 0, exampleCount: 10 });
+  assert.deepEqual(getReviewSummary('cream-c1'), { count: 10, average: 3, writtenCount: 0, exampleCount: 10 });
 
   storeReviews([]);
   assert.deepEqual(getReviewSummary(serum.slug), baseline);
@@ -155,7 +156,7 @@ test('products without prepared examples have no fabricated count or average', (
   assert.deepEqual(getReviewSummary('toner-t2'), { count: 0, average: null, writtenCount: 0, exampleCount: 0 });
   storeReviews([review({ productSlug: 'toner-t2', rating: 4 })]);
   assert.deepEqual(getReviewSummary('toner-t2'), { count: 1, average: 4, writtenCount: 1, exampleCount: 0 });
-  assert.deepEqual(getReviewSummary('toner-t1'), { count: 10, average: null, writtenCount: 0, exampleCount: 10 });
+  assert.deepEqual(getReviewSummary('toner-t1'), { count: 10, average: 3.1, writtenCount: 0, exampleCount: 10 });
 });
 
 test('stored review text is escaped before it is rendered as HTML', () => {
@@ -173,7 +174,7 @@ test('corrupted JSON and unexpected storage shapes show a clear error without cr
   for (const raw of ['{"broken":', '{}', 'null', '"unexpected string"']) {
     globalThis.localStorage.setItem(REVIEW_STORAGE_KEY, raw);
 
-    assert.deepEqual(getReviewSummary(serum.slug), { count: 10, average: null, writtenCount: 0, exampleCount: 10 });
+    assert.deepEqual(getReviewSummary(serum.slug), { count: 10, average: 3.3, writtenCount: 0, exampleCount: 10 });
     let html;
     assert.doesNotThrow(() => { html = renderProductReviews(serum); });
     assert.ok(html.includes('저장된 리뷰를 불러오지 못했습니다.'));

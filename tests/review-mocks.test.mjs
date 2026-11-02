@@ -86,11 +86,12 @@ test('each product renders one lowest-rating-first list with a single visible so
     assert.equal((html.match(/class="review-source-note"/g) || []).length, 1);
     const sourceNote = html.match(/<p class="review-source-note">([^<]*)<\/p>/)?.[1];
     assert.ok(sourceNote, 'the shared list keeps a plainly visible source explanation');
-    assert.match(sourceNote, /실제 구매 후기가 아니/);
+    assert.match(sourceNote, /실제 구매 후기가 (?:아니|아닙)/);
     assert.match(sourceNote, /전체 리뷰|총 리뷰/);
     assert.match(sourceNote, /포함/);
     assert.match(sourceNote, /평균 별점/);
-    assert.match(sourceNote, /직접 작성/);
+    assert.match(sourceNote, /화면 구성.*작성/);
+    assert.doesNotMatch(sourceNote, /직접 작성한 리뷰만/);
     assert.doesNotMatch(html, /목업|미리보기|review-source-badge|review-preview|<details\b/);
     assert.ok(!html.includes('data-review-id='));
     assert.ok(!html.includes('<time'));
@@ -121,13 +122,16 @@ test('newest user reviews merge with examples by rating without leaking other pr
   assert.equal(JSON.stringify(userReviews), before);
 });
 
-test('reading the combined list counts examples without persisting them or inventing a written average', () => {
+test('reading the combined list counts and averages its examples without persisting them as user reviews', () => {
+  const baselineAverages = { 'toner-t1': 3.1, 'serum-s1': 3.3, 'cream-c1': 3 };
   for (const product of products) {
-    const expected = { count: 10, average: null, writtenCount: 0, exampleCount: 10 };
+    const expected = { count: 10, average: baselineAverages[product.slug], writtenCount: 0, exampleCount: 10 };
     assert.deepEqual(getReviewSummary(product.slug), expected);
     assert.equal(getProductReviewFeed(product.slug).length, 10);
     const page = renderProductReviews(product);
     assert.ok(page.includes('10개 리뷰'));
+    assert.ok(page.includes(`<strong>${expected.average.toFixed(1)}</strong>`));
+    assert.ok(!page.includes('<strong>—</strong>'));
     assert.equal(renderedEntries(page).filter(entry => entry.source === 'user').length, 0);
     assert.deepEqual(getReviewSummary(product.slug), expected);
   }
@@ -138,6 +142,7 @@ test('reading the combined list counts examples without persisting them or inven
 
 test('the combined list leaves stored user reviews and product-specific summaries unchanged', () => {
   const ratings = [5, 2, 4];
+  const combinedAverages = [3.3, 3.2, 3.1];
   storedValues.set(REVIEW_STORAGE_KEY, JSON.stringify(products.map((product, index) => ({
     id: `user-${index}`,
     productSlug: product.slug,
@@ -149,7 +154,7 @@ test('the combined list leaves stored user reviews and product-specific summarie
   const before = [...storedValues.entries()];
 
   for (const [index, product] of products.entries()) {
-    const expected = { count: 11, average: ratings[index], writtenCount: 1, exampleCount: 10 };
+    const expected = { count: 11, average: combinedAverages[index], writtenCount: 1, exampleCount: 10 };
     assert.deepEqual(getReviewSummary(product.slug), expected);
     assert.equal(getProductReviewFeed(product.slug).length, 11);
     const entries = renderedEntries(renderProductReviews(product));
