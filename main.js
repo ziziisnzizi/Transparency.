@@ -1,3 +1,6 @@
+import { orderProductsByRoutine } from './catalog.js';
+import { getReviewSummary, renderProductReviews, bindProductReviews, REVIEW_STORAGE_KEY } from './reviews.js';
+
 const products = [
   {
     id: 1,
@@ -11,8 +14,6 @@ const products = [
     imageHeight: 1536,
     textureImage: '/images/textures/serum-s1.webp',
     volume: '30 mL',
-    rating: 4.3,
-    reviewCount: 128,
     ingredient: '글리세린 5.0% · 판테놀 1.0% · 소듐하이알루로네이트 0.1%',
     searchTerms: '세럼 수분 보습 글리세린 판테놀 소듐하이알루로네이트 히알루론산',
     desc: '필요한 수분, 확인할 수 있는 성분.',
@@ -39,8 +40,6 @@ const products = [
     imageHeight: 1536,
     textureImage: '/images/textures/toner-t1.webp',
     volume: '150 mL',
-    rating: 3.8,
-    reviewCount: 46,
     ingredient: '글리세린 3.0% · 판테놀 0.5% · 베타글루칸 0.1%',
     searchTerms: '토너 수분 보습 글리세린 판테놀 베타글루칸 스킨',
     desc: '세안 다음 단계, 필요한 수분만.',
@@ -67,8 +66,6 @@ const products = [
     imageHeight: 1278,
     textureImage: '/images/textures/cream-c1.webp',
     volume: '50 mL',
-    rating: 3.4,
-    reviewCount: 31,
     ingredient: '글리세린 5.0% · 스쿠알란 3.0% · 세라마이드 NP 0.05%',
     searchTerms: '크림 보습 장벽 글리세린 스쿠알란 세라마이드',
     desc: '수분이 머무는 마지막 단계.',
@@ -132,13 +129,21 @@ function home() {
     <div class="hero-bottom"><span>극도의 투명함, 손안에서.</span><span>NOTHING TO HIDE.</span></div>
   </section>
   <section class="principles" aria-label="정보 공개 원칙"><div class="principle-title">성분에<br>장난 없이.</div><div><span class="number">01 / INGREDIENTS</span><h2>무엇을 담았는지.</h2><p>성분과 함량을 확인하세요.</p></div><div><span class="number">02 / EVIDENCE</span><h2>어디까지 확인됐는지.</h2><p>근거와 그 한계까지 살펴보세요.</p></div><div><span class="number">03 / YOUR ROUTINE</span><h2>어떻게 사용하는지.</h2><p>첫 사용부터 마지막 한 방울까지.</p></div></section>
-  <section class="section"><div class="section-head"><div><div class="eyebrow">THE FORMULAS</div><h2>궁금했던 성분부터.</h2></div><button data-page="제품 탐색" class="text-btn">모든 제품 보기 ${arrow}</button></div><div class="cards">${products.map(card).join('')}</div></section>
+  <section class="section"><div class="section-head"><div><div class="eyebrow">THE FORMULAS</div><h2>궁금했던 성분부터.</h2></div><button data-page="제품 탐색" class="text-btn">모든 제품 보기 ${arrow}</button></div><div class="cards">${orderProductsByRoutine(products).map(card).join('')}</div></section>
   <section class="brand-statement"><span class="eyebrow">THE TRANSPARENCY STANDARD</span><h2>보이는 것, 그 너머까지.<br>투명하게.</h2><p>성분, 함량, 근거, 그리고 사용법.<br>제품을 이해하는 데 필요한 정보를 한곳에서.</p><button data-page="더보기" class="text-btn">우리의 정보 공개 원칙 ${arrow}</button><div class="glass-orb" aria-hidden="true"></div></section>
   <section class="bottom-grid"><div><span class="eyebrow">KNOW YOUR PRODUCT</span><h2>손안에서 확인하는<br>제품의 모든 것.</h2><p>제품명과 성분명으로 궁금한 정보를 찾아보세요.</p><button data-page="제품 탐색" class="text-btn">제품 검색하기 ${arrow}</button><span class="panel-number" aria-hidden="true">01</span></div><div><span class="eyebrow">MY PRODUCTS</span><h2>나의 제품.<br>나에게 맞는 사용법.</h2><p>개봉일과 사용 상태를 기록하고 확인하세요.</p><button data-page="내 제품" class="text-btn">내 제품 관리하기 ${arrow}</button><span class="panel-number" aria-hidden="true">02</span></div></section>`;
 }
 
+function ratingSummary(p, isDetail = false) {
+  const { count, average } = getReviewSummary(p.slug);
+  const label = average === null ? '아직 평가 없음' : `평점 ${average.toFixed(1)}점`;
+  const tag = isDetail ? 'button' : 'div';
+  const attrs = isDetail ? 'type="button" id="show-reviews"' : '';
+  return `<${tag} class="${isDetail ? 'detail-rating' : 'product-rating'}" ${attrs} aria-label="${p.name} ${label}, ${count}개 리뷰${isDetail ? ', 리뷰 보기' : ''}"><span aria-hidden="true">${average === null ? '☆' : '★'}</span>${average === null ? '<span class="rating-empty">아직 평가 없음</span>' : `<strong>${average.toFixed(1)}</strong>`}${isDetail ? `<span>${count}개 리뷰</span>` : `<small>${count} REVIEWS</small>`}</${tag}>`;
+}
+
 function card(p) {
-  return `<button class="product" data-id="${p.id}" aria-label="${p.name} 상세 보기, 평점 ${p.rating.toFixed(1)}점"><div class="product-image">${bottle(p)}<span class="badge">${p.type}</span><span class="round-arrow" aria-hidden="true">↗</span></div><div class="product-meta"><span>${p.en}</span><span>${p.volume}</span></div><h3>${p.name}</h3><div class="product-rating" aria-label="평점 ${p.rating.toFixed(1)}점, 평가 ${p.reviewCount}개"><span aria-hidden="true">★</span><strong>${p.rating.toFixed(1)}</strong><small>${p.reviewCount} REVIEWS</small></div><p>${p.ingredient}<span>성분 확인 ${arrow}</span></p><span class="routine-step">${p.routineStep}</span></button>`;
+  return `<button class="product" data-id="${p.id}" aria-label="${p.name} 상세 보기"><div class="product-image">${bottle(p)}<span class="badge">${p.type}</span><span class="round-arrow" aria-hidden="true">↗</span></div><div class="product-meta"><span>${p.en}</span><span>${p.volume}</span></div><h3>${p.name}</h3>${ratingSummary(p)}<p>${p.ingredient}<span>성분 확인 ${arrow}</span></p><span class="routine-step">${p.routineStep}</span></button>`;
 }
 
 function productResults(list) {
@@ -147,14 +152,12 @@ function productResults(list) {
 
 function matchingProducts() {
   const term = query.trim().toLocaleLowerCase('ko-KR');
-  return products
-    .filter(p => (filter === '전체' || filter === p.type) && `${p.name} ${p.en} ${p.ingredient} ${p.searchTerms}`.toLocaleLowerCase('ko-KR').includes(term))
-    .sort((a, b) => a.rating - b.rating || b.reviewCount - a.reviewCount);
+  return orderProductsByRoutine(products.filter(p => (filter === '전체' || filter === p.type) && `${p.name} ${p.en} ${p.ingredient} ${p.searchTerms}`.toLocaleLowerCase('ko-KR').includes(term)));
 }
 
 function explore() {
   const list = matchingProducts();
-  return `<section class="section page-section"><div class="eyebrow">EXPLORE / THE FORMULAS</div><h1 class="page-title">성분에 장난 없이.</h1><p class="page-intro">궁금했던 성분부터, 제품의 근거와 사용법까지.</p><div class="search-field"><label class="sr-only" for="search">제품명 또는 성분명</label><input id="search" type="search" placeholder="제품명 또는 성분명으로 검색" value="${escape(query)}"><span aria-hidden="true">⌕</span></div><div class="explore-toolbar"><div class="filters" aria-label="제품 종류 필터">${['전체', ...products.map(product => product.type)].map(x => `<button data-filter="${x}" aria-pressed="${filter === x}" class="${filter === x ? 'chosen' : ''}">${x}</button>`).join('')}</div><span class="result-count">${String(list.length).padStart(2, '0')} PRODUCTS</span></div><div class="rating-sort-note"><span>★ 별점 낮은 순</span><p>불편을 먼저 보고, 고치고, 반영하기 위한 Transparency.의 기본 정렬입니다.</p></div><div class="cards">${productResults(list)}</div></section>`;
+  return `<section class="section page-section"><div class="eyebrow">EXPLORE / THE FORMULAS</div><h1 class="page-title">성분에 장난 없이.</h1><p class="page-intro">궁금했던 성분부터, 제품의 근거와 사용법까지.</p><div class="search-field"><label class="sr-only" for="search">제품명 또는 성분명</label><input id="search" type="search" placeholder="제품명 또는 성분명으로 검색" value="${escape(query)}"><span aria-hidden="true">⌕</span></div><div class="explore-toolbar"><div class="filters" aria-label="제품 종류 필터">${['전체', ...new Set(orderProductsByRoutine(products).map(product => product.type))].map(x => `<button data-filter="${x}" aria-pressed="${filter === x}" class="${filter === x ? 'chosen' : ''}">${x}</button>`).join('')}</div><span class="result-count">${String(list.length).padStart(2, '0')} PRODUCTS</span></div><div class="catalog-order-note"><span>사용 순서대로</span><p>STEP 01 토너 → STEP 02 세럼 → STEP 03 크림</p></div><div class="cards">${productResults(list)}</div></section>`;
 }
 
 function ingredientContent(p) {
@@ -178,8 +181,8 @@ function questionContent(p) {
 
 function detail() {
   const p = selected;
-  const contents = { '성분·함량': ingredientContent(p), '효능·근거': evidenceContent(p), '사용 안내': usageContent(p), '질문하기': questionContent(p) };
-  return `<section class="section page-section"><button id="back" class="text-btn">← 제품 목록</button><div class="detail-top"><div class="detail-image">${bottle(p)}<span class="image-caption">TRANSPARENCY. / PRODUCT INFORMATION</span></div><div class="detail-copy"><div class="eyebrow">${p.en.toUpperCase()}</div><h1 class="page-title">${p.name}</h1><div class="detail-rating" aria-label="평점 ${p.rating.toFixed(1)}점, 평가 ${p.reviewCount}개"><span aria-hidden="true">★</span><strong>${p.rating.toFixed(1)}</strong><span>${p.reviewCount}개 평가</span></div><p class="page-intro">${p.desc}</p><p>${p.longDesc}</p><dl class="product-specs"><div><dt>루틴 단계</dt><dd>${p.routineStep}</dd></div><div><dt>핵심 성분</dt><dd>${p.ingredient}</dd></div><div><dt>종류 · 용량</dt><dd>${p.type} · ${p.volume}</dd></div><div><dt>제형</dt><dd>${p.texture}</dd></div></dl><aside class="product-qr" aria-label="${p.name} 상세 페이지 QR"><img src="/images/qr/${p.slug}.svg" alt="${p.name} 상세 페이지로 연결되는 QR 코드" width="160" height="160"><div><span class="eyebrow">PRODUCT QR</span><h2>스캔해서 바로 확인.</h2><p>이 QR은 ${p.name} 상세 페이지로 직접 연결됩니다.</p><div class="qr-downloads"><a href="/images/qr/${p.slug}.svg" download="Transparency-${p.slug}-QR.svg">SVG</a><a href="/images/qr/${p.slug}.png" download="Transparency-${p.slug}-QR.png">PNG</a></div></div></aside><button class="dark" id="register">내 제품에 추가 <span aria-hidden="true">＋</span></button><p class="muted">평가 정보: 별점과 평가 수는 화면 구성용 데이터이며, 실제 사용자 평가를 집계한 수치가 아닙니다.</p></div></div><div class="tabs" role="tablist" aria-label="제품 정보">${Object.keys(contents).map(t => `<button id="tab-${t}" role="tab" aria-controls="detail-panel" aria-selected="${tab === t}" data-tab="${t}" class="${tab === t ? 'chosen' : ''}">${t}</button>`).join('')}</div><div class="info" id="detail-panel" role="tabpanel" aria-labelledby="tab-${tab}">${contents[tab]}</div></section>`;
+  const contents = { '성분·함량': ingredientContent(p), '효능·근거': evidenceContent(p), '사용 안내': usageContent(p), '질문하기': questionContent(p), '사용자 리뷰': renderProductReviews(p) };
+  return `<section class="section page-section"><button id="back" class="text-btn">← 제품 목록</button><div class="detail-top"><div class="detail-image">${bottle(p)}<span class="image-caption">TRANSPARENCY. / PRODUCT INFORMATION</span></div><div class="detail-copy"><div class="eyebrow">${p.en.toUpperCase()}</div><h1 class="page-title">${p.name}</h1>${ratingSummary(p, true)}<p class="page-intro">${p.desc}</p><p>${p.longDesc}</p><dl class="product-specs"><div><dt>루틴 단계</dt><dd>${p.routineStep}</dd></div><div><dt>핵심 성분</dt><dd>${p.ingredient}</dd></div><div><dt>종류 · 용량</dt><dd>${p.type} · ${p.volume}</dd></div><div><dt>제형</dt><dd>${p.texture}</dd></div></dl><aside class="product-qr" aria-label="${p.name} 상세 페이지 QR"><img src="/images/qr/${p.slug}.svg" alt="${p.name} 상세 페이지로 연결되는 QR 코드" width="160" height="160"><div><span class="eyebrow">PRODUCT QR</span><h2>스캔해서 바로 확인.</h2><p>이 QR은 ${p.name} 상세 페이지로 직접 연결됩니다.</p><div class="qr-downloads"><a href="/images/qr/${p.slug}.svg" download="Transparency-${p.slug}-QR.svg">SVG</a><a href="/images/qr/${p.slug}.png" download="Transparency-${p.slug}-QR.png">PNG</a></div></div></aside><button class="dark" id="register">내 제품에 추가 <span aria-hidden="true">＋</span></button></div></div><div class="tabs" role="tablist" aria-label="제품 정보">${Object.keys(contents).map(t => `<button id="tab-${t}" role="tab" aria-controls="detail-panel" aria-selected="${tab === t}" data-tab="${t}" class="${tab === t ? 'chosen' : ''}">${t}</button>`).join('')}</div><div class="info" id="detail-panel" role="tabpanel" aria-labelledby="tab-${tab}">${contents[tab]}</div></section>`;
 }
 
 function my() {
@@ -194,9 +197,9 @@ function more() {
     ['01', '브랜드 철학', '알고 선택하고, 납득하며 사용하고, 끝까지 확인하는 것. Transparency.가 생각하는 투명함입니다.'],
     ['02', '정보 공개 원칙', '성분의 역할과 함량 기준을 설명합니다. 효능에는 출처와 한계를 함께 표시합니다. 확인되지 않은 내용은 확인되지 않았다고 안내하고, 정보가 바뀌면 확인일과 변경 내용을 갱신합니다.'],
     ['03', '서비스 이용 안내', '제품을 탐색하고 내 제품으로 등록하세요. 개봉일을 입력하고 사용 상태를 관리할 수 있습니다. 기록은 이 브라우저에만 저장됩니다.'],
-    ['04', '계정 관리', '회원가입 없이 제품 정보를 확인하고 사용 기록을 관리할 수 있습니다. 기록은 현재 사용하는 브라우저에 저장됩니다.'],
+    ['04', '계정 관리', '회원가입 없이 제품 정보를 확인하고 사용 기록을 관리할 수 있습니다. 제품 사용 기록과 리뷰는 현재 사용하는 브라우저에 저장되며, 다른 기기와 공유되지 않습니다.'],
     ['05', '정보 상태와 문의', '현재 공개되지 않았거나 확인 가능한 자료가 없는 정보는 그 이유와 확인 가능한 범위를 함께 안내합니다. 문의: ztheng@inha.edu'],
-    ['06', '개인정보·기록 관리', '제품 사용 기록은 현재 브라우저에 저장되며, 내 제품에서 개별 기록을 삭제할 수 있습니다. 질문 입력 내용은 전송되거나 저장되지 않습니다. 서비스 이용과 개인정보 관련 문의는 안내된 이메일로 보내 주세요.'],
+    ['06', '개인정보·기록 관리', '제품 사용 기록과 리뷰는 현재 브라우저에 저장됩니다. 제품 기록은 내 제품에서, 리뷰는 해당 제품의 사용자 리뷰에서 삭제할 수 있습니다. 질문 입력 내용은 전송되거나 저장되지 않습니다. 서비스 이용과 개인정보 관련 문의는 안내된 이메일로 보내 주세요.'],
   ].map(([n, a, b]) => `<details><summary><span class="number">${n}</span>${a}</summary><p>${b}</p></details>`).join('')}</div></section>`;
 }
 
@@ -235,6 +238,12 @@ function refreshSearchResults(value) {
   bindSearchReset();
 }
 function bind() {
+  if (selected && tab === '사용자 리뷰') bindProductReviews(selected, render);
+  document.querySelector('#show-reviews')?.addEventListener('click', () => {
+    tab = '사용자 리뷰';
+    render();
+    document.querySelector('[data-tab="사용자 리뷰"]')?.focus();
+  });
   document.querySelector('#theme-toggle')?.addEventListener('click', () => {
     theme = theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = theme;
@@ -282,6 +291,9 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Tab') document.body.classList.add('keyboard-navigation');
 });
 document.addEventListener('pointerdown', () => document.body.classList.remove('keyboard-navigation'));
+window.addEventListener('storage', event => {
+  if (event.key === REVIEW_STORAGE_KEY || event.key === null) render();
+});
 window.addEventListener('popstate', () => {
   const slug = new URLSearchParams(window.location.search).get('product');
   selected = products.find(product => product.slug === slug) || null;

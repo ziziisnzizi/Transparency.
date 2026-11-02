@@ -1,6 +1,6 @@
 # Product images
 
-Product imagery is matched by product slug, so the homepage and rating-sorted
+Product imagery is matched by product slug, so the homepage and routine-ordered
 catalog always use the same product and texture pair.
 
 | Product | Primary image | Hover texture | Supplied primary SVG |
