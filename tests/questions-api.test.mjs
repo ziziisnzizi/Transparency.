@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 import { test } from 'node:test';
 import { createAskHandler, MAX_REQUEST_BYTES } from '../api/ask.js';
 import { buildProductSources, findQuestionProduct } from '../lib/product-answers.js';
-import { geminiConfiguration, DEFAULT_GEMINI_MODEL } from '../lib/ai-provider.js';
+import { geminiConfiguration, DEFAULT_GEMINI_MODEL, getProviderIssue } from '../lib/ai-provider.js';
 
 const fakeKey = 'unit-only-gemini-key-not-a-credential';
 const product = findQuestionProduct('serum-s1');
@@ -193,7 +193,57 @@ test('provider timeout cancels the request and returns a useful reference answer
   assert.equal(aborted, true);
   assert.equal(result.status, 200);
   assert.equal(result.body.mode, 'reference');
+  assert.equal(result.body.providerIssue, 'timeout');
   assert.match(result.body.answer, /토너 T\.1.*세럼 S\.1.*크림 C\.1/);
+});
+
+test('provider failures expose only actionable allowlisted categories, never raw upstream diagnostics', async () => {
+  const privateMarker = 'private-provider-project-and-prompt-marker';
+  const cases = [
+    [400, { status: 'INVALID_ARGUMENT', details: [{ reason: 'API_KEY_INVALID' }] }, 'key_invalid'],
+    [400, { status: 'INVALID_ARGUMENT', message: `API key not valid. ${fakeKey}` }, 'key_invalid'],
+    [401, { status: 'UNAUTHENTICATED' }, 'key_invalid'],
+    [403, { status: 'PERMISSION_DENIED', details: [{ reason: 'API_KEY_SERVICE_BLOCKED' }] }, 'permission_denied'],
+    [429, { status: 'RESOURCE_EXHAUSTED' }, 'quota_exceeded'],
+    [404, { status: 'NOT_FOUND' }, 'model_unavailable'],
+    [400, { status: 'INVALID_ARGUMENT' }, 'request_rejected'],
+    [503, { status: 'UNAVAILABLE' }, 'unavailable'],
+  ];
+  for (const [status, providerError, expected] of cases) {
+    const handler = createAskHandler({
+      env: { GEMINI_API_KEY: fakeKey },
+      fetchImpl: async () => ({ ok: false, status, json: async () => ({ error: { message: `${privateMarker} ${fakeKey}`, ...providerError } }) }),
+    });
+    const result = await invoke(handler, request());
+    assert.equal(result.status, 200);
+    assert.equal(result.body.mode, 'reference');
+    assert.equal(result.body.reason, 'provider_unavailable');
+    assert.equal(result.body.providerIssue, expected);
+    assert.ok(!result.raw.includes(fakeKey));
+    assert.ok(!result.raw.includes(privateMarker));
+    assert.equal(Object.hasOwn(result.body, 'providerStatus'), false);
+    assert.equal(Object.hasOwn(result.body, 'providerMessage'), false);
+  }
+});
+
+test('untrusted errors and malformed provider responses cannot leak or forge diagnostic fields', async () => {
+  assert.equal(getProviderIssue({ providerIssue: 'key_invalid', message: fakeKey }), 'unavailable');
+  const providers = [
+    [async () => { throw { providerIssue: 'key_invalid', message: fakeKey }; }, 'unavailable'],
+    [async () => ({ ok: false, status: 429, json: async () => { throw Error(fakeKey); } }), 'quota_exceeded'],
+    [async () => ({ ok: true, json: async () => { throw Error(fakeKey); } }), 'invalid_response'],
+    [async () => ({ ok: true, json: async () => ({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: fakeKey }] } }] }) }), 'invalid_response'],
+    [async () => generated('제품 정보상 24시간 효과가 있습니다.', ['invented:source']), 'invalid_response'],
+    [async () => generated(`응답에 노출된 ${fakeKey}`, [source.id]), 'invalid_response'],
+  ];
+  for (const [fetchImpl, expected] of providers) {
+    const handler = createAskHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl });
+    const result = await invoke(handler, request());
+    assert.equal(result.body.mode, 'reference');
+    assert.equal(result.body.providerIssue, expected);
+    assert.ok(!result.raw.includes(fakeKey));
+    assert.ok(!result.raw.includes('24시간'));
+  }
 });
 
 test('provider failures do not log credentials, prompts, or upstream error text', async t => {

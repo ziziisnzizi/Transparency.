@@ -1,5 +1,5 @@
 import { validateQuestionInput, getReferenceAnswer } from '../lib/product-answers.js';
-import { geminiConfiguration, generateProductAnswer } from '../lib/ai-provider.js';
+import { geminiConfiguration, generateProductAnswer, getProviderIssue } from '../lib/ai-provider.js';
 
 export const MAX_REQUEST_BYTES = 4096;
 
@@ -91,16 +91,18 @@ export function createAskHandler({ env = process.env, fetchImpl = globalThis.fet
       const reference = getReferenceAnswer(input.product, input.question);
       if (!reference.matched) return send(res, 200, { answer: reference.answer, sources: reference.sources, mode: 'reference', reason: 'no_match' });
       let reason = configuration.key ? 'provider_unavailable' : 'missing_key';
+      let providerIssue;
       if (configuration.key) {
         try {
           const answer = await generateProductAnswer(input.product, input.question, { apiKey: configuration.key, model: configuration.model, fetchImpl, timeoutMs });
           return send(res, 200, { ...answer, mode: 'ai' });
-        } catch {
+        } catch (error) {
           // Never leak provider responses, credentials or request text into logs.
           reason = 'provider_unavailable';
+          providerIssue = getProviderIssue(error);
         }
       }
-      return send(res, 200, { answer: reference.answer, sources: reference.sources, mode: 'reference', reason });
+      return send(res, 200, { answer: reference.answer, sources: reference.sources, mode: 'reference', reason, ...(providerIssue ? { providerIssue } : {}) });
     } catch (error) {
       return send(res, error instanceof RequestError ? error.status : 500, { error: error instanceof RequestError ? error.message : '답변을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.' });
     }
