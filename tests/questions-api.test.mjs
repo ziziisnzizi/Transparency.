@@ -35,6 +35,12 @@ function generated(answer = '토너 다음에 세럼을 사용합니다.', sourc
   };
 }
 
+function nativeGenerated(answer = '토너 다음에 세럼을 사용합니다.', sourceIds = [source.id]) {
+  return { ok: true, json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [
+    { thought: true, text: fakeKey }, { text: JSON.stringify({ answer, sourceIds }) },
+  ] } }] }) };
+}
+
 test('capability requests are read-only and never disclose credentials or model configuration', async () => {
   for (const [env, expected] of [[{}, { aiAvailable: false, mode: 'reference' }], [{ GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'private-model' }, { aiAvailable: true, mode: 'ai' }]]) {
     let calls = 0;
@@ -172,6 +178,172 @@ test('provider configuration cannot turn model names into arbitrary network dest
   for (const model of ['https://attacker.test/model', '../model', 'x?key=secret', 'model/a', 'x'.repeat(101)]) {
     assert.equal(geminiConfiguration({ GEMINI_MODEL: model }).model, DEFAULT_GEMINI_MODEL);
   }
+});
+
+test('a retryable primary failure switches once to native Flash-Lite with the same grounding and protected key', async () => {
+  for (const failure of [
+    async () => ({ ok: false, status: 503, json: async () => ({ error: { code: 'service_unavailable', message: fakeKey } }) }),
+    async () => ({ ok: false, status: 404, json: async () => ({ error: { code: 'not_found' } }) }),
+    async () => { throw TypeError(`network error ${fakeKey}`); },
+  ]) {
+    const attempts = [];
+    const handler = createAskHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async (url, options) => {
+      attempts.push({ url, options, payload: JSON.parse(options.body) });
+      return attempts.length === 1 ? failure() : nativeGenerated();
+    } });
+    const result = await invoke(handler, request());
+    assert.equal(result.body.mode, 'ai');
+    assert.deepEqual(result.body.sources, [source]);
+    assert.equal(attempts.length, 2);
+    assert.equal(attempts[0].payload.model, 'gemini-3.8-flash');
+    assert.equal(attempts[0].url, 'https://generativelanguage.googleapis.com/v1beta/interactions');
+    assert.equal(attempts[1].url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent');
+    assert.equal(attempts[0].payload.generation_config.thinking_level, 'low');
+    assert.deepEqual(attempts[1].payload.generationConfig.thinkingConfig, { thinkingLevel: 'MINIMAL' });
+    assert.equal(attempts[0].payload.store, false);
+    assert.equal(attempts[1].payload.contents[0].parts[0].text, attempts[0].payload.input);
+    assert.equal(attempts[1].payload.systemInstruction.parts[0].text, attempts[0].payload.system_instruction);
+    assert.deepEqual(attempts[1].payload.generationConfig.responseJsonSchema, attempts[0].payload.response_format.schema);
+    assert.equal(attempts[1].payload.generationConfig.responseMimeType, 'application/json');
+    assert.equal(attempts[1].payload.generationConfig.maxOutputTokens, 2048);
+    for (const attempt of attempts) {
+      assert.equal(attempt.options.headers['x-goog-api-key'], fakeKey);
+      const config = attempt.payload.generation_config || attempt.payload.generationConfig;
+      for (const sampling of ['temperature', 'topP', 'topK', 'top_p', 'top_k']) assert.equal(Object.hasOwn(config, sampling), false);
+      assert.ok(!attempt.options.body.includes(fakeKey));
+    }
+    assert.ok(!result.raw.includes(fakeKey));
+  }
+});
+
+test('two unavailable models return a reference answer without a third attempt or repeated fallback', async () => {
+  for (const model of [undefined, 'gemini-3.5-flash-lite', 'gemini-2.5-flash']) {
+    let calls = 0;
+    const handler = createAskHandler({ env: { GEMINI_API_KEY: fakeKey, ...(model ? { GEMINI_MODEL: model } : {}) }, fetchImpl: async () => {
+      calls++;
+      return { ok: false, status: 503, json: async () => ({ error: { code: 'service_unavailable' } }) };
+    } });
+    const result = await invoke(handler, request());
+    assert.equal(result.body.mode, 'reference');
+    assert.equal(result.body.providerIssue, 'service_unavailable');
+    assert.equal(calls, model ? 1 : 2);
+  }
+});
+
+test('native fallback output must finish and cite only the selected product sources', async () => {
+  const failures = [
+    nativeGenerated('확인되지 않은 효능', ['invented:source']),
+    nativeGenerated(`노출된 ${fakeKey}`, [source.id]),
+    { ok: true, json: async () => ({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: '{}' }] } }] }) },
+  ];
+  for (const failure of failures) {
+    let calls = 0;
+    const handler = createAskHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async () => {
+      calls++;
+      return calls === 1 ? { ok: false, status: 503, json: async () => ({ error: { code: 'service_unavailable' } }) } : failure;
+    } });
+    const result = await invoke(handler, request());
+    assert.equal(result.body.mode, 'reference');
+    assert.equal(result.body.providerIssue, 'invalid_response');
+    assert.equal(calls, 2);
+    assert.ok(!result.raw.includes(fakeKey));
+    assert.ok(!result.raw.includes('확인되지 않은 효능'));
+  }
+});
+
+test('authentication, billing, quota, request, and citation failures never trigger model failover', async () => {
+  const failures = [
+    [401, 'unauthenticated', 'key_invalid'],
+    [403, 'permission_denied', 'permission_denied'],
+    [402, 'payment_required', 'billing_required'],
+    [429, 'resource_exhausted', 'quota_exceeded'],
+    [400, 'invalid_argument', 'request_rejected'],
+    [418, 'unknown', 'unavailable'],
+  ];
+  for (const [status, code, expected] of failures) {
+    let calls = 0;
+    const handler = createAskHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async () => {
+      calls++;
+      return { ok: false, status, json: async () => ({ error: { code } }) };
+    } });
+    const result = await invoke(handler, request());
+    assert.equal(result.body.providerIssue, expected);
+    assert.equal(calls, 1);
+  }
+  let calls = 0;
+  const handler = createAskHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async () => {
+    calls++;
+    return generated('검증되지 않은 효과', ['invented:source']);
+  } });
+  assert.equal((await invoke(handler, request())).body.providerIssue, 'invalid_response');
+  assert.equal(calls, 1);
+});
+
+test('a stalled primary is cancelled early enough for a genuine fallback answer', async t => {
+  const scheduled = [];
+  const originalSetTimeout = globalThis.setTimeout;
+  t.mock.method(globalThis, 'setTimeout', (callback, delay, ...args) => {
+    scheduled.push({ delay, at: performance.now() });
+    return originalSetTimeout(callback, delay, ...args);
+  });
+  const signals = [];
+  const handler = createAskHandler({ env: { GEMINI_API_KEY: fakeKey }, timeoutMs: 60, fetchImpl: async (_url, options) => {
+    signals.push(options.signal);
+    // An uncooperative fetch mock must not exhaust the whole request budget.
+    return signals.length === 1 ? new Promise(() => {}) : nativeGenerated();
+  } });
+  const start = performance.now();
+  const result = await invoke(handler, request());
+  assert.equal(result.body.mode, 'ai');
+  assert.equal(signals.length, 2);
+  assert.equal(signals[0].aborted, true);
+  assert.equal(signals[1].aborted, false);
+  assert.equal(scheduled.length, 2);
+  assert.ok(scheduled[0].delay <= 24);
+  assert.ok(scheduled[1].delay > 0);
+  assert.ok(scheduled[1].at + scheduled[1].delay <= start + 65);
+});
+
+test('stalled response bodies remain within one total deadline and both attempts are cancelled', async t => {
+  const scheduled = [];
+  const originalSetTimeout = globalThis.setTimeout;
+  t.mock.method(globalThis, 'setTimeout', (callback, delay, ...args) => {
+    scheduled.push({ delay, at: performance.now() });
+    return originalSetTimeout(callback, delay, ...args);
+  });
+  const signals = [];
+  const handler = createAskHandler({ env: { GEMINI_API_KEY: fakeKey }, timeoutMs: 60, fetchImpl: async (_url, options) => {
+    signals.push(options.signal);
+    return { ok: true, json: () => new Promise(() => {}) };
+  } });
+  const start = performance.now();
+  const result = await invoke(handler, request());
+  assert.ok(performance.now() - start < 300);
+  assert.equal(result.body.mode, 'reference');
+  assert.equal(result.body.providerIssue, 'timeout');
+  assert.equal(signals.length, 2);
+  assert.ok(signals.every(signal => signal.aborted));
+  assert.equal(scheduled.length, 2);
+  assert.ok(scheduled[1].at + scheduled[1].delay <= start + 65);
+});
+
+test('a larger requested timeout cannot exceed the 45-second total or 18-second primary budget', async t => {
+  const scheduled = [];
+  const originalSetTimeout = globalThis.setTimeout;
+  t.mock.method(globalThis, 'setTimeout', (callback, delay, ...args) => {
+    scheduled.push({ delay, at: performance.now() });
+    return originalSetTimeout(callback, delay, ...args);
+  });
+  let calls = 0;
+  const handler = createAskHandler({ env: { GEMINI_API_KEY: fakeKey }, timeoutMs: 120000, fetchImpl: async () => {
+    calls++;
+    return calls === 1 ? { ok: false, status: 503, json: async () => ({ error: { code: 'service_unavailable' } }) } : nativeGenerated();
+  } });
+  const start = performance.now();
+  assert.equal((await invoke(handler, request())).body.mode, 'ai');
+  assert.equal(scheduled.length, 2);
+  assert.ok(scheduled[0].delay <= 18000);
+  assert.ok(scheduled[1].at + scheduled[1].delay <= start + 45005);
 });
 
 test('Interactions reads only completed model output text and ignores thoughts and tools', async () => {

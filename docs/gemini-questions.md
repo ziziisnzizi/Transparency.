@@ -18,9 +18,10 @@ The existing shared domain `transparency-web-five.vercel.app` is served by the
 
 Optional `GEMINI_MODEL` defaults to `gemini-3.8-flash`. The model is configurable
 with a model identifier, not an arbitrary API URL. The provider host is fixed to
-Google's Gemini API and the key travels in the `x-goog-api-key` header. Current
-models use the Interactions API with `store: false`; explicitly selected
-`gemini-2.*` models retain the legacy generateContent adapter.
+Google's Gemini API and the key travels in the `x-goog-api-key` header. The default
+model uses the Interactions API with `store: false`. If that model is unavailable,
+the server can make one attempt with `gemini-3.5-flash-lite` through generateContent.
+Explicitly selected `gemini-2.*` models also use generateContent.
 
 `GET /api/ask` returns `{ aiAvailable, mode }`. This checks configuration presence,
 not provider authorization or remaining quota. A successful POST with `mode: ai`
@@ -54,7 +55,13 @@ presented as an AI-generated answer.
 - Generated JSON must cite 1–6 valid sources from the selected product. Invalid
   citations, blocked/truncated responses, provider errors, and timeouts fall back
   to registered materials, with the response mode accurately labelled.
-- The provider timeout is 45 seconds; the Vercel function duration is 60 seconds.
+- Temporary service errors, connection failures, timeouts, and unavailable models
+  can trigger one fallback attempt. Authentication, permission, billing, quota,
+  rejected requests, and invalid generated answers never trigger a retry. Both
+  attempts use the same registered product sources and citation validation.
+- The combined provider timeout is 45 seconds; the Vercel function duration is 60 seconds.
+  When fallback is available, the first model receives up to 18 seconds, leaving
+  time for the second model within that combined deadline.
   The browser waits up to 55 seconds so the server can return its reference
   answer when Gemini is slow.
   A per-instance address limit is 20 POST requests per minute. This is not a
