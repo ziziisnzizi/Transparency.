@@ -69,7 +69,7 @@ function send(res, status, body, extra = {}) {
   res.end(JSON.stringify(body));
 }
 
-export function createAskHandler({ env = process.env, fetchImpl = globalThis.fetch, now = Date.now, rateLimit = 20, rateWindowMs = 60000, timeoutMs = 20000 } = {}) {
+export function createAskHandler({ env = process.env, fetchImpl = globalThis.fetch, now = Date.now, rateLimit = 20, rateWindowMs = 60000, timeoutMs = 45000 } = {}) {
   const buckets = new Map();
   return async function ask(req, res) {
     try {

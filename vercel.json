@@ -4,6 +4,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/ask.js": { "maxDuration": 30 }
+    "api/ask.js": { "maxDuration": 60 }
   }
 }

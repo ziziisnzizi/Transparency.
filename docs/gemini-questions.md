@@ -54,7 +54,9 @@ presented as an AI-generated answer.
 - Generated JSON must cite 1–6 valid sources from the selected product. Invalid
   citations, blocked/truncated responses, provider errors, and timeouts fall back
   to registered materials, with the response mode accurately labelled.
-- The provider timeout is 20 seconds; the Vercel function duration is 30 seconds.
+- The provider timeout is 45 seconds; the Vercel function duration is 60 seconds.
+  The browser waits up to 55 seconds so the server can return its reference
+  answer when Gemini is slow.
   A per-instance address limit is 20 POST requests per minute. This is not a
   persistent distributed abuse-control service.
 

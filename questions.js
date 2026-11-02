@@ -121,7 +121,7 @@ async function sendQuestion(product, question, retry = false) {
   const controller = new AbortController();
   state.controller = controller;
   let timedOut = false;
-  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 30000);
+  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 55000);
   refresh(product);
   try {
     const response = await fetch('/api/ask', {
