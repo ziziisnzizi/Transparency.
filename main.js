@@ -1,93 +1,12 @@
+import { renderProductQuestions, bindProductQuestions } from './questions.js';
+import { products, purchasePricing } from './products.js';
 import { orderProductsByRoutine } from './catalog.js';
 import { getReviewSummary, renderProductReviews, bindProductReviews, REVIEW_STORAGE_KEY } from './reviews.js';
 import { renderPurchase, bindPurchase, formatPurchasePrice } from './purchase.js';
 
-const purchasePricing = { shippingFee: 3000, freeShippingThreshold: 50000 };
 
-const products = [
-  {
-    id: 1,
-    slug: 'serum-s1',
-    name: '세럼 S.1',
-    en: 'Transparency. Serum S.1',
-    type: '수분 세럼',
-    kind: 'serum',
-    image: '/images/products/serum-s1.webp',
-    imageWidth: 1024,
-    imageHeight: 1536,
-    textureImage: '/images/textures/serum-s1.webp',
-    volume: '30 mL',
-    price: 24000,
-    ingredient: '글리세린 5.0% · 판테놀 1.0% · 소듐하이알루로네이트 0.1%',
-    searchTerms: '세럼 수분 보습 글리세린 판테놀 소듐하이알루로네이트 히알루론산',
-    desc: '필요한 수분, 확인할 수 있는 성분.',
-    longDesc: '매일의 수분 관리를 위한 세럼입니다. 성분의 역할과 함량, 사용법을 확인하고 용기의 눈금으로 남은 양까지 살펴보세요.',
-    texture: '투명 수용성 젤',
-    ingredients: [
-      ['글리세린 5.0%', '보습', '수분을 끌어당기는 특성을 가진 보습 성분입니다. 피부가 촉촉한 상태를 유지하도록 돕습니다.'],
-      ['판테놀 1.0%', '피부 컨디셔닝 · 보습', '보습과 피부 컨디셔닝에 사용하는 성분입니다. 매일의 수분 관리에 함께합니다.'],
-      ['소듐하이알루로네이트 0.1%', '보습', '물을 붙잡는 특성을 가진 보습 성분입니다. 피부 표면의 수분 유지에 도움을 줍니다.'],
-    ],
-    amount: '약 0.5 mL',
-    routine: '세안 → 토너 T.1 → 세럼 S.1 → 크림 C.1',
-    routineStep: 'STEP 02 · 수분 채우기',
-  },
-  {
-    id: 2,
-    slug: 'toner-t1',
-    name: '토너 T.1',
-    en: 'Transparency. Toner T.1',
-    type: '수분 토너',
-    kind: 'toner',
-    image: '/images/products/toner-t1.webp',
-    imageWidth: 1024,
-    imageHeight: 1536,
-    textureImage: '/images/textures/toner-t1.webp',
-    volume: '150 mL',
-    price: 18000,
-    ingredient: '글리세린 3.0% · 판테놀 0.5% · 베타글루칸 0.1%',
-    searchTerms: '토너 수분 보습 글리세린 판테놀 베타글루칸 스킨',
-    desc: '세안 다음 단계, 필요한 수분만.',
-    longDesc: '세안 후 사용하는 첫 단계 수분 토너입니다. 투명한 워터 제형으로 피부를 정돈하고, 다음 단계의 수분 관리 루틴을 시작하세요.',
-    texture: '투명 워터 제형',
-    ingredients: [
-      ['글리세린 3.0%', '보습', '수분을 끌어당기는 보습 성분입니다. 세안 후 수분 관리를 위한 성분으로 사용합니다.'],
-      ['판테놀 0.5%', '피부 컨디셔닝 · 보습', '보습과 피부 컨디셔닝을 위해 사용하는 성분입니다.'],
-      ['베타글루칸 0.1%', '피부 컨디셔닝', '보습과 피부 컨디셔닝에 사용하는 성분입니다. 성분의 역할을 확인하며 나에게 맞는 루틴을 구성하세요.'],
-    ],
-    amount: '손바닥에 1~2회 덜어낼 양',
-    routine: '세안 → 토너 T.1 → 세럼 S.1 → 크림 C.1',
-    routineStep: 'STEP 01 · 피부 정돈하기',
-  },
-  {
-    id: 3,
-    slug: 'cream-c1',
-    name: '크림 C.1',
-    en: 'Transparency. Cream C.1',
-    type: '보습 크림',
-    kind: 'cream',
-    image: '/images/products/cream-c1.webp',
-    imageWidth: 1230,
-    imageHeight: 1278,
-    textureImage: '/images/textures/cream-c1.webp',
-    volume: '50 mL',
-    price: 26000,
-    ingredient: '글리세린 5.0% · 스쿠알란 3.0% · 세라마이드 NP 0.05%',
-    searchTerms: '크림 보습 장벽 글리세린 스쿠알란 세라마이드',
-    desc: '수분이 머무는 마지막 단계.',
-    longDesc: '수분 관리의 마지막 단계에 사용하는 보습 크림입니다. 담긴 성분의 역할을 확인하고, 필요한 양을 덜어 피부에 부드럽게 펴 발라 주세요.',
-    texture: '흰색 크림 제형',
-    ingredients: [
-      ['글리세린 5.0%', '보습', '수분을 끌어당겨 피부의 보습을 돕는 성분입니다.'],
-      ['스쿠알란 3.0%', '에몰리언트', '피부를 부드럽고 유연하게 하는 에몰리언트 성분입니다.'],
-      ['세라마이드 NP 0.05%', '피부 컨디셔닝', '피부 장벽의 지질과 관련된 성분으로, 피부 컨디셔닝에 사용합니다.'],
-    ],
-    amount: '완두콩 1개 정도의 양',
-    routine: '세안 → 토너 T.1 → 세럼 S.1 → 크림 C.1',
-    routineStep: 'STEP 03 · 보습 마무리',
-  },
-];
-let page = '홈', query = '', filter = '전체', selected = null, tab = '성분·함량', questionDraft = '';
+
+let page = '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
 let isPurchase = new URLSearchParams(window.location.search).get('view') === 'buy';
 let theme = localStorage.getItem('transparency-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 document.documentElement.dataset.theme = theme;
@@ -184,7 +103,7 @@ function usageContent(p) {
 
 function questionContent(p) {
   const faqs = [['어떤 피부 타입을 위한 제품인가요?', '매일의 수분 관리를 위한 제품입니다. 피부 타입과 현재 피부 상태에 맞춰 성분과 사용감을 확인해 주세요.'], ['1회 사용량은 얼마인가요?', `사용량 기준은 ${p.amount}입니다. 피부 상태와 함께 사용하는 제품에 맞춰 양을 조절해 주세요.`], ['민감한 피부도 사용할 수 있나요?', '피부 상태에 따라 사용감이 다를 수 있습니다. 민감성 피부 대상 시험 자료는 공개되어 있지 않으므로, 사용 전 성분을 확인하고 작은 부위에 먼저 사용해 보세요.'], ['개봉 후 언제까지 사용하나요?', '용기와 패키지에 표시된 사용기한 및 개봉 후 사용기간을 확인하세요. 내 제품에 개봉일을 기록해 관리할 수 있습니다.']];
-  return `<span class="eyebrow">04 / QUESTIONS</span><h2>궁금한 것은, 남김없이.</h2><div class="question-compose"><label for="ai-question">Transparency.에게 물어보기</label><p>${p.name}의 성분, 함량, 사용법에 대해 궁금한 내용을 입력해 보세요.</p><textarea id="ai-question" maxlength="500" rows="5" placeholder="예: ${p.ingredients[0][0].split(' ')[0]}을 왜 넣었나요?">${escape(questionDraft)}</textarea><div class="question-meta"><span>현재는 텍스트 입력만 가능합니다. 질문은 전송되거나 저장되지 않습니다.</span><output id="question-count" for="ai-question">${questionDraft.length} / 500</output></div></div><h3 class="faq-title">자주 묻는 질문</h3>${faqs.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('')}<div class="info-note">성분과 함량은 ‘성분·함량’, 자료의 출처와 적용 범위는 ‘효능·근거’에서 확인할 수 있습니다.</div>`;
+  return `<span class="eyebrow">04 / QUESTIONS</span><h2>궁금한 것은, 남김없이.</h2>${renderProductQuestions(p)}<h3 class="faq-title">자주 묻는 질문</h3>${faqs.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('')}<div class="info-note">성분과 함량은 ‘성분·함량’, 자료의 출처와 적용 범위는 ‘효능·근거’에서 확인할 수 있습니다.</div>`;
 }
 
 function detail() {
@@ -207,7 +126,7 @@ function more() {
     ['03', '서비스 이용 안내', '제품을 탐색하고 내 제품으로 등록하세요. 개봉일을 입력하고 사용 상태를 관리할 수 있습니다. 기록은 이 브라우저에만 저장됩니다.'],
     ['04', '계정 관리', '회원가입 없이 제품 정보를 확인하고 사용 기록을 관리할 수 있습니다. 제품 사용 기록과 리뷰는 현재 사용하는 브라우저에 저장되며, 다른 기기와 공유되지 않습니다.'],
     ['05', '정보 상태와 문의', '현재 공개되지 않았거나 확인 가능한 자료가 없는 정보는 그 이유와 확인 가능한 범위를 함께 안내합니다. 문의: ztheng@inha.edu'],
-    ['06', '개인정보·기록 관리', '제품 사용 기록과 리뷰는 현재 브라우저에 저장됩니다. 제품 기록은 내 제품에서, 리뷰는 해당 제품의 사용자 리뷰에서 삭제할 수 있습니다. 질문 입력 내용은 전송되거나 저장되지 않습니다. 서비스 이용과 개인정보 관련 문의는 안내된 이메일로 보내 주세요.'],
+    ['06', '개인정보·기록 관리', '제품 사용 기록과 리뷰는 현재 브라우저에 저장됩니다. 제품 기록은 내 제품에서, 리뷰는 해당 제품의 사용자 리뷰에서 삭제할 수 있습니다. 질문과 제품 자료는 답변 처리를 위해 서버로 전송되며, Gemini 연결 시 AI 서비스로 전달됩니다. 대화는 브라우저 저장소에 보관하지 않습니다. 서비스 이용과 개인정보 관련 문의는 안내된 이메일로 보내 주세요.'],
   ].map(([n, a, b]) => `<details><summary><span class="number">${n}</span>${a}</summary><p>${b}</p></details>`).join('')}</div></section>`;
 }
 
@@ -262,6 +181,22 @@ function refreshSearchResults(value) {
   bindSearchReset();
 }
 function bind() {
+  if (!isPurchase && selected && tab === '질문하기') bindProductQuestions(selected, {
+    onRender: render,
+    onSource: source => {
+      if (source.section === '제품 정보') {
+        document.querySelector('.detail-copy')?.scrollIntoView({ block: 'start' });
+        window.scrollBy(0, -90);
+        return;
+      }
+      if (!['성분·함량', '효능·근거', '사용 안내'].includes(source.section)) return;
+      tab = source.section;
+      render();
+      document.querySelector(`[data-tab="${tab}"]`)?.focus();
+      document.querySelector('#detail-panel')?.scrollIntoView({ block: 'start' });
+      window.scrollBy(0, -90);
+    },
+  });
   if (isPurchase) bindPurchase(orderProductsByRoutine(products), selected?.slug, {
     onProductChange: slug => openProduct(slug, true),
     onBack: () => openProduct(selected.slug),
@@ -306,11 +241,6 @@ function bind() {
       if (!composing && !e.isComposing) refreshSearchResults(e.target.value);
     };
   }
-  const questionInput = document.querySelector('#ai-question');
-  if (questionInput) questionInput.oninput = e => {
-    questionDraft = e.target.value;
-    document.querySelector('#question-count').textContent = `${questionDraft.length} / 500`;
-  };
   bindSearchReset();
   document.querySelector('#back')?.addEventListener('click', () => { selected = null; page = '제품 탐색'; isPurchase = false; writeLocation(); render(); });
   document.querySelector('#register')?.addEventListener('click', () => { if (!saved.some(s => s.id === selected.id)) saved.push({ id: selected.id, date: '', done: false }); selected = null; page = '내 제품'; isPurchase = false; writeLocation(); persist(); window.scrollTo(0, 0); });
