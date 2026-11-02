@@ -65,7 +65,7 @@ function renderedEntries(html) {
   }));
 }
 
-test('each product renders its examples in one lowest-rating-first list with truthful source labels', () => {
+test('each product renders one lowest-rating-first list with a single visible source disclosure', () => {
   const sourceBefore = JSON.stringify(MOCK_PRODUCT_REVIEWS);
 
   for (const product of products) {
@@ -81,8 +81,11 @@ test('each product renders its examples in one lowest-rating-first list with tru
     assert.equal((html.match(/<ol class="review-list"/g) || []).length, 1);
     assert.equal(entries.length, 10);
     assert.deepEqual(entries.map(entry => entry.id), feed.map(review => review.id));
-    assert.ok(entries.every(entry => entry.source === 'example' && entry.content.includes('예시')));
-    assert.doesNotMatch(html, /목업|미리보기|review-preview|<details\b/);
+    assert.ok(entries.every(entry => entry.source === 'example'));
+    assert.ok(entries.every(entry => !/목업|미리보기|review-source-badge|<time\b|data-review-delete=/.test(entry.content)));
+    assert.equal((html.match(/class="review-source-note"/g) || []).length, 1);
+    assert.match(html, /<p class="review-source-note">[^<]*실제 구매 후기가 아니며[^<]*직접 작성한 리뷰만 평균 별점과 리뷰 수에 반영됩니다\.<\/p>/);
+    assert.doesNotMatch(html, /목업|미리보기|review-source-badge|review-preview|<details\b/);
     assert.ok(!html.includes('data-review-id='));
     assert.ok(!html.includes('<time'));
   }

@@ -1,5 +1,8 @@
 import { orderProductsByRoutine } from './catalog.js';
 import { getReviewSummary, renderProductReviews, bindProductReviews, REVIEW_STORAGE_KEY } from './reviews.js';
+import { renderPurchase, bindPurchase, formatPurchasePrice } from './purchase.js';
+
+const purchasePricing = { shippingFee: 3000, freeShippingThreshold: 50000 };
 
 const products = [
   {
@@ -14,6 +17,7 @@ const products = [
     imageHeight: 1536,
     textureImage: '/images/textures/serum-s1.webp',
     volume: '30 mL',
+    price: 24000,
     ingredient: '글리세린 5.0% · 판테놀 1.0% · 소듐하이알루로네이트 0.1%',
     searchTerms: '세럼 수분 보습 글리세린 판테놀 소듐하이알루로네이트 히알루론산',
     desc: '필요한 수분, 확인할 수 있는 성분.',
@@ -40,6 +44,7 @@ const products = [
     imageHeight: 1536,
     textureImage: '/images/textures/toner-t1.webp',
     volume: '150 mL',
+    price: 18000,
     ingredient: '글리세린 3.0% · 판테놀 0.5% · 베타글루칸 0.1%',
     searchTerms: '토너 수분 보습 글리세린 판테놀 베타글루칸 스킨',
     desc: '세안 다음 단계, 필요한 수분만.',
@@ -66,6 +71,7 @@ const products = [
     imageHeight: 1278,
     textureImage: '/images/textures/cream-c1.webp',
     volume: '50 mL',
+    price: 26000,
     ingredient: '글리세린 5.0% · 스쿠알란 3.0% · 세라마이드 NP 0.05%',
     searchTerms: '크림 보습 장벽 글리세린 스쿠알란 세라마이드',
     desc: '수분이 머무는 마지막 단계.',
@@ -82,10 +88,12 @@ const products = [
   },
 ];
 let page = '홈', query = '', filter = '전체', selected = null, tab = '성분·함량', questionDraft = '';
+let isPurchase = new URLSearchParams(window.location.search).get('view') === 'buy';
 let theme = localStorage.getItem('transparency-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 document.documentElement.dataset.theme = theme;
 const requestedProduct = new URLSearchParams(window.location.search).get('product');
 selected = products.find(product => product.slug === requestedProduct) || null;
+if (isPurchase && !selected) selected = orderProductsByRoutine(products)[0];
 if (selected) page = '제품 탐색';
 let saved = JSON.parse(localStorage.getItem('transparency-products') || '[]');
 const catalogVersion = '2026-10-27-three-concepts';
@@ -95,7 +103,7 @@ if (localStorage.getItem('transparency-catalog-version') !== catalogVersion) {
   localStorage.setItem('transparency-catalog-version', catalogVersion);
 }
 const arrow = '<span aria-hidden="true">↗</span>';
-const logoMark = '<img src="/images/transparency-logo.svg" alt="" width="2679" height="603">';
+const logoMark = 'Transparency.';
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function bottle(p) {
@@ -117,15 +125,15 @@ function render() {
       <div class="header-actions"><button class="theme-toggle" id="theme-toggle" type="button" aria-label="${theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}" aria-pressed="${theme === 'dark'}"><span aria-hidden="true">${theme === 'dark' ? '☀' : '☾'}</span></button><button class="account" data-page="내 제품">MY PRODUCTS ${arrow}</button></div>
     </header>
       <nav aria-label="주요 메뉴">${['홈', '제품 탐색', '내 제품', '더보기'].map(x => `<button ${!selected && page === x ? 'aria-current="page"' : ''} class="${page === x ? 'active' : ''}" data-page="${x}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${navIcons[x]}</svg><span>${x}</span></button>`).join('')}</nav>
-    <main id="content" tabindex="-1">${selected ? detail() : page === '홈' ? home() : page === '제품 탐색' ? explore() : page === '내 제품' ? my() : more()}</main>
-    <footer><div><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button><p>성분에 장난 없이.</p></div><div class="footer-links"><button data-page="더보기">브랜드 소개 ${arrow}</button><a href="mailto:ztheng@inha.edu">ztheng@inha.edu</a></div><small>© 2026 Transparency. All rights reserved.<br>성분부터 사용법까지, 투명하게.</small></footer>`;
+    <main id="content" tabindex="-1">${isPurchase ? renderPurchase(orderProductsByRoutine(products), selected?.slug, purchasePricing) : selected ? detail() : page === '홈' ? home() : page === '제품 탐색' ? explore() : page === '내 제품' ? my() : more()}</main>
+    <footer><div><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button><p>성분에 장난 없이.</p></div><div class="footer-links"><button data-buy="toner-t1">제품 구매 ${arrow}</button><button data-page="더보기">브랜드 소개 ${arrow}</button><a href="mailto:ztheng@inha.edu">ztheng@inha.edu</a></div><small>© 2026 Transparency. All rights reserved.<br>성분부터 사용법까지, 투명하게.</small></footer>`;
   bind();
 }
 
 function home() {
   return `<section class="hero" aria-labelledby="hero-title">
     <img class="campaign-image" src="/images/transparency-campaign.png" alt="흑백의 빛과 그림자 속 투명한 플라스크형 세럼 용기, 흰색 패키지와 유리 오브제" fetchpriority="high" width="1536" height="1024">
-    <div class="hero-copy"><div class="eyebrow"><i></i> NOTHING TO HIDE.</div><h1 id="hero-title">가릴 것이<br>없으니까.</h1><div class="hero-brand"><img src="/images/transparency-logo.svg" alt="Transparency." width="2679" height="603"></div><p>궁금했던 성분부터,<br>나에게 맞는 사용법까지.</p><button class="dark" data-page="제품 탐색">제품 살펴보기 ${arrow}</button></div>
+    <div class="hero-copy"><div class="eyebrow"><i></i> NOTHING TO HIDE.</div><h1 id="hero-title">가릴 것이<br>없으니까.</h1><div class="hero-brand">${logoMark}</div><p>궁금했던 성분부터,<br>나에게 맞는 사용법까지.</p><button class="dark" data-page="제품 탐색">제품 살펴보기 ${arrow}</button></div>
     <div class="hero-bottom"><span>극도의 투명함, 손안에서.</span><span>NOTHING TO HIDE.</span></div>
   </section>
   <section class="principles" aria-label="정보 공개 원칙"><div class="principle-title">성분에<br>장난 없이.</div><div><span class="number">01 / INGREDIENTS</span><h2>무엇을 담았는지.</h2><p>성분과 함량을 확인하세요.</p></div><div><span class="number">02 / EVIDENCE</span><h2>어디까지 확인됐는지.</h2><p>근거와 그 한계까지 살펴보세요.</p></div><div><span class="number">03 / YOUR ROUTINE</span><h2>어떻게 사용하는지.</h2><p>첫 사용부터 마지막 한 방울까지.</p></div></section>
@@ -143,7 +151,7 @@ function ratingSummary(p, isDetail = false) {
 }
 
 function card(p) {
-  return `<button class="product" data-id="${p.id}" aria-label="${p.name} 상세 보기"><div class="product-image">${bottle(p)}<span class="badge">${p.type}</span><span class="round-arrow" aria-hidden="true">↗</span></div><div class="product-meta"><span>${p.en}</span><span>${p.volume}</span></div><h3>${p.name}</h3>${ratingSummary(p)}<p>${p.ingredient}<span>성분 확인 ${arrow}</span></p><span class="routine-step">${p.routineStep}</span></button>`;
+  return `<button class="product" data-id="${p.id}" aria-label="${p.name} 상세 보기"><div class="product-image">${bottle(p)}<span class="badge">${p.type}</span><span class="round-arrow" aria-hidden="true">↗</span></div><div class="product-meta"><span>${p.en}</span><span>${p.volume}</span></div><h3>${p.name}</h3><div class="product-price">${formatPurchasePrice(p.price)}</div>${ratingSummary(p)}<p>${p.ingredient}<span>성분 확인 ${arrow}</span></p><span class="routine-step">${p.routineStep}</span></button>`;
 }
 
 function productResults(list) {
@@ -182,7 +190,7 @@ function questionContent(p) {
 function detail() {
   const p = selected;
   const contents = { '성분·함량': ingredientContent(p), '효능·근거': evidenceContent(p), '사용 안내': usageContent(p), '질문하기': questionContent(p), '사용자 리뷰': renderProductReviews(p) };
-  return `<section class="section page-section"><button id="back" class="text-btn">← 제품 목록</button><div class="detail-top"><div class="detail-image">${bottle(p)}<span class="image-caption">TRANSPARENCY. / PRODUCT INFORMATION</span></div><div class="detail-copy"><div class="eyebrow">${p.en.toUpperCase()}</div><h1 class="page-title">${p.name}</h1>${ratingSummary(p, true)}<p class="page-intro">${p.desc}</p><p>${p.longDesc}</p><dl class="product-specs"><div><dt>루틴 단계</dt><dd>${p.routineStep}</dd></div><div><dt>핵심 성분</dt><dd>${p.ingredient}</dd></div><div><dt>종류 · 용량</dt><dd>${p.type} · ${p.volume}</dd></div><div><dt>제형</dt><dd>${p.texture}</dd></div></dl><aside class="product-qr" aria-label="${p.name} 상세 페이지 QR"><img src="/images/qr/${p.slug}.svg" alt="${p.name} 상세 페이지로 연결되는 QR 코드" width="160" height="160"><div><span class="eyebrow">PRODUCT QR</span><h2>스캔해서 바로 확인.</h2><p>이 QR은 ${p.name} 상세 페이지로 직접 연결됩니다.</p><div class="qr-downloads"><a href="/images/qr/${p.slug}.svg" download="Transparency-${p.slug}-QR.svg">SVG</a><a href="/images/qr/${p.slug}.png" download="Transparency-${p.slug}-QR.png">PNG</a></div></div></aside><button class="dark" id="register">내 제품에 추가 <span aria-hidden="true">＋</span></button></div></div><div class="tabs" role="tablist" aria-label="제품 정보">${Object.keys(contents).map(t => `<button id="tab-${t}" role="tab" aria-controls="detail-panel" aria-selected="${tab === t}" data-tab="${t}" class="${tab === t ? 'chosen' : ''}">${t}</button>`).join('')}</div><div class="info" id="detail-panel" role="tabpanel" aria-labelledby="tab-${tab}">${contents[tab]}</div></section>`;
+  return `<section class="section page-section"><button id="back" class="text-btn">← 제품 목록</button><div class="detail-top"><div class="detail-image">${bottle(p)}<span class="image-caption">TRANSPARENCY. / PRODUCT INFORMATION</span></div><div class="detail-copy"><div class="eyebrow">${p.en.toUpperCase()}</div><h1 class="page-title">${p.name}</h1><p class="detail-price">${formatPurchasePrice(p.price)}</p>${ratingSummary(p, true)}<p class="page-intro">${p.desc}</p><p>${p.longDesc}</p><dl class="product-specs"><div><dt>루틴 단계</dt><dd>${p.routineStep}</dd></div><div><dt>핵심 성분</dt><dd>${p.ingredient}</dd></div><div><dt>종류 · 용량</dt><dd>${p.type} · ${p.volume}</dd></div><div><dt>제형</dt><dd>${p.texture}</dd></div></dl><aside class="product-qr" aria-label="${p.name} 상세 페이지 QR"><img src="/images/qr/${p.slug}.svg" alt="${p.name} 상세 페이지로 연결되는 QR 코드" width="160" height="160"><div><span class="eyebrow">PRODUCT QR</span><h2>스캔해서 바로 확인.</h2><p>이 QR은 ${p.name} 상세 페이지로 직접 연결됩니다.</p><div class="qr-downloads"><a href="/images/qr/${p.slug}.svg" download="Transparency-${p.slug}-QR.svg">SVG</a><a href="/images/qr/${p.slug}.png" download="Transparency-${p.slug}-QR.png">PNG</a></div></div></aside><div class="detail-actions"><button class="dark" data-buy="${p.slug}">구매하기 ${arrow}</button><button class="text-btn" id="register">내 제품에 추가 <span aria-hidden="true">＋</span></button></div></div></div><div class="tabs" role="tablist" aria-label="제품 정보">${Object.keys(contents).map(t => `<button id="tab-${t}" role="tab" aria-controls="detail-panel" aria-selected="${tab === t}" data-tab="${t}" class="${tab === t ? 'chosen' : ''}">${t}</button>`).join('')}</div><div class="info" id="detail-panel" role="tabpanel" aria-labelledby="tab-${tab}">${contents[tab]}</div></section>`;
 }
 
 function my() {
@@ -193,7 +201,7 @@ function my() {
 }
 
 function more() {
-  return `<section class="section page-section"><div class="about-banner"><span class="eyebrow">ABOUT TRANSPARENCY.</span><h1 class="page-title">가릴 것이 없으니까.</h1><div class="about-logo"><img src="/images/transparency-logo.svg" alt="Transparency." width="2679" height="603"></div><p>궁금했던 성분부터, 나에게 맞는 사용법까지.<br>극도의 투명함, 손안에서.</p><div class="glass-orb" aria-hidden="true"></div></div><div class="about-list">${[
+  return `<section class="section page-section"><div class="about-banner"><span class="eyebrow">ABOUT TRANSPARENCY.</span><h1 class="page-title">가릴 것이 없으니까.</h1><div class="about-logo">${logoMark}</div><p>궁금했던 성분부터, 나에게 맞는 사용법까지.<br>극도의 투명함, 손안에서.</p><div class="glass-orb" aria-hidden="true"></div></div><div class="about-list">${[
     ['01', '브랜드 철학', '알고 선택하고, 납득하며 사용하고, 끝까지 확인하는 것. Transparency.가 생각하는 투명함입니다.'],
     ['02', '정보 공개 원칙', '성분의 역할과 함량 기준을 설명합니다. 효능에는 출처와 한계를 함께 표시합니다. 확인되지 않은 내용은 확인되지 않았다고 안내하고, 정보가 바뀌면 확인일과 변경 내용을 갱신합니다.'],
     ['03', '서비스 이용 안내', '제품을 탐색하고 내 제품으로 등록하세요. 개봉일을 입력하고 사용 상태를 관리할 수 있습니다. 기록은 이 브라우저에만 저장됩니다.'],
@@ -207,15 +215,31 @@ function persist() {
   localStorage.setItem('transparency-products', JSON.stringify(saved));
   render();
 }
+function writeLocation() {
+  const url = new URL(window.location.href);
+  if (selected) url.searchParams.set('product', selected.slug);
+  else url.searchParams.delete('product');
+  if (isPurchase) url.searchParams.set('view', 'buy');
+  else url.searchParams.delete('view');
+  window.history.pushState({ page }, '', `${url.pathname}${url.search}`);
+}
+
+function openProduct(slug, purchase = false) {
+  const product = products.find(item => item.slug === slug);
+  if (!product) return;
+  selected = product;
+  page = '제품 탐색';
+  isPurchase = purchase;
+  if (!purchase) tab = '성분·함량';
+  writeLocation();
+  render();
+  window.scrollTo(0, 0);
+}
+
 function bindProductLinks(root = document) {
-  root.querySelectorAll('[data-id]').forEach(e => e.onclick = () => {
-    selected = products.find(p => p.id == e.dataset.id);
-    tab = '성분·함량';
-    const url = new URL(window.location.href);
-    url.searchParams.set('product', selected.slug);
-    window.history.pushState({}, '', `${url.pathname}${url.search}`);
-    render();
-    window.scrollTo(0, 0);
+  root.querySelectorAll('[data-id]').forEach(element => element.onclick = () => {
+    const product = products.find(item => item.id == element.dataset.id);
+    if (product) openProduct(product.slug);
   });
 }
 function bindSearchReset() {
@@ -238,7 +262,14 @@ function refreshSearchResults(value) {
   bindSearchReset();
 }
 function bind() {
-  if (selected && tab === '사용자 리뷰') bindProductReviews(selected, render);
+  if (isPurchase) bindPurchase(orderProductsByRoutine(products), selected?.slug, {
+    onProductChange: slug => openProduct(slug, true),
+    onBack: () => openProduct(selected.slug),
+    onDetail: slug => openProduct(slug),
+    onRender: render,
+  }, purchasePricing);
+  document.querySelectorAll('[data-buy]').forEach(button => button.addEventListener('click', () => openProduct(button.dataset.buy, true)));
+  if (!isPurchase && selected && tab === '사용자 리뷰') bindProductReviews(selected, render);
   document.querySelector('#show-reviews')?.addEventListener('click', () => {
     tab = '사용자 리뷰';
     render();
@@ -251,7 +282,7 @@ function bind() {
     render();
     document.querySelector('#theme-toggle')?.focus();
   });
-  document.querySelectorAll('[data-page]').forEach(e => e.onclick = () => { page = e.dataset.page; selected = null; const url = new URL(window.location.href); url.searchParams.delete('product'); window.history.pushState({}, '', `${url.pathname}${url.search}`); render(); window.scrollTo(0, 0); });
+  document.querySelectorAll('[data-page]').forEach(e => e.onclick = () => { page = e.dataset.page; selected = null; isPurchase = false; writeLocation(); render(); window.scrollTo(0, 0); });
   bindProductLinks();
   document.querySelectorAll('[data-filter]').forEach(e => e.onclick = () => { filter = e.dataset.filter; render(); });
   document.querySelectorAll('[data-tab]').forEach(e => e.onclick = () => { tab = e.dataset.tab; render(); document.querySelector(`[data-tab="${tab}"]`).focus(); });
@@ -281,8 +312,8 @@ function bind() {
     document.querySelector('#question-count').textContent = `${questionDraft.length} / 500`;
   };
   bindSearchReset();
-  document.querySelector('#back')?.addEventListener('click', () => { selected = null; page = '제품 탐색'; const url = new URL(window.location.href); url.searchParams.delete('product'); window.history.pushState({}, '', `${url.pathname}${url.search}`); render(); });
-  document.querySelector('#register')?.addEventListener('click', () => { if (!saved.some(s => s.id === selected.id)) saved.push({ id: selected.id, date: '', done: false }); selected = null; page = '내 제품'; const url = new URL(window.location.href); url.searchParams.delete('product'); window.history.pushState({}, '', `${url.pathname}${url.search}`); persist(); window.scrollTo(0, 0); });
+  document.querySelector('#back')?.addEventListener('click', () => { selected = null; page = '제품 탐색'; isPurchase = false; writeLocation(); render(); });
+  document.querySelector('#register')?.addEventListener('click', () => { if (!saved.some(s => s.id === selected.id)) saved.push({ id: selected.id, date: '', done: false }); selected = null; page = '내 제품'; isPurchase = false; writeLocation(); persist(); window.scrollTo(0, 0); });
   document.querySelectorAll('[data-date]').forEach(e => e.onchange = () => { saved[e.dataset.date].date = e.value; persist(); });
   document.querySelectorAll('[data-done]').forEach(e => e.onclick = () => { saved[e.dataset.done].done = !saved[e.dataset.done].done; persist(); });
   document.querySelectorAll('[data-delete]').forEach(e => e.onclick = () => { if (window.confirm('등록한 제품과 사용 기록을 삭제할까요?')) { saved.splice(+e.dataset.delete, 1); persist(); } });
@@ -294,10 +325,12 @@ document.addEventListener('pointerdown', () => document.body.classList.remove('k
 window.addEventListener('storage', event => {
   if (event.key === REVIEW_STORAGE_KEY || event.key === null) render();
 });
-window.addEventListener('popstate', () => {
-  const slug = new URLSearchParams(window.location.search).get('product');
-  selected = products.find(product => product.slug === slug) || null;
-  if (selected) page = '제품 탐색';
+window.addEventListener('popstate', event => {
+  const params = new URLSearchParams(window.location.search);
+  isPurchase = params.get('view') === 'buy';
+  selected = products.find(product => product.slug === params.get('product')) || null;
+  if (isPurchase && !selected) selected = orderProductsByRoutine(products)[0];
+  page = selected ? '제품 탐색' : ['홈', '제품 탐색', '내 제품', '더보기'].includes(event.state?.page) ? event.state.page : '홈';
   render();
 });
 render();

@@ -23,7 +23,6 @@ button { transition: background .2s, color .2s, transform .2s; }
 .keyboard-navigation .skip-link:focus { top: 10px; }
 header { height: 88px; padding: 0 5%; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ffffffb3; background: #ffffffc9; backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); position: sticky; top: 0; z-index: 10; }
 .logo { display: inline-flex; align-items: center; width: fit-content; max-width: 220px; min-height: 32px; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: clamp(24px, 2vw, 29px); font-weight: 700; line-height: 1; letter-spacing: -1.5px; white-space: nowrap; }
-.logo img { display: block; width: auto; max-width: 100%; height: 32px; object-fit: contain; object-position: left center; }
 nav { display: flex; gap: 38px; height: 100%; align-items: center; }
 nav button { height: 100%; position: relative; font-size: 13px; color: #686868; padding: 0 4px; }
 nav button.active { color: #111; }
@@ -41,8 +40,7 @@ main { max-width: 1680px; margin: auto; outline: none; }
 .eyebrow, .number { font-family: Arial, sans-serif; font-size: 10px; font-weight: 500; letter-spacing: 1.9px; display: block; }
 .eyebrow i { display: inline-block; width: 5px; height: 5px; background: #171717; border-radius: 50%; margin: 0 8px 2px 0; }
 h1 { font-size: clamp(47px, 4.1vw, 68px); line-height: 1.23; letter-spacing: -.065em; font-weight: 500; margin: 40px 0 14px; }
-.hero-brand { width: clamp(225px, 23vw, 330px); }
-.hero-brand img, .about-logo img { display: block; width: 100%; height: auto; }
+.hero-brand { width: max-content; max-width: 100%; font-family: Arial, Helvetica, sans-serif; font-weight: 700; letter-spacing: -.06em; line-height: 1.15; white-space: nowrap; }
 p { font-size: 13px; line-height: 1.95; color: var(--muted); }
 .hero-copy p { margin: 28px 0 0; color: #464646; font-size: 14px; line-height: 1.9; }
 .dark { background: #171717; color: white; padding: 17px 23px; font-size: 12px; display: inline-flex; align-items: center; justify-content: space-between; gap: 48px; min-height: 48px; margin-top: 27px; }
@@ -126,7 +124,6 @@ h3 { font-size: 16px; font-weight: 500; margin: 9px 0; letter-spacing: -.5px; }
 .panel-number { position: absolute; right: 30px; bottom: 25px; font: 10px Arial,sans-serif; color: #737373; }
 footer { padding: 45px 7%; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 30px; background: #f2f2f2; }
 footer .logo { max-width: 200px; min-height: 29px; font-size: 26px; }
-footer .logo img { height: 29px; }
 footer p { margin: 12px 0 0; font-size: 11px; }
 .footer-links { display: grid; gap: 14px; }
 .footer-links button, .footer-links a { font-size: 11px; text-align: left; padding: 0; color: inherit; text-decoration: none; }
@@ -148,6 +145,8 @@ input::placeholder { color: #757575; }
 .catalog-order-note p { margin: 0; color: #666; font-size: 12px; line-height: 1.5; }
 .product-rating, .detail-rating { display: flex; align-items: center; gap: 7px; }
 .product-rating { margin: 8px 12px 10px; }
+.product-price { margin: 0 12px 10px; color: var(--ink); font: 600 16px/1.5 Arial, sans-serif; }
+.detail-price { margin: 0 0 12px; color: var(--ink); font: 600 25px/1.5 Arial, sans-serif; }
 .product-rating span, .detail-rating span:first-child { color: #171717; }
 .product-rating strong { font-size: 13px; }
 .product-rating small { color: #777; font-size: 9px; letter-spacing: .08em; }
@@ -169,6 +168,9 @@ input::placeholder { color: #757575; }
 .product-specs dt { color: #666; }
 .product-specs dd { margin: 0; }
 .detail-copy .dark { width: 100%; }
+.detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 26px; }
+.detail-actions .dark { margin-top: 0; gap: 20px; }
+.detail-actions .text-btn { justify-content: center; min-height: 48px; gap: 12px; }
 .product-qr { display: grid; grid-template-columns: 112px minmax(0,1fr); gap: 18px; align-items: center; margin-top: 26px; padding: 14px; border: 1px solid #d9d9d9; border-radius: 22px; background: #ffffff80; }
 .product-qr img { display: block; width: 112px; height: 112px; border-radius: 9px; }
 .product-qr h2 { margin: 7px 0 2px; font-size: 17px; letter-spacing: -.7px; }
@@ -228,7 +230,7 @@ input::placeholder { color: #757575; }
 .storage-note { margin-top: 25px; font-size: 10px; }
 .about-banner { position: relative; overflow: hidden; isolation: isolate; padding: 50px; background: linear-gradient(125deg,#e8e8e8,#fafafa 55%,#d9d9d9); border: 1px solid #e1e1e1; }
 .about-banner .page-title { font-size: 34px; margin-bottom: 10px; }
-.about-logo { width: min(330px, 55%); }
+.about-logo { width: max-content; max-width: 100%; font: 700 43px/1.15 Arial, Helvetica, sans-serif; letter-spacing: -.06em; white-space: nowrap; }
 .about-banner p { margin-top: 25px; }
 .about-banner .glass-orb { right: 8%; top: 45px; }
 .about-list { margin-top: 30px; }
@@ -266,7 +268,6 @@ details p { max-width: 730px; margin-bottom: 0; }
   body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   header { height: 66px; padding: 0 6%; background: #ffffffed; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .logo { max-width: min(48vw, 180px); min-height: 27px; font-size: 25px; }
-  .logo img { height: 27px; }
   .account { font-size: 8px; padding: 9px; gap: 12px; }
   .header-actions { gap: 6px; }
   .theme-toggle { width: 35px; height: 35px; font-size: 15px; }
@@ -279,7 +280,7 @@ details p { max-width: 730px; margin-bottom: 0; }
   .hero-copy { padding: 42px 7% 270px; max-width: 100%; }
   .hero .eyebrow { font-size: 8px; }
   h1 { font-size: 47px; line-height: 1.2; margin: 25px 0 10px; }
-  .hero-brand { width: min(72vw, 280px); }
+  .hero-brand { width: max-content; max-width: 100%; }
   .hero-copy p { margin-top: 20px; font-size: 12px; }
   .hero .dark { margin-top: 22px; min-height: 42px; padding: 13px 17px; font-size: 10px; gap: 25px; }
   .hero-bottom { left: 7%; right: 7%; bottom: 20px; }
@@ -370,7 +371,7 @@ details p { max-width: 730px; margin-bottom: 0; }
   .about-banner { padding: 30px 22px; }
   .about-banner .eyebrow { font-size: 8px; }
   .about-banner .page-title { font-size: 25px; letter-spacing: -1.5px; }
-  .about-logo { width: min(270px, 78%); }
+  .about-logo { width: max-content; max-width: 100%; font-size: 28px; }
   .about-banner p { font-size: 11px; }
   .about-banner .glass-orb { width: 140px; height: 140px; right: -75px; opacity: .5; }
   details { padding: 22px 0; }

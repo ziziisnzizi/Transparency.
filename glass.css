@@ -209,9 +209,6 @@ footer { margin: 0 24px 24px; border: 1px solid #ffffffa8; border-radius: 30px; 
 [data-theme="dark"] body { background: radial-gradient(ellipse at 90% 12%, #30343b99, transparent 44%), linear-gradient(145deg,#111318,#060709 58%,#14161a); }
 [data-theme="dark"] body:before { border-color: #ffffff20; background: radial-gradient(circle at 65% 32%,#ffffff16,transparent 65%); box-shadow: inset -20px -12px 50px #ffffff0d,20px 25px 90px #0008; }
 [data-theme="dark"] body:after { border-color: #ffffff12; box-shadow: inset 12px 15px 50px #ffffff12; }
-[data-theme="dark"] .logo img,
-[data-theme="dark"] .hero-brand img,
-[data-theme="dark"] .about-logo img { filter: invert(1); }
 [data-theme="dark"] header { border-color: #ffffff18; background: linear-gradient(180deg,rgb(18 20 24 / .72),rgb(8 9 11 / .42)); box-shadow: 0 8px 30px #0006,inset 0 1px 0 #ffffff17; }
 [data-theme="dark"] nav { border-color: #ffffff24; background: linear-gradient(135deg,#ffffff16,#ffffff07); box-shadow: inset 0 1px 0 #ffffff20,0 8px 25px #0005; }
 [data-theme="dark"] nav button { color: #a9adb4; }
