@@ -235,7 +235,7 @@ footer { margin: 0 24px 24px; border: 1px solid #ffffffa8; border-radius: 30px; 
 [data-theme="dark"] .bottle-scene { border-color: #ffffff14; background: radial-gradient(ellipse at 70% 20%,#ffffff24,transparent 62%),linear-gradient(140deg,#ffffff08,#ffffff12 45%,#00000020); }
 [data-theme="dark"] .product-meta,
 [data-theme="dark"] .product p span,
-[data-theme="dark"] .concept-status,
+[data-theme="dark"] .routine-step,
 [data-theme="dark"] .result-count,
 [data-theme="dark"] .product-rating small,
 [data-theme="dark"] .detail-rating span:last-child { color: #a7abb2; }

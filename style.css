@@ -110,7 +110,7 @@ h2 { font-size: 31px; font-weight: 500; letter-spacing: -1.5px; line-height: 1.5
 h3 { font-size: 16px; font-weight: 500; margin: 9px 0; letter-spacing: -.5px; }
 .product p { font-size: 10px; margin: 0; display: flex; gap: 5px; justify-content: space-between; flex-wrap: wrap; }
 .product p span { color: #777; }
-.concept-status { display: block; margin: 14px 12px 22px; font-size: 9px; color: #6a6a6a; letter-spacing: .04em; }
+.routine-step { display: block; margin: 14px 12px 22px; font-size: 9px; color: #6a6a6a; letter-spacing: .04em; }
 .brand-statement { position: relative; overflow: hidden; margin: 15px 7% 0; padding: 60px; background: linear-gradient(120deg,#111,#242424 60%,#181818); color: white; isolation: isolate; }
 .brand-statement h2 { font-size: 40px; line-height: 1.5; font-weight: 400; }
 .brand-statement p { color: #bcbcbc; margin: 20px 0; }
