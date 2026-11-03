@@ -1,4 +1,5 @@
 import { renderProductQuestions, bindProductQuestions } from './questions.js';
+import { renderProductEvidence, bindProductEvidence } from './evidence.js';
 import { products, purchasePricing } from './products.js';
 import { orderProductsByRoutine } from './catalog.js';
 import { getReviewSummary, renderProductReviews, bindProductReviews, REVIEW_STORAGE_KEY } from './reviews.js';
@@ -96,8 +97,7 @@ function ingredientContent(p) {
 }
 
 function evidenceContent(p) {
-  if (p.id !== 1) return `<span class="eyebrow">02 / EVIDENCE</span><h2>확인된 만큼만, 정확하게.</h2><div class="evidence-status"><strong>공개된 완제품 시험 자료가 없습니다.</strong><p>${p.name}의 효능을 확인할 수 있는 완제품 시험 자료는 현재 공개되어 있지 않습니다. 성분의 일반적인 특성과 완제품의 시험 결과를 구분해 확인하세요.</p></div><div class="info-note">시험 자료는 시험 기관·대상·조건·결과·한계·출처를 함께 확인해야 합니다. 확인 가능한 자료를 기준으로 제품 정보를 안내합니다.</div><p class="data-date">자료 확인일 2026.10.27</p>`;
-  return `<span class="eyebrow">02 / EVIDENCE</span><h2>성분 연구와 완제품 결과를 구분합니다.</h2><div class="evidence-status"><strong>공개된 완제품 시험 자료가 없습니다.</strong><p>현재 공개된 자료에는 세럼 S.1의 보습 효과와 지속시간에 관한 완제품 시험 결과가 포함되어 있지 않습니다.</p></div><div class="research-grid"><article><span class="number">REFERENCE 01</span><h3>나이아신아마이드</h3><p>피부 장벽과 피부 톤에 관해 연구된 성분입니다. 피부 장벽을 구성하는 지질의 생성과 멜라노솜 전달 과정에 관여하는 것으로 보고되었습니다. 일부 인체 연구에서는 나이아신아마이드를 함유한 제형을 일정 기간 사용했을 때 색소침착, 잔주름, 탄력의 개선이 관찰되었습니다.</p><small>참고 연구: Tanno 외(2000), Hakozaki 외(2002), Bissett 외(2005)</small><div class="reference-note">현재 S.1에 표기된 주요 성분에는 포함되지 않은 성분의 참고 연구입니다.</div></article><article><span class="number">REFERENCE 02</span><h3>히알루론산</h3><p>수분을 붙잡는 특성을 가진 보습 성분입니다. 여성 76명을 대상으로 한 연구에서는 히알루론산 0.1% 크림을 60일간 사용했을 때 대조 크림보다 피부 수분과 탄력이 개선되었습니다. 일부 분자량에서는 주름 깊이 감소도 관찰되었으며, 결과는 원료의 분자량과 제형에 따라 달라질 수 있습니다.</p><small>참고 연구: Pavicic 외(2011)</small><div class="reference-note">S.1의 소듐하이알루로네이트 또는 완제품 시험 결과와 동일한 자료가 아닙니다.</div></article></div><div class="info-note"><strong>연구 적용 범위</strong><br>위 내용은 해당 성분 또는 성분을 함유한 연구용 제형에 관한 자료입니다. 세럼 S.1의 완제품 시험 결과가 아니며, 실제 제품의 효과는 함량·원료 특성·배합·사용 조건에 따라 달라질 수 있습니다.</div><p class="data-date">자료 확인일 2026.10.27</p>`;
+  return renderProductEvidence(p);
 }
 
 function usageContent(p) {
@@ -185,6 +185,7 @@ function refreshSearchResults(value) {
   bindSearchReset();
 }
 function bind() {
+  if (!isPurchase && selected && tab === '효능·근거') bindProductEvidence(selected);
   if (!isPurchase && selected && tab === '질문하기') bindProductQuestions(selected, {
     onRender: render,
     onSource: source => {

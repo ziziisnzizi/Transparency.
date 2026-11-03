@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { products, purchasePricing } from '../products.js';
+import { getProductResearch, getInformationCoverage } from '../evidence-data.js';
 import {
   QUESTION_LIMIT,
   findQuestionProduct,
@@ -62,6 +63,130 @@ test('niacinamide reference research does not become a claim that serum contains
   assert.match(result.answer, /전성분/);
   assert.match(result.answer, /완제품의 효능 근거가 아닙니다/);
   assert.ok(result.sources.some(item => item.id.endsWith(':niacinamide-reference')));
+  assert.doesNotMatch(result.answer, /제품 상세의 나이아신아마이드|나이아신아마이드.*카드/);
+});
+
+test('server research sources contain each product’s registered papers and their actual limits without external URLs', () => {
+  for (const product of products) {
+    const sources = buildProductSources(product);
+    const papers = getProductResearch(product.slug);
+    const research = sources.filter(item => item.id.startsWith(`${product.slug}:research-`) && !item.id.endsWith(':research-information-coverage'));
+    assert.deepEqual(research.map(item => item.id), papers.map(paper => `${product.slug}:research-${paper.id}`));
+    for (const paper of papers) {
+      const source = research.find(item => item.id.endsWith(`:research-${paper.id}`));
+      assert.equal(source.title, paper.koreanTitle);
+      assert.equal(source.section, '효능·근거');
+      for (const fact of [paper.studyType, paper.designDetails, paper.summary, paper.applicationNote, ...paper.results, ...paper.limitations]) assert.ok(source.excerpt.includes(fact));
+      assert.ok(source.excerpt.includes(`${product.name}의 완제품 시험 결과가 아닙니다`));
+    }
+    assert.ok(sources.every(item => !/https?:\/\//.test(item.excerpt)));
+  }
+  const tonerSources = buildProductSources(findQuestionProduct('toner-t1'));
+  assert.ok(!tonerSources.some(item => /pavicic|liposomal-hyaluronic|squalane|ceramide-np/.test(item.id)));
+  const creamSources = buildProductSources(findQuestionProduct('cream-c1'));
+  assert.ok(!creamSources.some(item => /pavicic|dexpanthenol|beta-glucan/.test(item.id)));
+});
+
+test('paper questions return relevant ingredient research with bounded product-specific citations', () => {
+  const cases = [
+    ['toner-t1', '판테놀 논문과 근거를 알려주세요.', 'biro-dexpanthenol-2003', /25명|5% 덱스판테놀/],
+    ['toner-t1', '베타글루칸 연구를 알려주세요.', 'feng-2025-beta-glucan-review', /문헌고찰|종설/],
+    ['serum-s1', '글리세린 효과에 관한 논문이 있나요?', 'loden-glycerin-2001', /차이가 관찰되지|차이를 보여/],
+    ['cream-c1', '세라마이드 근거가 궁금해요.', 'ceramide-np-rct-2026', /군간 차이는 통계적으로 유의하지/],
+  ];
+  for (const [slug, question, id, expected] of cases) {
+    const result = getReferenceAnswer(findQuestionProduct(slug), question);
+    assert.equal(result.matched, true);
+    assert.match(result.answer, expected);
+    assert.ok(result.sources.some(item => item.id === `${slug}:research-${id}`));
+    assert.ok(result.sources.every(item => item.id.startsWith(`${slug}:`)));
+    assert.ok(result.sources.length <= 6);
+    assert.ok(result.sources.filter(item => item.id.startsWith(`${slug}:research-`)).length <= 3);
+    assert.match(result.answer, /공개된 완제품 시험 결과는 없습니다/);
+  }
+  const absent = getReferenceAnswer(findQuestionProduct('toner-t1'), '히알루론산 논문과 근거를 알려주세요.');
+  assert.match(absent.answer, /연결할 수 있는 등록 연구 자료는 없습니다/);
+  assert.ok(!absent.sources.some(item => /hyaluronic|pavicic/.test(item.id)));
+});
+
+test('general research answers cover the selected product’s ingredient groups without claiming a finished-product trial', () => {
+  for (const product of products) {
+    const result = getReferenceAnswer(product, '공개한 연구와 효능 근거를 알려주세요.');
+    const papers = getProductResearch(product.slug);
+    const cited = papers.filter(paper => result.sources.some(source => source.id.endsWith(`:research-${paper.id}`)));
+    assert.equal(cited.length, 3);
+    assert.equal(new Set(cited.flatMap(paper => paper.ingredientIds)).size, 3);
+    assert.match(result.answer, /공개된 완제품 시험 결과는 없습니다/);
+    assert.ok(result.sources.every(source => source.id.startsWith(`${product.slug}:`)));
+  }
+});
+
+test('squalane cell results preserve non-significance and cannot become human collagen or sunscreen claims', () => {
+  const cream = findQuestionProduct('cream-c1');
+  const result = getReferenceAnswer(cream, '스쿠알란 세포 연구는 콜라겐 합성과 자외선 차단을 증명하나요?');
+  assert.match(result.answer, /체외시험/);
+  assert.match(result.answer, /배양 섬유아세포/);
+  assert.match(result.answer, /콜라겐 합성 증가는 통계적으로 유의하지/);
+  assert.match(result.answer, /자외선 차단을 평가한 시험은 아닙니다/);
+  const source = result.sources.find(item => item.id.endsWith(':research-squalane-fibroblast-2025'));
+  assert.ok(source);
+  assert.match(source.excerpt, /p>0\.05/);
+  assert.match(source.excerpt, /0\.005–0\.015%/);
+  assert.match(source.excerpt, /피부 도포용 스쿠알란3%/);
+  assert.match(source.excerpt, /사람에게 제품을 도포한 임상시험이 아닙니다/);
+});
+
+test('research information coverage measures six metadata checks rather than efficacy probability', () => {
+  for (const product of products) {
+    const expected = getInformationCoverage(getProductResearch(product.slug));
+    for (const question of ['연구 정보 확인율은 무엇인가요?', '논문 신뢰도 100%면 효과가 보장되나요?', '효능 보장률이 몇 퍼센트인가요?']) {
+      const result = getReferenceAnswer(product, question);
+      assert.match(result.answer, /6개 항목/);
+      assert.ok(result.answer.includes(`${expected.confirmed}개`));
+      assert.ok(result.answer.includes(`${expected.percent}%`));
+      assert.match(result.answer, /임상적 신뢰도, 효과가 나타날 확률, 효능·안전성 보장률이 아닙니다/);
+      assert.match(result.answer, /100%여도 인체 효과나 완제품 효능이 입증되었다는 뜻이 아닙니다/);
+      assert.match(result.answer, /체외시험.*인체시험이 되지 않으며/);
+      assert.ok(result.sources.some(item => item.id.endsWith(':research-information-coverage')));
+    }
+  }
+});
+
+test('ingredient coverage answers match ingredient UI totals rather than the whole-product percentage', () => {
+  const cases = [
+    ['cream-c1', 'squalane', '스쿠알란'],
+    ['cream-c1', 'ceramide-np', '세라마이드 NP'],
+    ['toner-t1', 'beta-glucan', '베타글루칸'],
+    ['serum-s1', 'hyaluronic-acid', '히알루론산'],
+  ];
+  for (const [slug, ingredientId, name] of cases) {
+    const product = findQuestionProduct(slug);
+    const expected = getInformationCoverage(getProductResearch(slug).filter(paper => paper.ingredientIds.includes(ingredientId)));
+    const result = getReferenceAnswer(product, `${name}의 연구 정보 확인율은 몇 퍼센트인가요?`);
+    assert.match(result.answer, new RegExp(`연구 정보 확인율은 ${expected.percent}%`));
+    assert.ok(result.answer.includes(`${expected.confirmed}/${expected.total}`));
+    assert.doesNotMatch(result.answer, /제품 전체 확인율/);
+    assert.match(result.answer, /효과가 나타날 확률, 효능·안전성 보장률이 아닙니다/);
+    const methodology = buildProductSources(product).find(item => item.id.endsWith(':research-information-coverage'));
+    assert.ok(methodology.excerpt.includes(`${expected.confirmed}/${expected.total}`));
+    assert.match(methodology.excerpt, /성분별 집계/);
+    assert.match(methodology.excerpt, /제품 전체 확인율/);
+  }
+  const absent = getReferenceAnswer(findQuestionProduct('toner-t1'), '히알루론산 연구 정보 확인율이 얼마인가요?');
+  assert.match(absent.answer, /등록 연구가 없어 해당 성분의 확인율을 계산하지 않습니다/);
+  assert.doesNotMatch(absent.answer, /제품 전체 확인율/);
+});
+
+test('ordinary concentration questions remain ingredient answers and combined review statistics match the UI', () => {
+  for (const [slug, amount] of [['toner-t1', '0.5%'], ['serum-s1', '1.0%']]) {
+    const result = getReferenceAnswer(findQuestionProduct(slug), '판테놀은 몇 퍼센트인가요?');
+    assert.ok(result.answer.includes(`판테놀 ${amount}`));
+    assert.ok(result.sources.every(item => item.id.includes(':ingredient-')));
+    assert.doesNotMatch(result.answer, /확인율|6개 항목/);
+  }
+  const reviews = getReferenceAnswer(serum, '리뷰 수와 평균 별점은 어떻게 계산하나요?');
+  assert.match(reviews.answer, /전체 리뷰 수와 평균 별점은 준비된 리뷰와 직접 작성한 리뷰를 함께 반영/);
+  assert.doesNotMatch(reviews.answer, /직접 작성한 리뷰 기준 평균/);
 });
 
 test('ingredient-study results stay distinct from published finished-product trial evidence', () => {

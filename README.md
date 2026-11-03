@@ -34,6 +34,7 @@ npm 기본 캐시 경로에 쓰기 권한이 없으면 `npm ci --cache /tmp/tran
 - [현재 모바일 와이어프레임·플로우차트](https://transparency-web-five.vercel.app/design/mobile/): 26개 화면·상태, 5개 흐름도, SVG·PDF·Figma 가져오기 패키지
 - 제품 등록, 개봉일 변경, 사용 완료·재개, 삭제
 - 질문하기 탭의 Gemini 질문·답변·근거 확인·추천 질문·취소·재시도(서버 키 미등록 시 제품 자료 답변)
+- 효능·근거 탭의 국내외 논문 한국어 요약·상세·원문 연결과 성분별 연구 정보 확인율(효과 보장률과 구분)
 - 개인 제품 기록과 리뷰의 브라우저 localStorage 저장(다른 사용자·기기와 공유되지 않음)
 - 제품별 상세 주소·QR 코드와 SVG/PNG 다운로드
 - 제품별 구매 화면·수량·배송지 입력·주문 금액 계산·주문 내용 확인/수정
@@ -53,6 +54,7 @@ npm 기본 캐시 경로에 쓰기 권한이 없으면 `npm ci --cache /tmp/tran
 - [콘텐츠 적용 상태와 남은 결정](docs/content-status-2026-10-27.md)
 - [제품별 예시 리뷰 30개](docs/mock-reviews.md)
 - [구매 흐름·제안가·결제 연동 범위](docs/purchase-flow.md)
+- [성분 연구 출처와 정보 확인율 산정 기준](docs/evidence-research.md)
 - [Gemini 질문 기능·서버 키 설정](docs/gemini-questions.md)
 - 작업 보드: https://github.com/users/ziziisnzizi/projects/1
 - Vercel: `vercel.json`, Netlify: `netlify.toml`
