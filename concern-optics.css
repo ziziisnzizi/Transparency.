@@ -1,6 +1,6 @@
 /* The search capsule is the optical surface. Native text stays above the scene. */
 body:has(.concerns-page):before, body:has(.concerns-page):after { opacity: 0; }
-.concerns-page .concern-visual-stage { position: relative; isolation: isolate; }
+.concerns-page .concern-visual-stage { position: relative; isolation: isolate; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans CJK KR', Arial, sans-serif; }
 .concerns-page.is-empty { padding-top: clamp(54px, 9vh, 100px); min-height: calc(100svh - 88px); }
 .concerns-page.is-empty .concern-visual-stage { min-height: 580px; }
 .concerns-page.is-empty .concern-page-intro { width: 100%; padding: 0; text-align: center; }
@@ -10,6 +10,14 @@ body:has(.concerns-page):before, body:has(.concerns-page):after { opacity: 0; }
 .concerns-page .concern-water { top: 50%; left: 50%; width: var(--concern-scene-width, 100vw); max-width: none; height: calc(100% + 150px); min-height: 620px; max-height: 830px; transform: translate(-50%, -50%); opacity: 1; mask-image: none; -webkit-mask-image: none; }
 .concerns-page .concern-water:before { content: none; }
 .concerns-page .concern-optics-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; opacity: 1; }
+.concerns-page .concern-html-lens-layer { position: absolute; z-index: 5; top: 50%; left: 50%; width: var(--concern-scene-width, 100vw); height: calc(100% + 150px); min-height: 620px; max-height: 830px; transform: translate(-50%, -50%); pointer-events: none; }
+.concerns-page .concern-html-lens-canvas { display: block; width: 100%; height: 100%; pointer-events: none; }
+.concerns-page .concern-lens-control { position: absolute; z-index: 6; right: 0; top: -30px; display: none; align-items: center; gap: 7px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 24px; background: #ffffff26; color: var(--ink); font-size: 10px; }
+.concerns-page[data-html-lens="ready"] .concern-lens-control { display: inline-flex; }
+.concerns-page .concern-lens-control:hover { background: #ffffff59; }
+[data-theme="dark"] .concerns-page .concern-lens-control { background: #ffffff08; }
+[data-theme="dark"] .concerns-page .concern-lens-control:hover { background: #ffffff14; }
+.concerns-page.has-results .concern-html-lens-layer { height: 430px; min-height: 430px; top: 55%; }
 .concerns-page .concern-optics-fallback { position: absolute; inset: 0; opacity: .7; overflow: hidden; mask-image: linear-gradient(transparent, #000 26%, #000 74%, transparent); }
 .concerns-page [data-optics="webgl"] .concern-optics-fallback, .concerns-page [data-optics="canvas"] .concern-optics-fallback { display: none; }
 .concerns-page .concern-optics-fallback span { position: absolute; left: -40%; top: 30%; width: 180%; height: 150px; border-radius: 50%; background: linear-gradient(178deg, #a5b1bd12, #75859430 45%, #ffffffed 49%, #b4c2ce38 53%, #ffffff00 72%); box-shadow: 0 -1px 0 #ffffff80; transform: translate(var(--concern-offset-x,0px),var(--concern-offset-y,0px)) rotate(-18deg); animation: concern-liquid-flow 18s ease-in-out infinite alternate; }
@@ -27,9 +35,12 @@ body:has(.concerns-page):before, body:has(.concerns-page):after { opacity: 0; }
   .concerns-page.is-empty .concern-search-area { margin-top: 44px; }
   .concerns-page .concern-water { height: calc(100% + 80px); min-height: 620px; max-height: 760px; }
   .concerns-page.has-results .concern-water { height: 420px; min-height: 420px; }
+  .concerns-page .concern-html-lens-layer { height: calc(100% + 80px); min-height: 620px; max-height: 760px; }
+  .concerns-page.has-results .concern-html-lens-layer { height: 420px; min-height: 420px; }
+  .concerns-page .concern-lens-control { top: -43px; right: -4px; font-size: 9px; }
 }
 @media (prefers-reduced-motion:reduce) { .concerns-page .concern-optics-fallback span { animation: none; } }
 @media (prefers-reduced-transparency:reduce), (forced-colors:active) {
-  .concerns-page .concern-water { display: none; }
+  .concerns-page .concern-water, .concerns-page .concern-html-lens-layer, .concerns-page[data-html-lens="ready"] .concern-lens-control { display: none; }
   .concerns-page.is-empty .concern-visual-stage { min-height: 0; }
 }

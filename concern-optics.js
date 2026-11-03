@@ -1,8 +1,10 @@
 import { createLiquidLensRenderer } from './concern-lens.js';
+import { createHtmlCanvasCapture } from './html-canvas-capture.js';
 
-// This controller never reads the question, stores data, or uses device sensors.
+// HTML snapshots stay in this browser's memory/GPU; native controls stay active.
 const mounted = new WeakMap();
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
+let htmlLensEnabled = true;
 
 export function mountConcernOptics(root, { forceCanvas = false } = {}) {
   mounted.get(root)?.();
@@ -15,6 +17,10 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
   const dark = document.documentElement.dataset.theme === 'dark';
   const renderer = forceCanvas ? null : createLiquidLensRenderer(canvas, { dark });
   if (renderer) canvas = renderer.canvas;
+  let htmlCanvas = stage.querySelector('[data-html-lens-canvas]');
+  const htmlRenderer = renderer && htmlCanvas ? createLiquidLensRenderer(htmlCanvas, { dark, overlay: true }) : null;
+  if (htmlRenderer) htmlCanvas = htmlRenderer.canvas;
+  const lensControl = stage.querySelector('[data-html-lens-control]');
   let context;
   if (!renderer) { try { context = canvas.getContext('2d', { alpha: true }); } catch { /* CSS fallback. */ } }
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -24,6 +30,10 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
   let disposed = false, frame = 0, previous = 0, time = 0, onScreen = true;
   let width = 1, height = 1, scale = 1, geometryDirty = true, lightDirty = true;
   let focus = 0, focusTarget = 0, press = 0, pressTarget = 0;
+  let captureController = null, captureTimer = 0, htmlReady = false, htmlOpacity = 0;
+  let inputFocused = false, composing = false, orbFollowing = false, orbInitialized = false;
+  let waterBounds = null, orbRadius = 1;
+  const orbPosition = { x: 0, y: 0 }, orbTarget = { x: 0, y: 0 }, orbOrigin = { x: 0, y: 0 };
   const pointer = { x: 0, y: 0 }, target = { x: 0, y: 0 };
   const ripples = [], cleanups = [];
   const reduced = () => motion.matches || transparency.matches || forcedColors.matches;
@@ -32,6 +42,23 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
     element.addEventListener(event, callback, options);
     cleanups.push(() => element.removeEventListener(event, callback, options));
   };
+
+  function requestCapture(delay = 160) {
+    if (!captureController || disposed || !htmlLensEnabled || !visible() || transparency.matches || forcedColors.matches) return;
+    htmlReady = false;
+    clearTimeout(captureTimer);
+    captureTimer = setTimeout(() => {
+      captureTimer = 0;
+      if (!disposed && visible()) void captureController.capture();
+    }, delay);
+  }
+  function updateControl() {
+    if (!lensControl) return;
+    lensControl.setAttribute('aria-pressed', String(htmlLensEnabled));
+    const label = `유리 렌즈 ${htmlLensEnabled ? '끄기' : '켜기'}`;
+    lensControl.setAttribute('aria-label', label);
+    lensControl.querySelector('[data-html-lens-control-text]').textContent = label;
+  }
 
   function measure() {
     if (disposed) return;
@@ -42,18 +69,29 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
       root.style.setProperty('--concern-scene-width', sceneWidth);
     }
     const rect = water.getBoundingClientRect();
+    waterBounds = rect;
     width = Math.max(1, rect.width);height = Math.max(1, rect.height);
     scale = Math.min(devicePixelRatio || 1, coarse ? 1.25 : 1.5, Math.sqrt(950000 / (width * height)));
     const local = element => {
       const b = element.getBoundingClientRect();
       return [b.left - rect.left + b.width / 2, rect.bottom - b.top - b.height / 2, b.width, b.height];
     };
-    if (renderer) renderer.resize(width, height, scale, { search: local(bar), button: local(button) });
+    const geometry = { search: local(bar), button: local(button), html: local(stage) };
+    if (renderer) renderer.resize(width, height, scale, geometry);
     else {
       const w=Math.max(1,Math.round(width*scale)),h=Math.max(1,Math.round(height*scale));
       if(canvas.width!==w)canvas.width=w;
       if(canvas.height!==h)canvas.height=h;
     }
+    htmlRenderer?.resize(width, height, scale, geometry);
+    orbRadius = Math.min(178, width * .27, height * .30) * (root.classList.contains('has-results') ? .75 : 1);
+    const title = stage.querySelector('h1').getBoundingClientRect();
+    orbOrigin.x = clamp(title.left - rect.left + title.width * .64, orbRadius + 10, width - orbRadius - 10);
+    orbOrigin.y = clamp(rect.bottom - title.top - title.height * .68, orbRadius + 10, height - orbRadius - 10);
+    if (!orbFollowing) { orbTarget.x = orbOrigin.x; orbTarget.y = orbOrigin.y; }
+    if (!orbInitialized) { orbPosition.x = orbTarget.x; orbPosition.y = orbTarget.y; orbInitialized = true; }
+    orbTarget.x = clamp(orbTarget.x, orbRadius + 10, width - orbRadius - 10);
+    orbTarget.y = clamp(orbTarget.y, orbRadius + 10, height - orbRadius - 10);
     geometryDirty = false;
   }
 
@@ -93,6 +131,8 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
     const phase = motion.matches ? 1.8 : time;
     if (renderer) renderer.render({time:phase,pointer,focus,press,ripples,hidden:transparency.matches||forcedColors.matches});
     else paintFallback(phase);
+    if (motion.matches) htmlOpacity = htmlReady && htmlLensEnabled && !inputFocused && !composing ? 1 : 0;
+    htmlRenderer?.render({time:phase,pointer,focus,press,ripples,orb:[orbPosition.x,orbPosition.y,orbRadius*(1+press*.035),htmlOpacity],hidden:transparency.matches||forcedColors.matches});
   }
 
   function tick(stamp) {
@@ -107,6 +147,11 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
         pointer.x+=(target.x-pointer.x)*response;pointer.y+=(target.y-pointer.y)*response;
         focus+=(focusTarget-focus)*(1-Math.exp(-elapsed*8));
         press+=(pressTarget-press)*(1-Math.exp(-elapsed*18));
+        const orbResponse=1-Math.exp(-elapsed*13);
+        orbPosition.x+=(orbTarget.x-orbPosition.x)*orbResponse;
+        orbPosition.y+=(orbTarget.y-orbPosition.y)*orbResponse;
+        const shown=htmlReady&&htmlLensEnabled&&!inputFocused&&!composing;
+        htmlOpacity+=((shown?1:0)-htmlOpacity)*(1-Math.exp(-elapsed*25));
         while(ripples.length&&time-ripples[0].started>3)ripples.shift();
       }
       paint();
@@ -117,49 +162,69 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
   function sync(){
     cancelAnimationFrame(frame);frame=0;previous=0;
     water.dataset.opticsPaused=String(!visible()||reduced());
-    if(reduced()){target.x=target.y=pointer.x=pointer.y=0;press=pressTarget=0;ripples.length=0;lightDirty=true;}
+    if(reduced()){target.x=target.y=pointer.x=pointer.y=0;press=pressTarget=0;ripples.length=0;lightDirty=true;orbFollowing=false;orbTarget.x=orbPosition.x=orbOrigin.x;orbTarget.y=orbPosition.y=orbOrigin.y;}
     if(visible()){paint();if(!reduced())schedule();}
   }
-  function reset(){target.x=target.y=0;pressTarget=0;lightDirty=true;schedule();}
+  function reset(recenter = true){target.x=target.y=0;pressTarget=0;lightDirty=true;if(recenter){orbFollowing=false;orbTarget.x=orbOrigin.x;orbTarget.y=orbOrigin.y;}schedule();}
+  function followOrb(event) {
+    if (!htmlRenderer || !waterBounds || !stage.contains(event.target) || event.target.closest?.('[data-html-lens-control]')) return;
+    orbFollowing = true;
+    orbTarget.x = clamp(event.clientX-waterBounds.left,orbRadius+10,width-orbRadius-10);
+    orbTarget.y = clamp(waterBounds.bottom-event.clientY,orbRadius+10,height-orbRadius-10);
+  }
   listen(window,'pointermove',event=>{
     if(reduced()||!visible())return;
     target.x=clamp(event.clientX/innerWidth*2-1,-1,1);target.y=clamp(event.clientY/innerHeight*2-1,-1,1);
+    if(stage.contains(event.target))followOrb(event);
+    else {orbFollowing=false;orbTarget.x=orbOrigin.x;orbTarget.y=orbOrigin.y;}
     lightDirty=true;schedule();
   },{passive:true});
   listen(window,'pointerdown',event=>{
     if(reduced()||!visible()||event.button>0||!stage.contains(event.target))return;
+    followOrb(event);
     const rect=water.getBoundingClientRect();
     ripples.push({x:clamp((event.clientX-rect.left)/rect.width,0,1),y:clamp((event.clientY-rect.top)/rect.height,0,1),started:time});
     if(ripples.length>4)ripples.shift();
     pressTarget=1;schedule();
   },{passive:true});
-  listen(window,'pointerup',event=>{pressTarget=0;if(event.pointerType!=='mouse')reset();},{passive:true});
-  listen(window,'pointercancel',reset,{passive:true});
-  listen(document.documentElement,'pointerleave',reset,{passive:true});
-  listen(stage,'focusin',()=>{focusTarget=1;schedule();});
-  listen(stage,'focusout',event=>{if(!stage.contains(event.relatedTarget))focusTarget=0;});
+  listen(window,'pointerup',event=>{pressTarget=0;if(event.pointerType!=='mouse')reset(false);},{passive:true});
+  listen(window,'pointercancel',()=>reset(),{passive:true});
+  listen(document.documentElement,'pointerleave',()=>reset(),{passive:true});
+  listen(stage,'focusin',event=>{focusTarget=1;inputFocused=event.target.id==='concern-query';schedule();});
+  listen(stage,'focusout',event=>{if(!stage.contains(event.relatedTarget))focusTarget=0;if(event.target.id==='concern-query'){inputFocused=false;requestCapture(0);}});
+  listen(stage,'input',()=>requestCapture(250));
+  listen(stage,'compositionstart',()=>{composing=true;htmlOpacity=0;paint();});
+  listen(stage,'compositionend',()=>{composing=false;requestCapture(80);});
   listen(window,'scroll',()=>{geometryDirty=true;},{passive:true});
-  listen(window,'resize',()=>{geometryDirty=true;schedule();},{passive:true});
+  listen(window,'resize',()=>{geometryDirty=true;requestCapture(180);schedule();},{passive:true});
   listen(document,'visibilitychange',sync);
-  for(const preference of [motion,transparency,forcedColors])listen(preference,'change',()=>{geometryDirty=true;sync();});
-  const resize=new ResizeObserver(()=>{geometryDirty=true;if(visible()){paint();schedule();}});
+  for(const preference of [motion,transparency,forcedColors])listen(preference,'change',()=>{geometryDirty=true;requestCapture(0);sync();});
+  const resize=new ResizeObserver(()=>{geometryDirty=true;if(visible()){paint();requestCapture();schedule();}});
   resize.observe(water);resize.observe(bar);resize.observe(button);
-  const intersection=new IntersectionObserver(entries=>{onScreen=entries[0].isIntersecting;sync();});
+  const intersection=new IntersectionObserver(entries=>{onScreen=entries[0].isIntersecting;if(onScreen&&!htmlReady)requestCapture();sync();});
   intersection.observe(stage);
   if(renderer)listen(canvas,'webglcontextlost',event=>{
     event.preventDefault();const replacement=canvas.cloneNode();canvas.replaceWith(replacement);dispose();
     if(root.isConnected)mountConcernOptics(root,{forceCanvas:true});
   });
+  if(htmlRenderer)listen(htmlCanvas,'webglcontextlost',event=>{event.preventDefault();htmlReady=false;htmlOpacity=0;captureController?.dispose();root.dataset.htmlLens='fallback';htmlRenderer.dispose();});
+  if(lensControl)listen(lensControl,'click',()=>{htmlLensEnabled=!htmlLensEnabled;updateControl();if(htmlLensEnabled)requestCapture(0);else{clearTimeout(captureTimer);htmlOpacity=0;}paint();schedule();});
   function dispose(){
     if(disposed)return;disposed=true;cancelAnimationFrame(frame);frame=0;
-    resize.disconnect();intersection.disconnect();cleanups.forEach(cleanup=>cleanup());ripples.length=0;renderer?.dispose();
+    clearTimeout(captureTimer);captureController?.dispose();
+    resize.disconnect();intersection.disconnect();cleanups.forEach(cleanup=>cleanup());ripples.length=0;renderer?.dispose();htmlRenderer?.dispose();
     canvas.width=canvas.height=1;
+    if(htmlCanvas)htmlCanvas.width=htmlCanvas.height=1;
     if(mounted.get(root)===dispose)mounted.delete(root);
   }
   const removal=new MutationObserver(()=>{if(!root.isConnected||!canvas.isConnected)dispose();});
   removal.observe(document.body,{childList:true,subtree:true});cleanups.push(()=>removal.disconnect());
   listen(root,'concern-before-refresh',dispose);
-  document.fonts?.ready.then(()=>{if(!disposed){geometryDirty=true;paint();}});
-  mounted.set(root,dispose);water.dataset.optics=renderer?'webgl':context?'canvas':'css';sync();
+  document.fonts?.ready.then(()=>{if(!disposed){geometryDirty=true;paint();requestCapture(0);}});
+  if(htmlRenderer)captureController=createHtmlCanvasCapture(stage,{
+    onCanvas:source=>{if(!disposed){htmlReady=htmlRenderer.setHtml(source);root.dataset.htmlLens=htmlReady?'ready':'fallback';paint();schedule();}source.width=source.height=1;},
+    onError:()=>{htmlReady=false;htmlOpacity=0;root.dataset.htmlLens='fallback';paint();},
+  });
+  mounted.set(root,dispose);water.dataset.optics=renderer?'webgl':context?'canvas':'css';root.dataset.htmlLens=htmlRenderer?'pending':'fallback';updateControl();sync();requestCapture(0);
   return dispose;
 }

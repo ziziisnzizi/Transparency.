@@ -13,6 +13,11 @@ uniform float dark;
 uniform float focus;
 uniform float press;
 uniform float refractionStrength;
+uniform float overlayPass;
+uniform float htmlReady;
+uniform sampler2D htmlTexture;
+uniform vec4 htmlRect;
+uniform vec4 orb;
 uniform vec3 ripples[4];
 uniform int rippleCount;
 ${liquidScene}
@@ -65,8 +70,7 @@ vec3 reflections(vec2 p,vec4 rect,vec3 color,float strength){
  color=mix(color,spectral,clamp(colourWeight,0.,.32));
  return clamp(color,0.,1.);
 }
-void main(){
- vec2 p=gl_FragCoord.xy/resolution*viewport;
+vec3 backgroundAt(vec2 p){
  vec3 color=scene(p);
  float barDistance=capsule(p,searchRect);
  float buttonDistance=capsule(p,buttonRect);
@@ -84,18 +88,54 @@ void main(){
   if(buttonDistance<1.)glass=reflections(p,buttonRect,glass,.95);
   color=mix(color,glass,mask);
  }
+ return color;
+}
+vec3 pageAt(vec2 p){
+ vec2 uv=(p-htmlRect.xy)/max(htmlRect.zw,vec2(1.))+.5;
+ vec4 html=vec4(0.);
+ if(uv.x>=0.&&uv.x<=1.&&uv.y>=0.&&uv.y<=1.)html=texture2D(htmlTexture,uv);
+ return mix(backgroundAt(p),html.rgb,html.a);
+}
+void main(){
+ vec2 p=gl_FragCoord.xy/resolution*viewport;
+ if(overlayPass>.5){
+  if(htmlReady<.5||orb.w<.002){gl_FragColor=vec4(0.);return;}
+  vec2 local=(p-orb.xy)/max(orb.z,1.);
+  float radius=length(local);
+  if(radius>=1.){gl_FragColor=vec4(0.);return;}
+  float dome=sqrt(max(1.-radius*radius,.001));
+  float scale=.57+.37*pow(radius,1.4);
+  vec2 samplePoint=orb.xy+local*orb.z*scale;
+  vec2 direction=local/max(radius,.001);
+  float dispersion=pow(radius,6.)*orb.z*.022;
+  vec3 glass=vec3(pageAt(samplePoint+direction*dispersion).r,pageAt(samplePoint).g,pageAt(samplePoint-direction*dispersion).b);
+  vec3 normal=normalize(vec3(local,dome));
+  vec3 light=normalize(vec3(-.6+pointer.x*.2,.85,1.3));
+  float specular=pow(max(dot(normal,light),0.),24.);
+  float softbox=exp(-pow((local.x+.38)/.6,2.)-pow((local.y-.60)/.22,2.));
+  glass=mix(glass,vec3(1.),specular*.2+softbox*.13);
+  float edge=exp(-abs(radius-.989)*orb.z/1.1);
+  float inner=exp(-abs(radius-.976)*orb.z/1.25);
+  float facing=.25+.75*max(dot(direction,normalize(vec2(-.5,.85))),0.);
+  glass=mix(glass,vec3(dark>.5?.025:.12),inner*.22);
+  glass=mix(glass,vec3(1.),edge*facing*.85);
+  float alpha=(1.-smoothstep(1.-1.5/orb.z,1.,radius))*orb.w;
+  gl_FragColor=vec4(clamp(glass,0.,1.),alpha);return;
+ }
+ vec3 color=backgroundAt(p);
  // The decorative field blends into the page; the native input is above this canvas.
  float alpha=smoothstep(0.,.12,p.y/viewport.y)*(1.-smoothstep(.78,1.,p.y/viewport.y));
  gl_FragColor=vec4(color,alpha);
 }`;
 
-export function createLiquidLensRenderer(original, { dark = false } = {}) {
+export function createLiquidLensRenderer(original, { dark = false, overlay = false } = {}) {
   const canvas = original.cloneNode();
-  let gl, program, buffer, vertexShader, fragmentShader, disposed = false;
+  let gl, program, buffer, texture, vertexShader, fragmentShader, disposed = false;
   const release = () => {
     if (!gl || disposed) return;
     disposed = true;
     if (buffer) gl.deleteBuffer(buffer);
+    if (texture) gl.deleteTexture(texture);
     if (program) gl.deleteProgram(program);
     if (vertexShader) gl.deleteShader(vertexShader);
     if (fragmentShader) gl.deleteShader(fragmentShader);
@@ -125,15 +165,24 @@ export function createLiquidLensRenderer(original, { dark = false } = {}) {
     const attribute = gl.getAttribLocation(program, 'position');
     gl.enableVertexAttribArray(attribute);
     gl.vertexAttribPointer(attribute, 2, gl.FLOAT, false, 0, 0);
-    const names = ['resolution','viewport','searchRect','buttonRect','pointer','clock','dark','focus','press','refractionStrength','ripples[0]','rippleCount'];
+    const names = ['resolution','viewport','searchRect','buttonRect','pointer','clock','dark','focus','press','refractionStrength','ripples[0]','rippleCount','overlayPass','htmlReady','htmlTexture','htmlRect','orb'];
     const uniforms = Object.fromEntries(names.map(name => [name,gl.getUniformLocation(program,name)]));
     gl.uniform1f(uniforms.dark, Number(dark));
     gl.uniform1f(uniforms.refractionStrength, 1);
+    gl.uniform1f(uniforms.overlayPass, Number(overlay));
+    texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,0]));
+    gl.uniform1i(uniforms.htmlTexture,0);gl.uniform1f(uniforms.htmlReady,0);
     original.replaceWith(canvas);
     let cssWidth = 1, cssHeight = 1;
     return {
       canvas,
-      resize(width, height, scale, { search, button }) {
+      resize(width, height, scale, { search, button, html }) {
+        if(disposed||gl.isContextLost())return;
         cssWidth=width;cssHeight=height;
         const w=Math.max(1,Math.round(width*scale)),h=Math.max(1,Math.round(height*scale));
         if(canvas.width!==w)canvas.width=w;
@@ -142,8 +191,17 @@ export function createLiquidLensRenderer(original, { dark = false } = {}) {
         gl.uniform2f(uniforms.viewport,width,height);
         gl.uniform4f(uniforms.searchRect,...search);
         gl.uniform4f(uniforms.buttonRect,...button);
+        if(html)gl.uniform4f(uniforms.htmlRect,...html);
       },
-      render({time,pointer,focus,press=0,ripples=[],hidden=false}) {
+      setHtml(source) {
+        if(disposed||gl.isContextLost())return false;
+        gl.bindTexture(gl.TEXTURE_2D,texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);
+        gl.uniform1f(uniforms.htmlReady,1);
+        return true;
+      },
+      render({time,pointer,focus,press=0,ripples=[],hidden=false,orb=[0,0,1,0]}) {
         if(disposed||gl.isContextLost())return;
         gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
         if(hidden)return;
@@ -153,6 +211,7 @@ export function createLiquidLensRenderer(original, { dark = false } = {}) {
         gl.uniform1f(uniforms.clock,time);
         gl.uniform1f(uniforms.focus,focus);
         gl.uniform1f(uniforms.press,press);
+        gl.uniform4f(uniforms.orb,...orb);
         gl.uniform1i(uniforms.rippleCount,Math.min(4,ripples.length));
         const values=new Float32Array(12);
         ripples.slice(-4).forEach((r,i)=>values.set([r.x,1-r.y,r.started],i*3));
