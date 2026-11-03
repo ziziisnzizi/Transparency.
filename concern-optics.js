@@ -35,6 +35,12 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
 
   function measure() {
     if (disposed) return;
+    // Match the visible viewport, excluding its scrollbar; never expose a capped
+    // canvas edge or introduce horizontal scrolling on a wide desktop display.
+    const sceneWidth = `${document.documentElement.clientWidth}px`;
+    if (root.style.getPropertyValue('--concern-scene-width') !== sceneWidth) {
+      root.style.setProperty('--concern-scene-width', sceneWidth);
+    }
     const rect = water.getBoundingClientRect();
     width = Math.max(1, rect.width);height = Math.max(1, rect.height);
     scale = Math.min(devicePixelRatio || 1, coarse ? 1.25 : 1.5, Math.sqrt(950000 / (width * height)));

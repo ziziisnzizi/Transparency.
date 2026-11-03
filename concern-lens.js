@@ -35,7 +35,7 @@ vec4 surface(vec2 p,vec4 rect,float curvature){
  vec3 ray=refract(vec3(0.,0.,-1.),normal,1./1.46);
  float thickness=radius*(1.2+focus*.13+press*.2)*height*curvature;
  vec2 offset=ray.xy/max(abs(ray.z),.12)*thickness;
- float fringe=pow(slope,7.)*1.1*curvature;
+ float fringe=pow(slope,5.)*2.6*curvature;
  return vec4(offset,n*fringe);
 }
 vec3 reflections(vec2 p,vec4 rect,vec3 color,float strength){
@@ -51,6 +51,18 @@ vec3 reflections(vec2 p,vec4 rect,vec3 color,float strength){
  color=mix(color,vec3(1.),white*.8*strength);
  float soft=exp(-abs(d+7.)*.18)*max(lighting,0.);
  color+=soft*(dark>.5?.035:.025)*strength;
+ // A broad spectral studio reflection fades into the clear face. Its colour
+ // changes smoothly with position/light rather than forming a painted rainbow rim.
+ float across=clamp(q.x/max(rect.z,1.)+.5+pointer.x*.12,0.,1.);
+ vec3 cyan=vec3(.43,.84,.91);
+ vec3 lavender=vec3(.72,.62,.88);
+ vec3 champagne=vec3(.97,.80,.57);
+ vec3 spectral=mix(mix(cyan,lavender,smoothstep(.08,.58,across)),champagne,smoothstep(.50,.98,across));
+ float inward=max(-d,0.);
+ float sheen=exp(-abs(inward-8.)/13.)*(.28+.72*max(lighting,0.));
+ float face=exp(-pow((q.y-rect.w*.18)/max(rect.w*.23,1.),2.))*.25;
+ float colourWeight=(sheen+face)*(dark>.5?.24:.28)*strength;
+ color=mix(color,spectral,clamp(colourWeight,0.,.32));
  return clamp(color,0.,1.);
 }
 void main(){
