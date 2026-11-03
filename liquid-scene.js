@@ -1,5 +1,4 @@
-// Original procedural backdrop. Features remain identifiable across a glass edge,
-// so the foreground lens can bend the same moving scene rather than fake a rim.
+// Decorative procedural water. It never captures or displaces HTML content.
 export const liquidScene = `
 vec3 scene(vec2 p) {
   vec3 base = mix(vec3(.910, .914, .922), vec3(.028, .031, .036), dark);
@@ -22,8 +21,7 @@ vec3 scene(vec2 p) {
     }
   }
 
-  // Uneven, gently curving folds avoid a mechanical grille while leaving
-  // identifiable background edges for the lens to magnify and bend.
+  // Uneven, gently curving folds avoid a mechanical grille.
   float spacing = mix(98., 78., 1. - smoothstep(600., 900., viewport.x));
   float bend = 62. * sin(q.x * .0039 + q.y * .0018 + clock * .12)
              + 17. * sin(q.x * .0085 - q.y * .0024 - clock * .07);

@@ -1,4 +1,4 @@
-/* The optical scene is refracted by the renderer; native UI stays sharp above it. */
+/* Transparent surfaces use CSS blur; decorative water never samples the UI. */
 nav { isolation: isolate; }
 nav::before { content: ''; position: absolute; z-index: -1; inset: 0; border: 1px solid #ffffff47; border-radius: inherit; box-shadow: inset 0 1px 0 #ffffff70, inset 0 -1px 0 #00000008; pointer-events: none; }
 nav button.active { box-shadow: 0 3px 9px #0000000b, inset 0 1px 1px #ffffffd9, inset 0 -1px 1px #00000005; }
@@ -73,13 +73,6 @@ nav button.active { box-shadow: 0 3px 9px #0000000b, inset 0 1px 1px #ffffffd9, 
 .concerns-page .concern-search-bar button:hover { background: #ffffff45; box-shadow: 0 5px 14px #2637461c, inset 0 1px 2px #fff, inset 0 -1px 2px #20334129; }
 .concerns-page .concern-search-bar button:active { box-shadow: 0 1px 4px #26374612, inset 0 1px 3px #20334129, inset 0 -1px 1px #ffffffb3; }
 
-/* The WebGL layer samples the actual background at this control's coordinates. */
-.concerns-page:has([data-optics="webgl"]) .concern-search-bar,
-.concerns-page:has([data-optics="webgl"]) .concern-search-bar button { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
-.concerns-page:has([data-optics="webgl"]) .concern-search-bar::before { opacity: .26; }
-.concerns-page:has([data-optics="webgl"]) .concern-search-bar::after { opacity: .3; }
-.concerns-page:has([data-optics="webgl"]) .concern-search-bar button::before { opacity: .25; }
-.concerns-page:has([data-optics="webgl"]) .concern-search-bar button:hover { background: #ffffff14; }
 
 .concerns-page .concern-suggestions>button { position: relative; isolation: isolate; min-height: 44px; border: 1px solid #ffffff6b; background: linear-gradient(145deg, #ffffff26, #ffffff0d); color: var(--ink); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 3px 10px #26374605, inset 0 1px 1px #ffffff99; transition: background .2s, box-shadow .2s; }
 .concerns-page .concern-suggestions>button:hover { background: #ffffff47; box-shadow: 0 4px 12px #2637460a, inset 0 1px 1px #ffffffe6; }
@@ -96,8 +89,6 @@ nav button.active { box-shadow: 0 3px 9px #0000000b, inset 0 1px 1px #ffffffd9, 
 [data-theme="dark"] .concerns-page .concern-search-bar button::before { border-top-color: #ffffff47; }
 [data-theme="dark"] .concerns-page .concern-search-bar button:hover { background: #ffffff1c; box-shadow: 0 5px 14px #0005, inset 0 1px 2px #ffffff99, inset 0 -1px 2px #0005; }
 [data-theme="dark"] .concerns-page .concern-search-bar button:active { box-shadow: 0 1px 4px #0003, inset 0 1px 3px #0006, inset 0 -1px 1px #ffffff38; }
-[data-theme="dark"] .concerns-page:has([data-optics="webgl"]) .concern-search-bar button { background: transparent; }
-[data-theme="dark"] .concerns-page:has([data-optics="webgl"]) .concern-search-bar button:hover { background: #ffffff0d; }
 [data-theme="dark"] .concerns-page .concern-suggestions>button { border-color: #ffffff29; background: linear-gradient(145deg, #ffffff09, #ffffff03); box-shadow: 0 3px 10px #0001, inset 0 1px 1px #ffffff26; }
 [data-theme="dark"] .concerns-page .concern-suggestions>button:hover { background: #ffffff14; }
 [data-theme="dark"] .concerns-page :is(.concern-finding, .concern-paper, .concern-news-card, .concern-product) { border-color: #ffffff26; background: var(--concern-card-fill); box-shadow: 0 8px 25px #0001, inset 0 1px 1px #ffffff26; }
@@ -107,8 +98,6 @@ nav button.active { box-shadow: 0 3px 9px #0000000b, inset 0 1px 1px #ffffffd9, 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .concerns-page .concern-search-bar { background: #efeff1ed; }
   [data-theme="dark"] .concerns-page .concern-search-bar { background: #171b20ed; }
-  .concerns-page:has([data-optics="webgl"]) .concern-search-bar,
-  [data-theme="dark"] .concerns-page:has([data-optics="webgl"]) .concern-search-bar { background: transparent; }
 }
 @media (max-width: 750px) {
   .concerns-page .concern-search-bar { min-height: 68px; padding: 9px 9px 9px 18px; gap: 12px; }
@@ -125,15 +114,11 @@ nav button.active { box-shadow: 0 3px 9px #0000000b, inset 0 1px 1px #ffffffd9, 
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
   nav::before { display: none; }
   .concerns-page .concern-search-bar::before, .concerns-page .concern-search-bar::after, .concerns-page .concern-search-bar button::before { display: none; }
-  .concerns-page :is(.concern-search-bar, .concern-search-bar button, .concern-suggestions>button, .concern-finding, .concern-paper, .concern-news-card, .concern-product, .concern-precautions),
-  .concerns-page:has([data-optics="webgl"]) :is(.concern-search-bar, .concern-search-bar button) { background: #f6f6f6; border-color: #a0a6ad; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; }
-  [data-theme="dark"] .concerns-page :is(.concern-search-bar, .concern-search-bar button, .concern-suggestions>button, .concern-finding, .concern-paper, .concern-news-card, .concern-product, .concern-precautions),
-  [data-theme="dark"] .concerns-page:has([data-optics="webgl"]) :is(.concern-search-bar, .concern-search-bar button) { background: #171a20; border-color: #6c727c; }
+  .concerns-page :is(.concern-search-bar, .concern-search-bar button, .concern-suggestions>button, .concern-finding, .concern-paper, .concern-news-card, .concern-product, .concern-precautions) { background: #f6f6f6; border-color: #a0a6ad; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; }
+  [data-theme="dark"] .concerns-page :is(.concern-search-bar, .concern-search-bar button, .concern-suggestions>button, .concern-finding, .concern-paper, .concern-news-card, .concern-product, .concern-precautions) { background: #171a20; border-color: #6c727c; }
 }
 @media (forced-colors: active) {
   .concerns-page :is(.concern-search-bar, .concern-search-bar button, .concern-suggestions>button, .concern-finding, .concern-paper, .concern-news-card, .concern-product, .concern-precautions),
-  [data-theme="dark"] .concerns-page :is(.concern-search-bar, .concern-search-bar button, .concern-suggestions>button, .concern-finding, .concern-paper, .concern-news-card, .concern-product, .concern-precautions),
-  .concerns-page:has([data-optics="webgl"]) :is(.concern-search-bar, .concern-search-bar button),
-  [data-theme="dark"] .concerns-page:has([data-optics="webgl"]) :is(.concern-search-bar, .concern-search-bar button) { background: Canvas; border-color: CanvasText; color: CanvasText; }
+  [data-theme="dark"] .concerns-page :is(.concern-search-bar, .concern-search-bar button, .concern-suggestions>button, .concern-finding, .concern-paper, .concern-news-card, .concern-product, .concern-precautions) { background: Canvas; border-color: CanvasText; color: CanvasText; }
   .concerns-page .concern-search-bar:focus-within { outline: 2px solid Highlight; outline-offset: 3px; }
 }
