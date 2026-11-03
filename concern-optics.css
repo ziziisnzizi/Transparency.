@@ -1,0 +1,27 @@
+.concerns-page .concern-visual-stage { position: relative; isolation: isolate; }
+.concerns-page .concern-water { top: 50%; left: 50%; width: min(100vw, 1440px); height: calc(100% + 210px); min-height: 600px; max-height: 800px; transform: translate(-50%, -46%); opacity: 1; mask-image: linear-gradient(transparent, #000 16%, #000 80%, transparent); -webkit-mask-image: linear-gradient(transparent, #000 16%, #000 80%, transparent); }
+.concerns-page .concern-water:before { inset: 9% 10% 2%; background: radial-gradient(ellipse at 50% 58%, #ffffff40, transparent 64%); filter: blur(34px); }
+.concerns-page .concern-optics-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; opacity: .95; }
+.concerns-page .concern-optics-fallback { position: absolute; inset: 0; opacity: .7; transition: opacity .4s; }
+.concerns-page [data-optics="canvas"] .concern-optics-fallback { opacity: .14; }
+.concerns-page .concern-optics-fallback span { position: absolute; left: -15%; top: 40%; width: 120%; height: 25%; border: 1px solid #ffffffa3; border-radius: 48% 55% 38% 62%; background: linear-gradient(165deg, #ffffff05 30%, #ffffff6b 52%, #a7aeb51a 55%, #ffffff05 72%); box-shadow: -.9px 1px 0 #86dce850, .9px -1px 0 #d1a8ee50, inset 0 2px 8px #ffffff59; transform: translate(var(--concern-offset-x, 0px), var(--concern-offset-y, 0px)) rotate(-17deg); animation: concern-optics-flow 22s ease-in-out infinite alternate; }
+.concerns-page .concern-optics-fallback span:nth-child(2) { top: 26%; left: 17%; width: 110%; height: 19%; opacity: .65; animation-delay: -13s; }
+.concerns-page .concern-optics-fallback span:nth-child(3) { top: 10%; left: 64%; width: 34%; height: 45%; border-radius: 50%; opacity: .5; animation: none; transform: translate(var(--concern-offset-x, 0px), var(--concern-offset-y, 0px)); }
+.concerns-page [data-optics-paused="true"] .concern-optics-fallback span { animation-play-state: paused; }
+.concerns-page.has-results .concern-water { height: 470px; min-height: 470px; top: 40%; opacity: .65; }
+[data-theme="dark"] .concerns-page .concern-water { opacity: .9; }
+[data-theme="dark"] .concerns-page .concern-water:before { background: radial-gradient(ellipse at 50% 58%, #b9d5ef09, transparent 64%); }
+[data-theme="dark"] .concerns-page.has-results .concern-water { opacity: .6; }
+[data-theme="dark"] .concerns-page .concern-optics-fallback span { border-color: #ffffff24; background: linear-gradient(165deg, #ffffff00 30%, #ffffff0d 52%, #00000020 55%, #ffffff00 72%); box-shadow: -.9px 1px 0 #86dce831, .9px -1px 0 #d1a8ee31, inset 0 2px 8px #ffffff0d; }
+@keyframes concern-optics-flow { from { transform: translate(var(--concern-offset-x, 0px), var(--concern-offset-y, 0px)) rotate(-17deg); } to { transform: translate(calc(var(--concern-offset-x, 0px) + 12px), calc(var(--concern-offset-y, 0px) - 15px)) rotate(-12deg); } }
+@media (max-width: 750px) {
+  .concerns-page .concern-water { height: calc(100% + 150px); min-height: 610px; max-height: 760px; width: 100vw; }
+  .concerns-page.has-results .concern-water { height: 420px; min-height: 420px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .concerns-page .concern-optics-fallback span { animation: none; transform: rotate(-15deg); }
+  .concerns-page .concern-optics-fallback { transition: none; }
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .concerns-page .concern-water { display: none; }
+}
