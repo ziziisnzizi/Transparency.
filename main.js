@@ -4,15 +4,18 @@ import { products, purchasePricing } from './products.js';
 import { orderProductsByRoutine } from './catalog.js';
 import { getReviewSummary, renderProductReviews, bindProductReviews, REVIEW_STORAGE_KEY } from './reviews.js';
 import { renderPurchase, bindPurchase, formatPurchasePrice } from './purchase.js';
+import { renderConcerns, bindConcerns, seedConcernSearch } from './concerns.js';
 
 
 
-let page = '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
-let isPurchase = new URLSearchParams(window.location.search).get('view') === 'buy';
+const navPages = ['홈', '제품 탐색', '내 고민', '내 제품', '더보기'];
+const initialView = new URLSearchParams(window.location.search).get('view');
+let page = initialView === 'concerns' ? '내 고민' : '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
+let isPurchase = initialView === 'buy';
 let theme = localStorage.getItem('transparency-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 document.documentElement.dataset.theme = theme;
 const requestedProduct = new URLSearchParams(window.location.search).get('product');
-selected = products.find(product => product.slug === requestedProduct) || null;
+selected = initialView === 'concerns' ? null : products.find(product => product.slug === requestedProduct) || null;
 if (isPurchase && !selected) selected = orderProductsByRoutine(products)[0];
 if (selected) page = '제품 탐색';
 let saved = JSON.parse(localStorage.getItem('transparency-products') || '[]');
@@ -37,6 +40,7 @@ function bottle(p) {
 const navIcons = {
   '홈': '<path d="m3 10 9-7 9 7v10H5V10m4 10v-7h6v7"/>',
   '제품 탐색': '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+  '내 고민': '<path d="M21 11a8 8 0 0 1-8 8H8l-5 3 1.5-6A8 8 0 1 1 21 11Z"/><path d="M9.5 8a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4m0 3h.01"/>',
   '내 제품': '<rect x="5" y="6" width="14" height="15" rx="3"/><path d="M9 6V3h6v3m-6 6h6m-6 4h4"/>',
   '더보기': '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
 };
@@ -48,8 +52,8 @@ function render() {
 
       <div class="header-actions"><button class="theme-toggle" id="theme-toggle" type="button" aria-label="${theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}" aria-pressed="${theme === 'dark'}"><span aria-hidden="true">${theme === 'dark' ? '☀' : '☾'}</span></button><button class="account" data-page="내 제품">MY PRODUCTS ${arrow}</button></div>
     </header>
-      <nav aria-label="주요 메뉴">${['홈', '제품 탐색', '내 제품', '더보기'].map(x => `<button ${!selected && page === x ? 'aria-current="page"' : ''} class="${page === x ? 'active' : ''}" data-page="${x}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${navIcons[x]}</svg><span>${x}</span></button>`).join('')}</nav>
-    <main id="content" tabindex="-1">${isPurchase ? renderPurchase(orderProductsByRoutine(products), selected?.slug, purchasePricing) : selected ? detail() : page === '홈' ? home() : page === '제품 탐색' ? explore() : page === '내 제품' ? my() : more()}</main>
+      <nav aria-label="주요 메뉴">${navPages.map(x => `<button ${!selected && page === x ? 'aria-current="page"' : ''} class="${page === x ? 'active' : ''}" data-page="${x}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${navIcons[x]}</svg><span>${x}</span></button>`).join('')}</nav>
+    <main id="content" tabindex="-1">${isPurchase ? renderPurchase(orderProductsByRoutine(products), selected?.slug, purchasePricing) : selected ? detail() : page === '홈' ? home() : page === '제품 탐색' ? explore() : page === '내 고민' ? renderConcerns() : page === '내 제품' ? my() : more()}</main>
     <footer><div><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button><p>성분에 장난 없이.</p></div><div class="footer-links"><button data-buy="toner-t1">제품 구매 ${arrow}</button><button data-page="더보기">브랜드 소개 ${arrow}</button><a href="mailto:ztheng@inha.edu">ztheng@inha.edu</a></div><small>© 2026 Transparency. All rights reserved.<br>성분부터 사용법까지, 투명하게.</small></footer>`;
   bind();
 }
@@ -127,10 +131,10 @@ function more() {
   return `<section class="section page-section"><div class="about-banner"><span class="eyebrow">ABOUT TRANSPARENCY.</span><h1 class="page-title">가릴 것이 없으니까.</h1><div class="about-logo">${logoMark}</div><p>궁금했던 성분부터, 나에게 맞는 사용법까지.<br>극도의 투명함, 손안에서.</p><div class="glass-orb" aria-hidden="true"></div></div><div class="about-list">${[
     ['01', '브랜드 철학', '알고 선택하고, 납득하며 사용하고, 끝까지 확인하는 것. Transparency.가 생각하는 투명함입니다.'],
     ['02', '정보 공개 원칙', '성분의 역할과 함량 기준을 설명합니다. 효능에는 출처와 한계를 함께 표시합니다. 확인되지 않은 내용은 확인되지 않았다고 안내하고, 정보가 바뀌면 확인일과 변경 내용을 갱신합니다.'],
-    ['03', '서비스 이용 안내', '제품을 탐색하고 내 제품으로 등록하세요. 개봉일을 입력하고 사용 상태를 관리할 수 있습니다. 기록은 이 브라우저에만 저장됩니다.'],
+    ['03', '서비스 이용 안내', '제품을 탐색하고 내 제품으로 등록하세요. 개봉일을 입력하고 사용 상태를 관리할 수 있습니다. 내 고민에서는 피부 고민과 사용감을 검색해 관련 연구와 외부 자료를 살펴보고, 공개된 성분·제형에 가까운 제품을 비교할 수 있습니다.'],
     ['04', '계정 관리', '회원가입 없이 제품 정보를 확인하고 사용 기록을 관리할 수 있습니다. 제품 사용 기록과 리뷰는 현재 사용하는 브라우저에 저장되며, 다른 기기와 공유되지 않습니다.'],
     ['05', '정보 상태와 문의', '현재 공개되지 않았거나 확인 가능한 자료가 없는 정보는 그 이유와 확인 가능한 범위를 함께 안내합니다. 문의: ztheng@inha.edu'],
-    ['06', '개인정보·기록 관리', '제품 사용 기록과 리뷰는 현재 브라우저에 저장됩니다. 제품 기록은 내 제품에서, 리뷰는 해당 제품의 사용자 리뷰에서 삭제할 수 있습니다. 질문과 제품 자료는 답변 처리를 위해 서버로 전송되며, Gemini 연결 시 AI 서비스로 전달됩니다. 대화는 브라우저 저장소에 보관하지 않습니다. 서비스 이용과 개인정보 관련 문의는 안내된 이메일로 보내 주세요.'],
+    ['06', '개인정보·기록 관리', '제품 사용 기록과 리뷰는 현재 브라우저에 저장됩니다. 제품 기록은 내 제품에서, 리뷰는 해당 제품의 사용자 리뷰에서 삭제할 수 있습니다. 내 고민의 입력과 검색 결과는 현재 페이지 메모리에만 남으며, 새로고침하면 사라집니다. 외부 자료 연결에는 정해진 주제 코드만 서버로 전달하며 입력 문장과 리뷰를 전송하지 않습니다. 제품 상세의 AI 질문과 제품 자료는 답변 처리를 위해 서버로 전송되며, Gemini 연결 시 AI 서비스로 전달됩니다. 대화는 브라우저 저장소에 보관하지 않습니다. 서비스 이용과 개인정보 관련 문의는 안내된 이메일로 보내 주세요.'],
   ].map(([n, a, b]) => `<details><summary><span class="number">${n}</span>${a}</summary><p>${b}</p></details>`).join('')}</div></section>`;
 }
 
@@ -143,17 +147,32 @@ function writeLocation() {
   if (selected) url.searchParams.set('product', selected.slug);
   else url.searchParams.delete('product');
   if (isPurchase) url.searchParams.set('view', 'buy');
+  else if (page === '내 고민') url.searchParams.set('view', 'concerns');
   else url.searchParams.delete('view');
   window.history.pushState({ page }, '', `${url.pathname}${url.search}`);
 }
 
-function openProduct(slug, purchase = false) {
+function openProduct(slug, purchase = false, detailTab = '성분·함량') {
   const product = products.find(item => item.slug === slug);
   if (!product) return;
   selected = product;
   page = '제품 탐색';
   isPurchase = purchase;
-  if (!purchase) tab = '성분·함량';
+  if (!purchase) tab = detailTab;
+  writeLocation();
+  render();
+  window.scrollTo(0, 0);
+  if (!purchase && detailTab !== '성분·함량') {
+    document.querySelector('#detail-panel')?.scrollIntoView({ block: 'start' });
+    window.scrollBy(0, -90);
+  }
+}
+
+function openConcernSearch(query, options) {
+  seedConcernSearch(query, options);
+  selected = null;
+  isPurchase = false;
+  page = '내 고민';
   writeLocation();
   render();
   window.scrollTo(0, 0);
@@ -185,6 +204,11 @@ function refreshSearchResults(value) {
   bindSearchReset();
 }
 function bind() {
+  if (!isPurchase && !selected && page === '내 고민') bindConcerns({
+    onProduct: slug => openProduct(slug),
+    onReview: slug => openProduct(slug, false, '사용자 리뷰'),
+    onEvidence: slug => openProduct(slug, false, '효능·근거'),
+  });
   if (!isPurchase && selected && tab === '효능·근거') bindProductEvidence(selected);
   if (!isPurchase && selected && tab === '질문하기') bindProductQuestions(selected, {
     onRender: render,
@@ -209,7 +233,7 @@ function bind() {
     onRender: render,
   }, purchasePricing);
   document.querySelectorAll('[data-buy]').forEach(button => button.addEventListener('click', () => openProduct(button.dataset.buy, true)));
-  if (!isPurchase && selected && tab === '사용자 리뷰') bindProductReviews(selected, render);
+  if (!isPurchase && selected && tab === '사용자 리뷰') bindProductReviews(selected, render, { onConcern: openConcernSearch });
   document.querySelector('#show-reviews')?.addEventListener('click', () => {
     tab = '사용자 리뷰';
     render();
@@ -284,9 +308,9 @@ window.addEventListener('storage', event => {
 window.addEventListener('popstate', event => {
   const params = new URLSearchParams(window.location.search);
   isPurchase = params.get('view') === 'buy';
-  selected = products.find(product => product.slug === params.get('product')) || null;
+  selected = params.get('view') === 'concerns' ? null : products.find(product => product.slug === params.get('product')) || null;
   if (isPurchase && !selected) selected = orderProductsByRoutine(products)[0];
-  page = selected ? '제품 탐색' : ['홈', '제품 탐색', '내 제품', '더보기'].includes(event.state?.page) ? event.state.page : '홈';
+  page = selected ? '제품 탐색' : params.get('view') === 'concerns' ? '내 고민' : navPages.includes(event.state?.page) ? event.state.page : '홈';
   render();
 });
 render();

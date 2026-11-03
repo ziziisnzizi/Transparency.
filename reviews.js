@@ -43,6 +43,10 @@ export function sortProductReviews(reviews, productSlug) {
     .sort(compareReviews);
 }
 
+export function getWrittenReviews() {
+  return readReviewState().reviews;
+}
+
 export function getProductReviewFeed(productSlug, userReviews = readReviewState().reviews) {
   const written = sortProductReviews(userReviews, productSlug).map(review => ({ ...review, source: 'user' }));
   const examples = sortProductReviews(MOCK_PRODUCT_REVIEWS, productSlug).map(review => ({ ...review, source: 'example' }));
@@ -69,7 +73,8 @@ function renderReviewEntry(review) {
   const sourceAttribute = isExample ? `data-example-review="${escape(review.id)}"` : `data-review-id="${escape(review.id)}"`;
   const metadata = isExample ? '' : `<time datetime="${escape(review.createdAt)}">${escape(reviewDate(review.createdAt))}</time>`;
   const actions = isExample ? '' : `<div class="review-entry-foot"><span>이 브라우저에서 작성한 리뷰</span><button type="button" class="review-delete" data-review-delete="${escape(review.id)}" aria-label="${review.rating}점 리뷰 삭제">삭제</button></div>`;
-  return `<li><article class="review-entry" data-review-source="${review.source}" ${sourceAttribute}><div class="review-entry-head"><span class="review-stars" aria-label="5점 만점에 ${review.rating}점"><span aria-hidden="true">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</span><strong>${review.rating}.0</strong></span>${metadata}</div><p class="review-body">${escape(review.body)}</p>${actions}</article></li>`;
+  const concern = review.rating <= 3 ? `<button type="button" class="review-concern-link" data-review-concern="${escape(review.id)}">이런 사용감이 걱정된다면 <span aria-hidden="true">↗</span></button>` : '';
+  return `<li><article class="review-entry" data-review-source="${review.source}" ${sourceAttribute}><div class="review-entry-head"><span class="review-stars" aria-label="5점 만점에 ${review.rating}점"><span aria-hidden="true">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</span><strong>${review.rating}.0</strong></span>${metadata}</div><p class="review-body">${escape(review.body)}</p>${concern}${actions}</article></li>`;
 }
 
 export function renderProductReviews(product) {
@@ -99,12 +104,17 @@ export function renderProductReviews(product) {
   </section>`;
 }
 
-export function bindProductReviews(product, onUpdate) {
+export function bindProductReviews(product, onUpdate, { onConcern } = {}) {
   const prefix = `reviews-${product.slug}`;
   const root = document.getElementById(prefix);
   const form = root?.querySelector('.review-form');
   if (!form) return;
   const body = form.elements.namedItem('review-body');
+  root.querySelectorAll('[data-review-concern]').forEach(button => button.addEventListener('click', () => {
+    const review = getProductReviewFeed(product.slug).find(item => item.id === button.dataset.reviewConcern);
+    if (!review || typeof onConcern !== 'function') return;
+    onConcern(`${product.name} 사용감에서 이런 점이 아쉬워요. ${review.body.slice(0, 240)}`, { fromProductSlug: product.slug });
+  }));
 
   function clearFeedback() {
     feedback.delete(product.slug);

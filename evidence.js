@@ -154,6 +154,13 @@ function detailContent(product, paper) {
     <section class="evidence-detail-section evidence-original"><h3>원문 서지 정보</h3><p class="evidence-original-title" lang="${paper.language === 'ko' ? 'ko' : 'en'}">${escape(paper.originalTitle)}</p><p>${escape(authors)}${authors ? ' · ' : ''}${escape(paper.year)}<br>${escape(paper.journal)}</p>${paper.doi ? `<p>DOI: ${escape(paper.doi)}</p>` : ''}${url ? `<a href="${escape(url)}" target="_blank" rel="noopener noreferrer">${paper.access === '원문 공개' ? '원문 보기' : '초록 보기'} <span aria-hidden="true">↗</span><span class="sr-only"> (새 창)</span></a>` : '<p>현재 확인 가능한 원문 링크가 없습니다.</p>'}<p class="evidence-checked-date">자료 확인일 ${escape(RESEARCH_CHECKED_AT)}</p></section>`;
 }
 
+export function renderResearchDetail(paper) {
+  return detailContent({ slug: 'concern-research', name: '제품' }, {
+    ...paper,
+    productScope: `${paper.applicationNote || ''} 현재 공개된 Transparency. 완제품 시험 결과는 없습니다. 성분이나 연구용 제형의 결과가 제품의 효과·안전성을 보장하지 않습니다.`,
+  });
+}
+
 export function renderProductEvidence(product) {
   const data = productData(product);
   const state = stateFor(product, data.ingredients);

@@ -2,6 +2,8 @@
 
 사용자가 제공한 원본 기획입니다. 아래 구조 전체의 구현이 완료되었다는 뜻은 아닙니다. 현재 범위는 [인계 기록](project-handoff.md)을 확인하세요.
 
+2026-11-03 추가한 ‘내 고민’ 탭의 현재 화면·연결 흐름은 [고민 검색 문서](concern-search.md)에 있습니다. 아래 원본 구조는 보존합니다.
+
 ```mermaid
 flowchart LR
     app["Transparency."] --- home["홈"]

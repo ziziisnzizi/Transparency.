@@ -105,7 +105,7 @@ footer { margin: 0 24px 24px; border: 1px solid #ffffffa8; border-radius: 30px; 
 @media(max-width:1100px) and (min-width:751px) {
   header { width: 100%; padding: 0 20px; }
   .logo { font-size: 24px; }
-  nav button { padding: 0 15px; font-size: 11px; }
+  nav button { padding: 0 8px; min-width: 44px; font-size: 11px; }
   .account { font-size: 8px; gap: 12px; padding: 10px 12px; }
   .principles { grid-template-columns: 1fr 1fr; }
   .principle-title br { display: none; }
