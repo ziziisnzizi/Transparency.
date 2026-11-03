@@ -1,42 +1,35 @@
-/* A full-size optical study, with the functional search in front of it. */
-body:has(.concerns-page):before, body:has(.concerns-page):after { opacity: .12; }
+/* The search capsule is the optical surface. Native text stays above the scene. */
+body:has(.concerns-page):before, body:has(.concerns-page):after { opacity: 0; }
 .concerns-page .concern-visual-stage { position: relative; isolation: isolate; }
-.concerns-page.is-empty { padding-top: 48px; min-height: max(780px, calc(100svh - 88px)); }
-.concerns-page.is-empty .concern-visual-stage { min-height: 620px; }
-.concerns-page.is-empty .concern-page-intro { padding-top: 42px; width: 58%; text-align: left; }
-.concerns-page.is-empty .concern-page-intro>h1 { font-size: clamp(44px, 4.8vw, 64px); line-height: 1.22; letter-spacing: -.07em; }
-.concerns-page.is-empty .concern-page-intro>p { max-width: 350px; }
-.concerns-page.is-empty .concern-search-area { margin-top: 100px; width: min(100%, 850px); }
-.concerns-page .concern-water { top: 50%; left: 50%; width: min(100vw, 1440px); height: calc(100% + 160px); min-height: 680px; max-height: 940px; transform: translate(-50%, -50%); opacity: 1; mask-image: linear-gradient(transparent, #000 5%, #000 94%, transparent); -webkit-mask-image: linear-gradient(transparent, #000 5%, #000 94%, transparent); }
-.concerns-page .concern-water:before { inset: 4% 4% 0; background: radial-gradient(ellipse at 76% 45%, #ffffff8c, transparent 59%); filter: blur(28px); }
+.concerns-page.is-empty { padding-top: clamp(54px, 9vh, 100px); min-height: calc(100svh - 88px); }
+.concerns-page.is-empty .concern-visual-stage { min-height: 580px; }
+.concerns-page.is-empty .concern-page-intro { width: 100%; padding: 0; text-align: center; }
+.concerns-page.is-empty .concern-page-intro>h1 { font-size: clamp(38px, 4.1vw, 55px); line-height: 1.28; letter-spacing: -.065em; }
+.concerns-page.is-empty .concern-page-intro>p { max-width: none; }
+.concerns-page.is-empty .concern-search-area { margin-top: 57px; width: min(100%, 800px); }
+.concerns-page .concern-water { top: 50%; left: 50%; width: min(100vw, 1440px); height: calc(100% + 150px); min-height: 620px; max-height: 830px; transform: translate(-50%, -50%); opacity: 1; mask-image: none; -webkit-mask-image: none; }
+.concerns-page .concern-water:before { content: none; }
 .concerns-page .concern-optics-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; opacity: 1; }
-.concerns-page .concern-optics-fallback { position: absolute; inset: 0; opacity: 1; }
-.concerns-page [data-optics="webgl"] .concern-optics-fallback { display: none; }
-.concerns-page .concern-optics-fallback span { position: absolute; left: 61%; top: 15%; width: min(35vw, 440px); aspect-ratio: 1; border-radius: 0; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: conic-gradient(from 30deg, #ffffff 0deg, #07090b 50deg, #19e7ff 54deg, #343bff 58deg, #e611ff 62deg, #ff3627 66deg, #ffed25 70deg, #ffffff 74deg, #eff4f9 120deg, #090a10 190deg, #ffffff 235deg, #30faff 245deg, #3a23ff 255deg, #ff25de 260deg, #f7faff 270deg, #ffffff 360deg); box-shadow: inset 0 0 12px #fff; transform: translate(var(--concern-offset-x, 0px), var(--concern-offset-y, 0px)) rotate(-15deg); animation: concern-prism-float 14s ease-in-out infinite alternate; }
-.concerns-page .concern-optics-fallback span:nth-child(2) { clip-path: polygon(50% 0, 100% 25%, 50% 50%, 0 25%); background: linear-gradient(145deg, #ffffff 10%, #192329 32%, #46ffff 34%, #181dff 38%, #ff27ba 41%, #fff42d 45%, #fff 50%, #000 85%); opacity: .9; animation-delay: -4s; }
-.concerns-page .concern-optics-fallback span:nth-child(3) { clip-path: polygon(50% 50%, 100% 25%, 100% 75%, 50% 100%); background: linear-gradient(70deg, #000 15%, #080a0c 40%, #fff 57%, #14f4ff 62%, #432bff 67%, #f32b91 71%, #ffda20 73%, #fff 80%); opacity: .75; animation-delay: -8s; }
+.concerns-page .concern-optics-fallback { position: absolute; inset: 0; opacity: .7; overflow: hidden; mask-image: linear-gradient(transparent, #000 26%, #000 74%, transparent); }
+.concerns-page [data-optics="webgl"] .concern-optics-fallback, .concerns-page [data-optics="canvas"] .concern-optics-fallback { display: none; }
+.concerns-page .concern-optics-fallback span { position: absolute; left: -40%; top: 30%; width: 180%; height: 150px; border-radius: 50%; background: linear-gradient(178deg, #a5b1bd12, #75859430 45%, #ffffffed 49%, #b4c2ce38 53%, #ffffff00 72%); box-shadow: 0 -1px 0 #ffffff80; transform: translate(var(--concern-offset-x,0px),var(--concern-offset-y,0px)) rotate(-18deg); animation: concern-liquid-flow 18s ease-in-out infinite alternate; }
+.concerns-page .concern-optics-fallback span:nth-child(2) { top: 48%; animation-delay: -6s; }
+.concerns-page .concern-optics-fallback span:nth-child(3) { top: 66%; animation-delay: -12s; }
 .concerns-page [data-optics-paused="true"] .concern-optics-fallback span { animation-play-state: paused; }
-.concerns-page.has-results .concern-water { height: 450px; min-height: 450px; top: 40%; opacity: .32; }
-[data-theme="dark"] .concerns-page .concern-water { opacity: 1; }
-[data-theme="dark"] .concerns-page .concern-water:before { background: radial-gradient(ellipse at 76% 45%, #b9d5ef08, transparent 59%); }
-[data-theme="dark"] .concerns-page.has-results .concern-water { opacity: .32; }
-@keyframes concern-prism-float { from { transform: translate(var(--concern-offset-x, 0px), var(--concern-offset-y, 0px)) rotate(-15deg); } to { transform: translate(calc(var(--concern-offset-x, 0px) + 20px), calc(var(--concern-offset-y, 0px) - 24px)) rotate(7deg); } }
-@media (max-width: 750px) {
-  .concerns-page.is-empty { padding-top: 30px; min-height: calc(100svh - 60px); }
-  .concerns-page.is-empty .concern-visual-stage { min-height: 800px; }
-  .concerns-page.is-empty .concern-page-intro { width: 100%; padding-top: 0; text-align: center; }
-  .concerns-page.is-empty .concern-page-intro>h1 { font-size: clamp(30px, 8.4vw, 39px); margin-top: 20px; }
-  .concerns-page.is-empty .concern-page-intro>p { margin-inline: auto; }
-  .concerns-page.is-empty .concern-search-area { margin-top: 325px; }
-  .concerns-page .concern-water { height: calc(100% + 80px); min-height: 800px; max-height: 940px; width: 100vw; }
-  .concerns-page .concern-optics-fallback span { left: 13%; top: 29%; width: 78%; }
+.concerns-page.has-results .concern-water { height: 430px; min-height: 430px; top: 55%; opacity: 1; }
+[data-theme="dark"] .concerns-page .concern-water, [data-theme="dark"] .concerns-page.has-results .concern-water { opacity: 1; }
+[data-theme="dark"] .concerns-page .concern-optics-fallback span { background: linear-gradient(178deg,#ffffff00,#00000090 45%,#b9c9d94d 49%,#ffffff0d 53%,#ffffff00 72%); box-shadow: 0 -1px 0 #ffffff28; }
+@keyframes concern-liquid-flow { from { transform: translate(var(--concern-offset-x,0px),var(--concern-offset-y,0px)) rotate(-18deg); } to { transform: translate(calc(var(--concern-offset-x,0px) + 20px),calc(var(--concern-offset-y,0px) - 20px)) rotate(-12deg); } }
+@media (max-width:750px) {
+  .concerns-page.is-empty { padding-top: clamp(46px, 8vh, 72px); min-height: calc(100svh - 60px); }
+  .concerns-page.is-empty .concern-visual-stage { min-height: 590px; }
+  .concerns-page.is-empty .concern-page-intro>h1 { font-size: clamp(31px, 8.4vw, 39px); margin-top: 23px; }
+  .concerns-page.is-empty .concern-search-area { margin-top: 44px; }
+  .concerns-page .concern-water { width: 100vw; height: calc(100% + 80px); min-height: 620px; max-height: 760px; }
   .concerns-page.has-results .concern-water { height: 420px; min-height: 420px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .concerns-page .concern-optics-fallback span { animation: none; transform: rotate(-15deg); }
-}
-@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+@media (prefers-reduced-motion:reduce) { .concerns-page .concern-optics-fallback span { animation: none; } }
+@media (prefers-reduced-transparency:reduce), (forced-colors:active) {
   .concerns-page .concern-water { display: none; }
-  .concerns-page.is-empty .concern-search-area { margin-top: 45px; }
   .concerns-page.is-empty .concern-visual-stage { min-height: 0; }
 }
