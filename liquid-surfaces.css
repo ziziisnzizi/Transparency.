@@ -1,0 +1,236 @@
+/* Shared transparent materials. Content and images keep their full opacity. */
+:root {
+  --liquid-surface: linear-gradient(135deg, rgb(255 255 255 / .15), rgb(255 255 255 / .035) 58%, rgb(255 255 255 / .09));
+  --liquid-inset: rgb(255 255 255 / .075);
+  --liquid-hover: linear-gradient(135deg, rgb(255 255 255 / .25), rgb(255 255 255 / .08));
+  --liquid-selected: linear-gradient(145deg, rgb(255 255 255 / .32), rgb(255 255 255 / .12));
+  --liquid-selected-ink: var(--ink);
+  --liquid-edge: rgb(255 255 255 / .64);
+  --liquid-selected-edge: rgb(255 255 255 / .92);
+  --liquid-shadow: inset 0 1px 0 rgb(255 255 255 / .72), inset 1px 0 0 rgb(145 228 245 / .13), inset -1px -1px 0 rgb(188 170 221 / .13), 0 8px 28px rgb(0 0 0 / .035);
+  --liquid-backdrop: blur(32px) saturate(112%);
+  --liquid-nav-backdrop: blur(44px) saturate(118%);
+  --liquid-nav-surface: linear-gradient(135deg, rgb(255 255 255 / .14), rgb(255 255 255 / .045));
+  --liquid-dialog-surface: linear-gradient(145deg, rgb(249 250 252 / .38), rgb(245 246 249 / .22));
+  --liquid-action: linear-gradient(145deg, rgb(36 40 46 / .76), rgb(14 17 22 / .66));
+  --liquid-action-hover: linear-gradient(145deg, rgb(36 40 46 / .86), rgb(14 17 22 / .74));
+  --liquid-action-ink: #fff;
+  --glass-fill: var(--liquid-surface);
+  --glass-edge: var(--liquid-edge);
+  --glass-shadow: var(--liquid-shadow);
+}
+
+:root[data-theme="dark"] {
+  --liquid-surface: linear-gradient(135deg, rgb(255 255 255 / .075), rgb(255 255 255 / .018) 58%, rgb(255 255 255 / .045));
+  --liquid-inset: rgb(255 255 255 / .035);
+  --liquid-hover: linear-gradient(135deg, rgb(255 255 255 / .12), rgb(255 255 255 / .04));
+  --liquid-selected: linear-gradient(145deg, rgb(255 255 255 / .19), rgb(255 255 255 / .065));
+  --liquid-edge: rgb(255 255 255 / .20);
+  --liquid-selected-edge: rgb(255 255 255 / .38);
+  --liquid-shadow: inset 0 1px 0 rgb(255 255 255 / .22), inset 1px 0 0 rgb(139 216 241 / .09), inset -1px -1px 0 rgb(188 163 224 / .09), 0 8px 28px rgb(0 0 0 / .10);
+  --liquid-nav-surface: linear-gradient(135deg, rgb(255 255 255 / .075), rgb(255 255 255 / .02));
+  --liquid-dialog-surface: linear-gradient(145deg, rgb(20 24 30 / .54), rgb(12 15 20 / .40));
+  --liquid-action: linear-gradient(145deg, rgb(255 255 255 / .20), rgb(255 255 255 / .09));
+  --liquid-action-hover: linear-gradient(145deg, rgb(255 255 255 / .28), rgb(255 255 255 / .14));
+  --liquid-action-ink: #fff;
+}
+
+/* One material across cards, detail panels, questions, reviews and checkout. */
+html:root :is(
+  .hero-copy, .hero-bottom>span, .principles>div:not(:first-child),
+  .product, .product-image, .bottle-scene, .bottom-grid>div, .detail-image, .info, .info-note,
+  .my-row, .my-product-image, .shelf-summary, .empty, .empty-mark,
+  .about-banner, .about-list, footer, .product-qr,
+  .ingredient-list article, .research-grid article, .evidence-status,
+  .product-reviews .review-entry, .product-reviews .review-form, .product-reviews .review-empty,
+  .product-questions, .question-compose, .product-questions .question-message, .product-questions .question-sources li,
+  .purchase-page .purchase-panel, .purchase-page .purchase-payment-state,
+  .product-evidence .evidence-ingredient, .product-evidence .evidence-paper,
+  .product-evidence .evidence-finished-note, .product-evidence .evidence-methods,
+  .product-evidence .evidence-detail-limit, .product-evidence .evidence-detail-scope,
+  .concerns-page .concern-finding, .concerns-page .concern-paper,
+  .concerns-page .concern-news-card, .concerns-page .concern-product,
+  .concerns-page .concern-precautions
+) {
+  background: var(--liquid-surface);
+  border-color: var(--liquid-edge);
+  box-shadow: var(--liquid-shadow);
+  backdrop-filter: var(--liquid-backdrop);
+  -webkit-backdrop-filter: var(--liquid-backdrop);
+}
+
+/* Navigation stays visibly transparent while content scrolls underneath. */
+html:root :is(header, nav, .filters, .tabs) {
+  background: var(--liquid-nav-surface);
+  border-color: var(--liquid-edge);
+  box-shadow: var(--liquid-shadow);
+  backdrop-filter: var(--liquid-nav-backdrop);
+  -webkit-backdrop-filter: var(--liquid-nav-backdrop);
+}
+
+html:root :is(nav button.active, .filters button.chosen, .tabs button.chosen) {
+  color: var(--liquid-selected-ink);
+  background: var(--liquid-selected);
+  border-color: var(--liquid-selected-edge);
+  box-shadow: var(--liquid-shadow);
+}
+
+/* Form controls get their own thin glass face rather than a white sheet. */
+html:root :is(
+  .search-field input, .date-label input,
+  .product-reviews textarea, .product-questions textarea, .question-compose textarea,
+  .purchase-page .purchase-field input, .purchase-page .purchase-field textarea,
+  .purchase-page .purchase-quantity-control, .purchase-page .purchase-choice-body
+) {
+  color: var(--ink);
+  background: var(--liquid-inset);
+  border-color: var(--liquid-edge);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .36);
+  backdrop-filter: var(--liquid-backdrop);
+  -webkit-backdrop-filter: var(--liquid-backdrop);
+}
+
+html:root .purchase-page .purchase-choice input:checked+.purchase-choice-body {
+  background: var(--liquid-selected);
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink), var(--liquid-shadow);
+}
+
+html:root .purchase-page .purchase-field :is(input, textarea)[aria-invalid="true"] { border-color: #a33333; }
+html:root[data-theme="dark"] .purchase-page .purchase-field :is(input, textarea)[aria-invalid="true"] { border-color: #ffb9b9; }
+
+html:root :is(
+  .account, .theme-toggle, .text-btn, .badge, .status-badge, .round-arrow,
+  .texture-toggle, .my-actions button, .qr-downloads a,
+  .product-questions .question-mode, .product-questions .question-suggestions button,
+  .product-questions .question-cancel, .product-reviews .review-rating-grid label>span,
+  .product-evidence .evidence-paper-meta>span, .product-evidence .evidence-filter-group button,
+  .product-evidence .evidence-original a, .concerns-page .concern-suggestions>button,
+  .concerns-page .concern-topic-tags>span, .concerns-page .concern-quiet-tag,
+  .concerns-page .concern-more-research>summary
+) {
+  background: var(--liquid-surface);
+  border-color: var(--liquid-edge);
+  box-shadow: var(--liquid-shadow);
+  backdrop-filter: var(--liquid-backdrop);
+  -webkit-backdrop-filter: var(--liquid-backdrop);
+}
+
+html:root :is(
+  .account:hover, .theme-toggle:hover, .text-btn:hover, .texture-toggle:hover,
+  .round-arrow:hover, .my-actions button:hover, .qr-downloads a:hover,
+  .product-questions .question-suggestions button:hover,
+  .product-evidence .evidence-filter-group button:hover, .product-evidence .evidence-original a:hover,
+  .concerns-page .concern-suggestions>button:hover, .product:hover
+) {
+  color: var(--ink);
+  background: var(--liquid-hover);
+  border-color: var(--liquid-selected-edge);
+  box-shadow: var(--liquid-shadow);
+}
+
+html:root :is(
+  .product-reviews .review-rating-grid input:checked+span,
+  .product-evidence .evidence-filter-group button[aria-pressed="true"]
+) {
+  color: var(--liquid-selected-ink);
+  background: var(--liquid-selected);
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink), var(--liquid-shadow);
+}
+
+/* Dark glass retains a clear primary action without becoming an opaque slab. */
+html:root :is(.dark, .product-reviews .review-submit, .product-questions .question-send, .purchase-page .purchase-submit) {
+  color: var(--liquid-action-ink);
+  background: var(--liquid-action);
+  border-color: rgb(255 255 255 / .38);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .40), 0 5px 18px rgb(0 0 0 / .075);
+  backdrop-filter: var(--liquid-backdrop);
+  -webkit-backdrop-filter: var(--liquid-backdrop);
+}
+
+html:root :is(.dark:hover, .product-reviews .review-submit:hover, .product-questions .question-send:hover, .purchase-page .purchase-submit:hover:not(:disabled)) {
+  color: var(--liquid-action-ink);
+  background: var(--liquid-action-hover);
+}
+
+html:root .brand-statement {
+  background: linear-gradient(135deg, rgb(35 39 45 / .78), rgb(15 19 25 / .66));
+  backdrop-filter: var(--liquid-backdrop);
+  -webkit-backdrop-filter: var(--liquid-backdrop);
+}
+
+html:root .brand-statement .text-btn,
+html:root .brand-statement .text-btn:hover { color: #fff; }
+
+html:root .product-evidence .evidence-dialog {
+  color: var(--ink);
+  background: var(--liquid-dialog-surface);
+  border-color: var(--liquid-selected-edge);
+  box-shadow: var(--liquid-shadow), 0 24px 70px rgb(0 0 0 / .17);
+  backdrop-filter: var(--liquid-nav-backdrop);
+  -webkit-backdrop-filter: var(--liquid-nav-backdrop);
+}
+
+html:root .product-evidence .evidence-dialog-top {
+  background: var(--liquid-surface);
+  backdrop-filter: var(--liquid-backdrop);
+  -webkit-backdrop-filter: var(--liquid-backdrop);
+}
+
+html:root .product-evidence .evidence-dialog::backdrop {
+  background: rgb(16 20 27 / .26);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* These settings affect the material, never the opacity of text or icons. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --liquid-surface: #f2f3f5; --liquid-inset: #f6f7f8;
+    --liquid-hover: #e9ecf0; --liquid-selected: #fff;
+    --liquid-nav-surface: #f2f3f5; --liquid-dialog-surface: #f5f6f7;
+    --liquid-backdrop: none; --liquid-nav-backdrop: none;
+  }
+  :root[data-theme="dark"] {
+    --liquid-surface: #171b21; --liquid-inset: #14181d;
+    --liquid-hover: #232a33; --liquid-selected: #303944;
+    --liquid-nav-surface: #171b21; --liquid-dialog-surface: #171b21;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root {
+    --liquid-surface: #f2f3f5; --liquid-inset: #f8f9fa;
+    --liquid-hover: #e5e8ec; --liquid-selected: #fff;
+    --liquid-edge: #9a9da3; --liquid-selected-edge: #626770;
+    --liquid-nav-surface: #f2f3f5; --liquid-dialog-surface: #f5f6f7;
+    --liquid-action: #222831; --liquid-action-hover: #131922;
+    --liquid-shadow: none; --liquid-backdrop: none; --liquid-nav-backdrop: none;
+  }
+  :root[data-theme="dark"] {
+    --liquid-surface: #171b21; --liquid-inset: #11161c;
+    --liquid-hover: #26303c; --liquid-selected: #303944;
+    --liquid-edge: #7b8592; --liquid-selected-edge: #c4ccd5;
+    --liquid-nav-surface: #171b21; --liquid-dialog-surface: #171b21;
+    --liquid-action: #303944; --liquid-action-hover: #404c5b;
+  }
+  html:root .brand-statement { background: #222831; }
+  html:root .product-evidence .evidence-dialog::backdrop { background: rgb(0 0 0 / .45); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+@media (forced-colors: active) {
+  :root, :root[data-theme="dark"] {
+    --ink: CanvasText; --muted: CanvasText;
+    --liquid-surface: Canvas; --liquid-inset: Canvas; --liquid-hover: Canvas;
+    --liquid-nav-surface: Canvas; --liquid-dialog-surface: Canvas;
+    --liquid-selected: Highlight; --liquid-selected-ink: HighlightText;
+    --liquid-edge: CanvasText; --liquid-selected-edge: Highlight;
+    --liquid-action: ButtonFace; --liquid-action-hover: ButtonFace; --liquid-action-ink: ButtonText;
+    --liquid-shadow: none; --liquid-backdrop: none; --liquid-nav-backdrop: none;
+  }
+  html:root .brand-statement { color: CanvasText; background: Canvas; border-color: CanvasText; }
+  html:root .brand-statement .text-btn, html:root .brand-statement .text-btn:hover { color: CanvasText; }
+  html:root nav button.active:not(:focus-visible) { outline: 1px solid Highlight; outline-offset: -2px; }
+  html:root .product-evidence .evidence-dialog::backdrop { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+}

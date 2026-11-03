@@ -23,6 +23,8 @@ uniform float htmlReady;
 uniform sampler2D htmlTexture;
 uniform vec4 htmlRect;
 uniform vec4 orb;
+uniform float cursorShape;
+uniform vec4 cursorRect;
 uniform vec3 ripples[4];
 uniform int rippleCount;
 ${sceneSource}
@@ -126,12 +128,70 @@ vec2 sphereSample(vec2 local,float ior){
  float projection=max(exitPoint.z+1.18,0.)/max(-outgoing.z,.08);
  return orb.xy+(exitPoint.xy+outgoing.xy*projection)*orb.z;
 }
+void arrowEdge(vec2 p,vec2 a,vec2 b,inout float distanceSquared,inout bool inside){
+ vec2 edge=b-a;
+ vec2 relative=p-a;
+ vec2 nearest=relative-edge*clamp(dot(relative,edge)/max(dot(edge,edge),.001),0.,1.);
+ distanceSquared=min(distanceSquared,dot(nearest,nearest));
+ if((a.y>p.y)!=(b.y>p.y)){
+  float crossing=a.x+(b.x-a.x)*(p.y-a.y)/(b.y-a.y);
+  if(p.x<crossing)inside=!inside;
+ }
+}
+float arrowDistance(vec2 p){
+ // A seven-edge pointer, expressed in top-origin logical CSS coordinates.
+ // This signed contour drives both the silhouette and its curved glass bevel.
+ vec2 q=vec2(p.x-cursorRect.x,cursorRect.y+cursorRect.w-p.y)*vec2(38.,56.)/cursorRect.zw;
+ float nearest=100000.;
+ bool inside=false;
+ arrowEdge(q,vec2(0.,0.),vec2(0.,47.),nearest,inside);
+ arrowEdge(q,vec2(0.,47.),vec2(11.,36.),nearest,inside);
+ arrowEdge(q,vec2(11.,36.),vec2(21.,56.),nearest,inside);
+ arrowEdge(q,vec2(21.,56.),vec2(30.,51.),nearest,inside);
+ arrowEdge(q,vec2(30.,51.),vec2(20.,32.),nearest,inside);
+ arrowEdge(q,vec2(20.,32.),vec2(38.,32.),nearest,inside);
+ arrowEdge(q,vec2(38.,32.),vec2(0.,0.),nearest,inside);
+ return sqrt(nearest)*(inside?-1.:1.)*min(cursorRect.z/38.,cursorRect.w/56.);
+}
+vec2 arrowSample(vec2 p,vec3 normal,float depth,float ior){
+ vec3 ray=refract(vec3(0.,0.,-1.),normal,1./ior);
+ vec2 center=cursorRect.xy+cursorRect.zw*.5;
+ float thickness=min(3.+depth*1.8,14.);
+ return center+(p-center)*.94+ray.xy/max(-ray.z,.12)*thickness;
+}
+vec4 glassArrow(vec2 p){
+ float distance=arrowDistance(p);
+ float aa=max(drawSize.x/resolution.x*.5,.2);
+ if(distance>aa)return vec4(0.);
+ float depth=max(-distance,0.);
+ vec2 gradient=vec2(arrowDistance(p+vec2(.4,0.))-arrowDistance(p-vec2(.4,0.)),arrowDistance(p+vec2(0.,.4))-arrowDistance(p-vec2(0.,.4)));
+ vec2 direction=normalize(gradient+vec2(.00001));
+ float slope=1.-smoothstep(0.,6.,depth);
+ vec3 normal=normalize(vec3(direction*slope,sqrt(max(1.-slope*slope,.001))));
+ // The three wavelengths follow slightly different refracted rays through
+ // the bevel; the captured text/images remain the material beneath the pointer.
+ vec3 color=vec3(pageAt(arrowSample(p,normal,depth,1.28)).r,pageAt(arrowSample(p,normal,depth,1.32)).g,pageAt(arrowSample(p,normal,depth,1.36)).b);
+ vec2 light=normalize(vec2(-.55+pointer.x*.2,.85));
+ float facing=.3+.7*max(dot(direction,light),0.);
+ float rim=exp(-abs(distance+.6)*1.8);
+ float shade=exp(-abs(distance+1.9)*.95);
+ color=mix(color,vec3(dark>.5?.015:.12),shade*.20);
+ color=mix(color,vec3(1.),rim*facing*.85);
+ float across=clamp((p.x-cursorRect.x)/cursorRect.z+pointer.x*.12,0.,1.);
+ vec3 spectral=mix(mix(vec3(.50,.85,.94),vec3(.76,.65,.93),smoothstep(.05,.60,across)),vec3(.98,.84,.65),smoothstep(.55,.98,across));
+ color=mix(color,spectral,exp(-abs(distance+1.2)*1.3)*facing*.18);
+ float shine=pow(max(dot(normal,normalize(vec3(-.55,.8,1.4))),0.),28.);
+ color=mix(color,vec3(1.),shine*.18);
+ float alpha=(1.-smoothstep(-aa,aa,distance))*orb.w;
+ return vec4(clamp(color,0.,1.),alpha);
+}
 void main(){
  // The background covers its scene; the foreground only rasterizes a small,
  // high-density lens tile while retaining full-viewport sampling coordinates.
  vec2 p=drawOrigin+gl_FragCoord.xy/resolution*drawSize;
  if(overlayPass>.5){
   if(htmlReady<.5||orb.w<.002){gl_FragColor=vec4(0.);return;}
+  if(cursorShape>.5){gl_FragColor=glassArrow(p);return;}
   vec2 local=(p-orb.xy)/max(orb.z,1.);
   float radius=length(local);
   if(radius>=1.){gl_FragColor=vec4(0.);return;}
@@ -195,7 +255,7 @@ export function createLiquidLensRenderer(original, { dark = false, overlay = fal
     const attribute = gl.getAttribLocation(program, 'position');
     gl.enableVertexAttribArray(attribute);
     gl.vertexAttribPointer(attribute, 2, gl.FLOAT, false, 0, 0);
-    const names = ['resolution','viewport','sceneViewport','sceneRect','drawOrigin','drawSize','searchRect','buttonRect','pointer','clock','dark','focus','press','refractionStrength','ripples[0]','rippleCount','overlayPass','htmlReady','htmlTexture','htmlRect','orb'];
+    const names = ['resolution','viewport','sceneViewport','sceneRect','drawOrigin','drawSize','searchRect','buttonRect','pointer','clock','dark','focus','press','refractionStrength','ripples[0]','rippleCount','overlayPass','htmlReady','htmlTexture','htmlRect','orb','cursorShape','cursorRect'];
     const uniforms = Object.fromEntries(names.map(name => [name,gl.getUniformLocation(program,name)]));
     gl.uniform1f(uniforms.dark, Number(dark));
     gl.uniform1f(uniforms.refractionStrength, 1);
@@ -248,7 +308,7 @@ export function createLiquidLensRenderer(original, { dark = false, overlay = fal
         gl.uniform1f(uniforms.htmlReady,1);
         return true;
       },
-      render({time,pointer,focus,press=0,ripples=[],hidden=false,orb=[0,0,1,0],drawRect,sceneRect}) {
+      render({time,pointer,focus,press=0,ripples=[],hidden=false,orb=[0,0,1,0],drawRect,sceneRect,cursorRect=null}) {
         if(disposed||gl.isContextLost())return;
         gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
         if(hidden)return;
@@ -261,6 +321,8 @@ export function createLiquidLensRenderer(original, { dark = false, overlay = fal
         gl.uniform1f(uniforms.focus,focus);
         gl.uniform1f(uniforms.press,press);
         gl.uniform4f(uniforms.orb,...orb);
+        gl.uniform1f(uniforms.cursorShape,Number(Boolean(cursorRect)));
+        if(cursorRect)gl.uniform4f(uniforms.cursorRect,...cursorRect);
         gl.uniform1i(uniforms.rippleCount,Math.min(4,ripples.length));
         const values=new Float32Array(12);
         ripples.slice(-4).forEach((r,i)=>values.set([r.x,1-r.y,r.started],i*3));
