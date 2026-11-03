@@ -1,10 +1,15 @@
 import { liquidScene } from './liquid-scene.js';
 
 const vertex = `attribute vec2 position;void main(){gl_Position=vec4(position,0.,1.);}`;
+const sceneSource = liquidScene.replace(/\bviewport\b/g, 'sceneViewport');
 const fragment = `
 precision highp float;
 uniform vec2 resolution;
 uniform vec2 viewport;
+uniform vec2 sceneViewport;
+uniform vec4 sceneRect;
+uniform vec2 drawOrigin;
+uniform vec2 drawSize;
 uniform vec4 searchRect;
 uniform vec4 buttonRect;
 uniform vec2 pointer;
@@ -20,7 +25,7 @@ uniform vec4 htmlRect;
 uniform vec4 orb;
 uniform vec3 ripples[4];
 uniform int rippleCount;
-${liquidScene}
+${sceneSource}
 
 float capsule(vec2 p,vec4 rect){
  vec2 q=abs(p-rect.xy)-vec2(max(rect.z*.5-rect.w*.5,0.),0.);
@@ -70,7 +75,7 @@ vec3 reflections(vec2 p,vec4 rect,vec3 color,float strength){
  color=mix(color,spectral,clamp(colourWeight,0.,.32));
  return clamp(color,0.,1.);
 }
-vec3 backgroundAt(vec2 p){
+vec3 waterAt(vec2 p){
  vec3 color=scene(p);
  float barDistance=capsule(p,searchRect);
  float buttonDistance=capsule(p,buttonRect);
@@ -90,25 +95,50 @@ vec3 backgroundAt(vec2 p){
  }
  return color;
 }
+vec3 backgroundAt(vec2 p){
+ if(overlayPass<.5)return waterAt(p);
+ vec3 base=mix(vec3(.910,.914,.922),vec3(.028,.031,.036),dark);
+ vec2 local=p-sceneRect.xy;
+ if(local.x<0.||local.y<0.||local.x>sceneRect.z||local.y>sceneRect.w)return base;
+ // The source water canvas fades at its own top/bottom, independently of
+ // the viewport-sized HTML texture and the small foreground drawing tile.
+ float fade=smoothstep(0.,.12,local.y/sceneViewport.y)*(1.-smoothstep(.78,1.,local.y/sceneViewport.y));
+ return mix(base,waterAt(local),fade);
+}
 vec3 pageAt(vec2 p){
  vec2 uv=(p-htmlRect.xy)/max(htmlRect.zw,vec2(1.))+.5;
  vec4 html=vec4(0.);
  if(uv.x>=0.&&uv.x<=1.&&uv.y>=0.&&uv.y<=1.)html=texture2D(htmlTexture,uv);
+ // A full-page snapshot already contains its opaque page surface. Avoid
+ // recomputing the procedural scene three times under an opaque HTML pixel.
+ if(html.a>=.999)return html.rgb;
  return mix(backgroundAt(p),html.rgb,html.a);
 }
+vec2 sphereSample(vec2 local,float ior){
+ // Trace an orthographic camera ray through both spherical interfaces.
+ // Snell refraction, the far-surface ray intersection and the final page
+ // plane projection replace the previous hand-tuned radial scale.
+ vec3 front=vec3(local,sqrt(max(1.-dot(local,local),.000001)));
+ vec3 inside=refract(vec3(0.,0.,-1.),front,1./ior);
+ float distance=-2.*dot(front,inside);
+ vec3 exitPoint=normalize(front+inside*distance);
+ vec3 outgoing=refract(inside,-exitPoint,ior);
+ float projection=max(exitPoint.z+1.18,0.)/max(-outgoing.z,.08);
+ return orb.xy+(exitPoint.xy+outgoing.xy*projection)*orb.z;
+}
 void main(){
- vec2 p=gl_FragCoord.xy/resolution*viewport;
+ // The background covers its scene; the foreground only rasterizes a small,
+ // high-density lens tile while retaining full-viewport sampling coordinates.
+ vec2 p=drawOrigin+gl_FragCoord.xy/resolution*drawSize;
  if(overlayPass>.5){
   if(htmlReady<.5||orb.w<.002){gl_FragColor=vec4(0.);return;}
   vec2 local=(p-orb.xy)/max(orb.z,1.);
   float radius=length(local);
   if(radius>=1.){gl_FragColor=vec4(0.);return;}
-  float dome=sqrt(max(1.-radius*radius,.001));
-  float scale=.57+.37*pow(radius,1.4);
-  vec2 samplePoint=orb.xy+local*orb.z*scale;
+  float dome=sqrt(max(1.-radius*radius,.000001));
   vec2 direction=local/max(radius,.001);
-  float dispersion=pow(radius,6.)*orb.z*.022;
-  vec3 glass=vec3(pageAt(samplePoint+direction*dispersion).r,pageAt(samplePoint).g,pageAt(samplePoint-direction*dispersion).b);
+  float dispersion=.004*smoothstep(.15,.95,radius);
+  vec3 glass=vec3(pageAt(sphereSample(local,1.15-dispersion)).r,pageAt(sphereSample(local,1.15)).g,pageAt(sphereSample(local,1.15+dispersion)).b);
   vec3 normal=normalize(vec3(local,dome));
   vec3 light=normalize(vec3(-.6+pointer.x*.2,.85,1.3));
   float specular=pow(max(dot(normal,light),0.),24.);
@@ -165,7 +195,7 @@ export function createLiquidLensRenderer(original, { dark = false, overlay = fal
     const attribute = gl.getAttribLocation(program, 'position');
     gl.enableVertexAttribArray(attribute);
     gl.vertexAttribPointer(attribute, 2, gl.FLOAT, false, 0, 0);
-    const names = ['resolution','viewport','searchRect','buttonRect','pointer','clock','dark','focus','press','refractionStrength','ripples[0]','rippleCount','overlayPass','htmlReady','htmlTexture','htmlRect','orb'];
+    const names = ['resolution','viewport','sceneViewport','sceneRect','drawOrigin','drawSize','searchRect','buttonRect','pointer','clock','dark','focus','press','refractionStrength','ripples[0]','rippleCount','overlayPass','htmlReady','htmlTexture','htmlRect','orb'];
     const uniforms = Object.fromEntries(names.map(name => [name,gl.getUniformLocation(program,name)]));
     gl.uniform1f(uniforms.dark, Number(dark));
     gl.uniform1f(uniforms.refractionStrength, 1);
@@ -179,34 +209,53 @@ export function createLiquidLensRenderer(original, { dark = false, overlay = fal
     gl.uniform1i(uniforms.htmlTexture,0);gl.uniform1f(uniforms.htmlReady,0);
     original.replaceWith(canvas);
     let cssWidth = 1, cssHeight = 1;
+    let drawing = [0,0,1,1];
+    const setDrawRect = rect => {
+      drawing = rect || [0,0,cssWidth,cssHeight];
+      gl.uniform2f(uniforms.drawOrigin,drawing[0],drawing[1]);
+      gl.uniform2f(uniforms.drawSize,drawing[2],drawing[3]);
+    };
+    const setSceneRect = rect => {
+      const scene=overlay&&rect?rect:[0,0,cssWidth,cssHeight];
+      gl.uniform4f(uniforms.sceneRect,...scene);
+      gl.uniform2f(uniforms.sceneViewport,Math.max(scene[2],1),Math.max(scene[3],1));
+    };
     return {
       canvas,
-      resize(width, height, scale, { search, button, html }) {
+      maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+      resize(width, height, scale, { search, button, html, drawRect, sceneRect }) {
         if(disposed||gl.isContextLost())return;
         cssWidth=width;cssHeight=height;
-        const w=Math.max(1,Math.round(width*scale)),h=Math.max(1,Math.round(height*scale));
+        const rect=overlay&&drawRect?drawRect:[0,0,width,height];
+        const w=Math.max(1,Math.round(rect[2]*scale)),h=Math.max(1,Math.round(rect[3]*scale));
         if(canvas.width!==w)canvas.width=w;
         if(canvas.height!==h)canvas.height=h;
         gl.viewport(0,0,canvas.width,canvas.height);
         gl.uniform2f(uniforms.viewport,width,height);
+        setDrawRect(rect);
+        setSceneRect(sceneRect);
         gl.uniform4f(uniforms.searchRect,...search);
         gl.uniform4f(uniforms.buttonRect,...button);
         if(html)gl.uniform4f(uniforms.htmlRect,...html);
       },
       setHtml(source) {
         if(disposed||gl.isContextLost())return false;
+        if(source.width>gl.getParameter(gl.MAX_TEXTURE_SIZE)||source.height>gl.getParameter(gl.MAX_TEXTURE_SIZE))return false;
         gl.bindTexture(gl.TEXTURE_2D,texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
         gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);
         gl.uniform1f(uniforms.htmlReady,1);
         return true;
       },
-      render({time,pointer,focus,press=0,ripples=[],hidden=false,orb=[0,0,1,0]}) {
+      render({time,pointer,focus,press=0,ripples=[],hidden=false,orb=[0,0,1,0],drawRect,sceneRect}) {
         if(disposed||gl.isContextLost())return;
         gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
         if(hidden)return;
         gl.uniform2f(uniforms.resolution,canvas.width,canvas.height);
         gl.uniform2f(uniforms.viewport,cssWidth,cssHeight);
+        if(overlay&&drawRect)setDrawRect(drawRect);
+        if(overlay&&sceneRect)setSceneRect(sceneRect);
         gl.uniform2f(uniforms.pointer,pointer.x,-pointer.y);
         gl.uniform1f(uniforms.clock,time);
         gl.uniform1f(uniforms.focus,focus);
