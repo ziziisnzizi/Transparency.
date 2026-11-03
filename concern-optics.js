@@ -31,25 +31,21 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
   const transparency = matchMedia('(prefers-reduced-transparency: reduce)');
   const forcedColors = matchMedia('(forced-colors: active)');
   const coarse = matchMedia('(pointer: coarse)').matches;
-  const arrowCursor = !coarse;
-  const cursorWidth = 38, cursorHeight = 56;
   let disposed = false, frame = 0, previous = 0, time = 0, onScreen = true;
   let width = 1, height = 1, scale = 1, geometryDirty = true, lightDirty = true;
-  let viewWidth = 1, viewHeight = 1, lensScale = 2, lensSize = 1, lensHeight = 1;
+  let viewWidth = 1, viewHeight = 1, lensScale = 2, lensSize = 1;
   let lensGeometry = null, scrolling = false, scrollTimer = 0;
   let focus = 0, focusTarget = 0, press = 0, pressTarget = 0;
   let captureController = null, captureTimer = 0, htmlReady = false, htmlOpacity = 0;
   let capturing = false, captureEpoch = 0;
   let inputFocused = false, composing = false, orbFollowing = false, orbInitialized = false;
-  let mousePresent = false, nativeTarget = false;
   let waterBounds = null, orbRadius = 1;
   const orbPosition = { x: 0, y: 0 }, orbTarget = { x: 0, y: 0 }, orbOrigin = { x: 0, y: 0 };
   const pointer = { x: 0, y: 0 }, target = { x: 0, y: 0 };
   const ripples = [], cleanups = [];
   const reduced = () => motion.matches || transparency.matches || forcedColors.matches;
   const visible = () => !disposed && root.isConnected && !document.hidden;
-  const editable = element => element instanceof Element && !!element.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [disabled], [aria-disabled="true"]');
-  const lensShown = () => htmlReady && htmlLensEnabled && !inputFocused && !composing && !scrolling && !document.querySelector('dialog[open]') && (!arrowCursor || mousePresent && !nativeTarget && !reduced());
+  const lensShown = () => htmlReady && htmlLensEnabled && !inputFocused && !composing && !scrolling && !document.querySelector('dialog[open]');
   const listen = (element, event, callback, options) => {
     element.addEventListener(event, callback, options);
     cleanups.push(() => element.removeEventListener(event, callback, options));
@@ -58,14 +54,13 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
   function requestCapture(delay = 160) {
     if (!captureController || disposed || !htmlLensEnabled || !visible() || inputFocused || composing || transparency.matches || forcedColors.matches) return;
     htmlReady = false;
-    updateCursorState();
     clearTimeout(captureTimer);
     captureTimer = setTimeout(() => {
       captureTimer = 0;
       if (!disposed && visible()) {
         // Leave rendering time for the high-density SVG raster on busy devices.
         // A settled snapshot is reused while the lens moves; never capture per frame.
-        capturing=true;updateCursorState();cancelAnimationFrame(frame);frame=0;
+        capturing=true;cancelAnimationFrame(frame);frame=0;
         const epoch=++captureEpoch;
         void captureController.capture().finally(()=>{
           if(disposed||epoch!==captureEpoch)return;
@@ -80,14 +75,6 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
     const label = `유리 렌즈 ${htmlLensEnabled ? '끄기' : '켜기'}`;
     lensControl.setAttribute('aria-label', label);
     lensControl.querySelector('[data-html-lens-control-text]').textContent = label;
-  }
-
-  function updateCursorState() {
-    if (!arrowCursor) return;
-    const active=!!htmlRenderer && !disposed && visible() && !capturing && lensShown() && htmlOpacity>.99;
-    if(active)document.documentElement.dataset.concernGlassCursor='active';
-    else delete document.documentElement.dataset.concernGlassCursor;
-    if(htmlCanvas)htmlCanvas.style.visibility=active?'visible':'hidden';
   }
 
   function measure() {
@@ -116,36 +103,27 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
     viewWidth = Math.max(1, document.documentElement.clientWidth);
     viewHeight = Math.max(1, innerHeight);
     // The small foreground is independent of the low-cost animated backdrop.
-    orbRadius = coarse ? 34 : 42;
-    lensSize = arrowCursor ? cursorWidth + 8 : orbRadius * 2 + 8;
-    lensHeight = arrowCursor ? cursorHeight + 8 : lensSize;
+    orbRadius = coarse ? 20 : 24;
+    lensSize = orbRadius * 2 + 8;
     lensScale = Math.min(3, Math.max(2, devicePixelRatio || 1));
     const title = stage.querySelector('h1').getBoundingClientRect();
     orbOrigin.x = clamp(title.left + title.width * .53, orbRadius + 6, viewWidth - orbRadius - 6);
     orbOrigin.y = clamp(viewHeight - title.top - title.height * .28, orbRadius + 6, viewHeight - orbRadius - 6);
     if (!orbFollowing) { orbTarget.x = orbOrigin.x; orbTarget.y = orbOrigin.y; }
     if (!orbInitialized) { orbPosition.x = orbTarget.x; orbPosition.y = orbTarget.y; orbInitialized = true; }
-    if(!arrowCursor){orbTarget.x = clamp(orbTarget.x, orbRadius + 6, viewWidth - orbRadius - 6);orbTarget.y = clamp(orbTarget.y, orbRadius + 6, viewHeight - orbRadius - 6);}
+    orbTarget.x = clamp(orbTarget.x, orbRadius + 6, viewWidth - orbRadius - 6);
+    orbTarget.y = clamp(orbTarget.y, orbRadius + 6, viewHeight - orbRadius - 6);
     lensGeometry = { ...geometry, html: [viewWidth/2,viewHeight/2,viewWidth,viewHeight], sceneRect: [rect.left,viewHeight-rect.bottom,width,height], drawRect: lensRect() };
     htmlRenderer?.resize(viewWidth,viewHeight,lensScale,lensGeometry);
-    if (htmlCanvas) { htmlCanvas.style.width=`${lensSize}px`;htmlCanvas.style.height=`${lensHeight}px`; }
+    if (htmlCanvas) { htmlCanvas.style.width=`${lensSize}px`;htmlCanvas.style.height=`${lensSize}px`; }
     geometryDirty = false;
   }
 
   function lensRect() {
-    const left=Math.round((orbPosition.x-(arrowCursor?4:lensSize/2))*lensScale)/lensScale;
-    const top=Math.round((viewHeight-orbPosition.y-(arrowCursor?4:lensHeight/2))*lensScale)/lensScale;
+    const left=Math.round((orbPosition.x-lensSize/2)*lensScale)/lensScale;
+    const top=Math.round((viewHeight-orbPosition.y-lensSize/2)*lensScale)/lensScale;
     if(htmlCanvas)htmlCanvas.style.transform=`translate3d(${left}px,${top}px,0)`;
-    return [left,viewHeight-top-lensHeight,lensSize,lensHeight];
-  }
-
-  function paintLens(phase = motion.matches ? 1.8 : time) {
-    if(disposed)return;
-    if(geometryDirty)measure();
-    if(arrowCursor||motion.matches)htmlOpacity=lensShown()?1:0;
-    updateCursorState();
-    if(capturing)return;
-    htmlRenderer?.render({time:phase,pointer,focus,press,ripples,orb:[orbPosition.x,orbPosition.y,orbRadius*(1+press*.035),htmlOpacity],cursorRect:arrowCursor?[orbPosition.x,orbPosition.y-cursorHeight,cursorWidth,cursorHeight]:null,drawRect:lensRect(),hidden:transparency.matches||forcedColors.matches});
+    return [left,viewHeight-top-lensSize,lensSize,lensSize];
   }
 
   function paintFallback(phase) {
@@ -181,13 +159,14 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
       root.style.setProperty('--concern-offset-y',`${(target.y*18).toFixed(1)}px`);
       lightDirty=false;
     }
-    if(capturing){updateCursorState();return;}
+    if(capturing)return;
     const phase = motion.matches ? 1.8 : time;
     if (onScreen) {
       if (renderer) renderer.render({time:phase,pointer,focus,press,ripples,hidden:transparency.matches||forcedColors.matches});
       else paintFallback(phase);
     }
-    paintLens(phase);
+    if (motion.matches) htmlOpacity = lensShown() ? 1 : 0;
+    htmlRenderer?.render({time:phase,pointer,focus,press,ripples,orb:[orbPosition.x,orbPosition.y,orbRadius*(1+press*.035),htmlOpacity],drawRect:lensRect(),hidden:transparency.matches||forcedColors.matches});
   }
 
   function tick(stamp) {
@@ -203,7 +182,8 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
         focus+=(focusTarget-focus)*(1-Math.exp(-elapsed*8));
         press+=(pressTarget-press)*(1-Math.exp(-elapsed*18));
         const orbResponse=1-Math.exp(-elapsed*13);
-        if(!arrowCursor){orbPosition.x+=(orbTarget.x-orbPosition.x)*orbResponse;orbPosition.y+=(orbTarget.y-orbPosition.y)*orbResponse;}
+        orbPosition.x+=(orbTarget.x-orbPosition.x)*orbResponse;
+        orbPosition.y+=(orbTarget.y-orbPosition.y)*orbResponse;
         const shown=lensShown();
         htmlOpacity+=((shown?1:0)-htmlOpacity)*(1-Math.exp(-elapsed*25));
         while(ripples.length&&time-ripples[0].started>3)ripples.shift();
@@ -216,49 +196,35 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
   function sync(){
     cancelAnimationFrame(frame);frame=0;previous=0;
     water.dataset.opticsPaused=String(!visible()||!onScreen||reduced());
-    if(reduced()){target.x=target.y=pointer.x=pointer.y=0;press=pressTarget=0;ripples.length=0;lightDirty=true;if(!arrowCursor){orbFollowing=false;orbTarget.x=orbPosition.x=orbOrigin.x;orbTarget.y=orbPosition.y=orbOrigin.y;}}
-    updateCursorState();
+    if(reduced()){target.x=target.y=pointer.x=pointer.y=0;press=pressTarget=0;ripples.length=0;lightDirty=true;orbFollowing=false;orbTarget.x=orbPosition.x=orbOrigin.x;orbTarget.y=orbPosition.y=orbOrigin.y;}
     if(visible()){paint();if(!reduced())schedule();}
   }
   function reset(recenter = true){target.x=target.y=0;pressTarget=0;lightDirty=true;if(recenter){orbFollowing=false;orbTarget.x=orbOrigin.x;orbTarget.y=orbOrigin.y;}schedule();}
   function followOrb(event) {
-    if (!htmlRenderer || !arrowCursor && event.target.closest?.('[data-html-lens-control]')) return;
+    if (!htmlRenderer || event.target.closest?.('[data-html-lens-control]')) return;
     orbFollowing = true;
-    if(arrowCursor){
-      mousePresent=event.pointerType==='mouse' && event.clientX>=0 && event.clientX<viewWidth && event.clientY>=0 && event.clientY<viewHeight;
-      nativeTarget=editable(event.target);
-      orbTarget.x=orbPosition.x=event.clientX;
-      orbTarget.y=orbPosition.y=viewHeight-event.clientY;
-    }else{
-      orbTarget.x = clamp(event.clientX,orbRadius+6,viewWidth-orbRadius-6);
-      orbTarget.y = clamp(viewHeight-event.clientY,orbRadius+6,viewHeight-orbRadius-6);
-    }
+    orbTarget.x = clamp(event.clientX,orbRadius+6,viewWidth-orbRadius-6);
+    orbTarget.y = clamp(viewHeight-event.clientY,orbRadius+6,viewHeight-orbRadius-6);
   }
   listen(window,'pointermove',event=>{
     if(reduced()||!visible())return;
     target.x=clamp(event.clientX/innerWidth*2-1,-1,1);target.y=clamp(event.clientY/innerHeight*2-1,-1,1);
     followOrb(event);
-    if(arrowCursor)paintLens();
     lightDirty=true;schedule();
   },{passive:true});
   listen(window,'pointerdown',event=>{
     if(reduced()||!visible()||event.button>0)return;
     followOrb(event);
-    if(arrowCursor)paintLens();
     const rect=waterBounds;
     if(rect&&stage.contains(event.target))ripples.push({x:clamp((event.clientX-rect.left)/rect.width,0,1),y:clamp((event.clientY-rect.top)/rect.height,0,1),started:time});
     if(ripples.length>4)ripples.shift();
     pressTarget=1;schedule();
   },{passive:true});
   listen(window,'pointerup',event=>{pressTarget=0;if(event.pointerType!=='mouse')reset(false);},{passive:true});
-  listen(window,'pointercancel',()=>{mousePresent=false;paintLens();reset();},{passive:true});
-  listen(document.documentElement,'pointerleave',()=>{mousePresent=false;paintLens();reset();},{passive:true});
-  listen(window,'blur',()=>{mousePresent=false;paintLens();});
-  listen(window,'contextmenu',()=>{mousePresent=false;paintLens();});
-  listen(stage,'focusin',()=>{focusTarget=1;schedule();});
-  listen(stage,'focusout',event=>{if(!stage.contains(event.relatedTarget))focusTarget=0;});
-  listen(document,'focusin',event=>{inputFocused=editable(event.target);paintLens();schedule();});
-  listen(document,'focusout',event=>{if(editable(event.target)){inputFocused=editable(event.relatedTarget);paintLens();if(!inputFocused)requestCapture(0);}});
+  listen(window,'pointercancel',()=>reset(),{passive:true});
+  listen(document.documentElement,'pointerleave',()=>reset(),{passive:true});
+  listen(stage,'focusin',event=>{focusTarget=1;inputFocused=event.target.id==='concern-query';schedule();});
+  listen(stage,'focusout',event=>{if(!stage.contains(event.relatedTarget))focusTarget=0;if(event.target.id==='concern-query'){inputFocused=false;requestCapture(0);}});
   listen(stage,'input',()=>requestCapture(250));
   listen(stage,'compositionstart',()=>{composing=true;htmlOpacity=0;paint();});
   listen(stage,'compositionend',()=>{composing=false;requestCapture(80);});
@@ -278,11 +244,10 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
     event.preventDefault();const replacement=canvas.cloneNode();canvas.replaceWith(replacement);dispose();
     if(root.isConnected)mountConcernOptics(root,{forceCanvas:true});
   });
-  if(htmlRenderer)listen(htmlCanvas,'webglcontextlost',event=>{event.preventDefault();htmlReady=false;htmlOpacity=0;updateCursorState();captureController?.dispose();root.dataset.htmlLens='fallback';htmlRenderer.dispose();});
+  if(htmlRenderer)listen(htmlCanvas,'webglcontextlost',event=>{event.preventDefault();htmlReady=false;htmlOpacity=0;captureController?.dispose();root.dataset.htmlLens='fallback';htmlRenderer.dispose();});
   if(lensControl)listen(lensControl,'click',()=>{htmlLensEnabled=!htmlLensEnabled;updateControl();if(htmlLensEnabled)requestCapture(0);else{clearTimeout(captureTimer);htmlOpacity=0;}paint();schedule();});
   function dispose(){
     if(disposed)return;disposed=true;cancelAnimationFrame(frame);frame=0;
-    updateCursorState();
     clearTimeout(captureTimer);clearTimeout(scrollTimer);captureController?.dispose();
     resize.disconnect();intersection.disconnect();cleanups.forEach(cleanup=>cleanup());ripples.length=0;renderer?.dispose();htmlRenderer?.dispose();
     canvas.width=canvas.height=1;

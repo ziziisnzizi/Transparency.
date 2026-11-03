@@ -13,8 +13,6 @@ body:has(.concerns-page):before, body:has(.concerns-page):after { opacity: 0; }
 .concerns-page .concern-optics-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; opacity: 1; }
 .concern-html-lens-layer { position: fixed; z-index: 60; inset: 0; pointer-events: none; overflow: clip; }
 .concern-html-lens-canvas { position: absolute; top: 0; left: 0; display: block; pointer-events: none; }
-/* Replaced only while the glass pointer is drawn at the real click hotspot. */
-html[data-concern-glass-cursor="active"], html[data-concern-glass-cursor="active"] body, html[data-concern-glass-cursor="active"] body * { cursor: none !important; }
 .concerns-page .concern-lens-control { position: absolute; z-index: 6; right: 0; top: -30px; display: none; align-items: center; gap: 7px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 24px; background: #ffffff26; color: var(--ink); font-size: 10px; }
 .concerns-page[data-html-lens="ready"] .concern-lens-control { display: inline-flex; }
 .concerns-page .concern-lens-control:hover { background: #ffffff59; }

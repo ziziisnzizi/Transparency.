@@ -1,0 +1,21 @@
+/* Native backdrop optics bend the page beneath each surface, keeping its own
+   labels, fields and controls in the original sharp HTML layer. */
+html:root [data-glass-refraction] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  isolation: isolate;
+}
+
+html:root [data-glass-position="relative"] { position: relative; }
+html:root [data-glass-plane] { display: block; pointer-events: none; }
+
+/* The optical helper precedes existing children; retain the texture icon's size. */
+.texture-toggle[data-glass-refraction]>span[aria-hidden="true"]:not([data-glass-clip]) { font: 15px/1 Arial, sans-serif; }
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  html:root [data-glass-refraction] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  html:root [data-glass-plane] { display: none; }
+}
