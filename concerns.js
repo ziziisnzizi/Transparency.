@@ -2,7 +2,6 @@ import { analyzeConcern, CONCERN_QUERY_LIMIT, validateConcernQuery } from './lib
 import { getConcernTopic } from './lib/concern-topics.js';
 import { getWrittenReviews } from './reviews.js';
 import { renderResearchDetail } from './evidence.js';
-import { mountConcernOptics } from './concern-optics.js';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const list = value => Array.isArray(value) ? value : [];
@@ -109,7 +108,7 @@ function results() {
 
 function pageContent() {
   const hasResult = !!state.result;
-  return `<div class="concern-visual-stage"><div class="concern-water" aria-hidden="true"><div class="concern-optics-fallback"><span></span><span></span><span></span></div><canvas class="concern-optics-canvas" data-concern-optics></canvas></div><div class="concern-page-intro"><span class="eyebrow">YOUR QUESTIONS, IN THE CLEAR.</span><h1>${hasResult ? '내 고민, 확인할 수 있는 것부터.' : '지금, 피부에<br>무엇이 궁금한가요?'}</h1>${hasResult ? '' : '<p>고민을 남겨 주세요.<br>관련 연구와 확인할 점부터 함께 살펴봅니다.</p>'}</div><div class="concern-search-area">${searchForm()}${hasResult ? '' : `<div class="concern-suggestions" aria-label="이렇게 검색해 보세요">${suggestions.map(text => `<button type="button" data-concern-suggestion="${escape(text)}">${escape(text)} <span aria-hidden="true">↗</span></button>`).join('')}</div>`}</div></div>${results()}<div class="product-evidence concern-dialog-host"><dialog class="evidence-dialog concern-research-dialog" aria-labelledby="product-evidence-concern-research-dialog-title"><div class="evidence-dialog-content" data-concern-dialog-content></div></dialog></div>`;
+  return `<div class="concern-visual-stage"><div class="concern-page-intro"><span class="eyebrow">YOUR QUESTIONS, IN THE CLEAR.</span><h1>${hasResult ? '내 고민, 확인할 수 있는 것부터.' : '지금, 피부에<br>무엇이 궁금한가요?'}</h1>${hasResult ? '' : '<p>고민을 남겨 주세요.<br>관련 연구와 확인할 점부터 함께 살펴봅니다.</p>'}</div><div class="concern-search-area">${searchForm()}${hasResult ? '' : `<div class="concern-suggestions" aria-label="이렇게 검색해 보세요">${suggestions.map(text => `<button type="button" data-concern-suggestion="${escape(text)}">${escape(text)} <span aria-hidden="true">↗</span></button>`).join('')}</div>`}</div></div>${results()}<div class="product-evidence concern-dialog-host"><dialog class="evidence-dialog concern-research-dialog" aria-labelledby="product-evidence-concern-research-dialog-title"><div class="evidence-dialog-content" data-concern-dialog-content></div></dialog></div>`;
 }
 
 export function renderConcerns() {
@@ -123,7 +122,6 @@ function refresh(focusHeading = false) {
   root.classList.toggle('has-results', !!state.result);
   root.classList.toggle('is-empty', !state.result);
   root.innerHTML = pageContent();
-  mountConcernOptics(root);
   if (focusHeading) {
     root.querySelector('#concern-result-heading')?.focus({ preventScroll: true });
     root.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
@@ -223,7 +221,6 @@ export function bindConcerns(callbacks = {}) {
   const root = document.getElementById('concerns-page');
   if (!root || bindings.has(root)) return;
   bindings.add(root);
-  mountConcernOptics(root);
   let composing = false;
   let dialog = null;
   let trigger = null;

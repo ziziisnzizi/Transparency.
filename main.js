@@ -5,6 +5,7 @@ import { orderProductsByRoutine } from './catalog.js';
 import { getReviewSummary, renderProductReviews, bindProductReviews, REVIEW_STORAGE_KEY } from './reviews.js';
 import { renderPurchase, bindPurchase, formatPurchasePrice } from './purchase.js';
 import { renderConcerns, bindConcerns, seedConcernSearch } from './concerns.js';
+import { mountAmbientBackground } from './ambient-background.js';
 
 
 
@@ -314,3 +315,5 @@ window.addEventListener('popstate', event => {
   render();
 });
 render();
+const disposeAmbientBackground = mountAmbientBackground(document);
+if (import.meta.hot) import.meta.hot.dispose(disposeAmbientBackground);
