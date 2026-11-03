@@ -186,13 +186,16 @@ export function mountConcernOptics(root, { forceCanvas = false } = {}) {
     frame = 0;
     if (!visible()) return;
     if (!previous || stamp - previous >= interval) {
-      const delta = previous ? Math.min((stamp - previous) / 1000, .1) : 0;
+      const elapsed = previous ? Math.min((stamp - previous) / 1000, .25) : 1 / 30;
+      const delta = Math.min(elapsed, .1);
       previous = stamp;
       if (!reduced()) {
         time += delta;
-        pointer.x += (target.x - pointer.x) * .16;
-        pointer.y += (target.y - pointer.y) * .16;
-        focus += (focusTarget - focus) * .08;
+        // Pointer response stays immediate even when a slower GPU draws fewer frames.
+        const response = 1 - Math.exp(-elapsed * 18);
+        pointer.x += (target.x - pointer.x) * response;
+        pointer.y += (target.y - pointer.y) * response;
+        focus += (focusTarget - focus) * (1 - Math.exp(-elapsed * 10));
         while (ripples.length && time - ripples[0].started > 2.4) ripples.shift();
       }
       paint();
