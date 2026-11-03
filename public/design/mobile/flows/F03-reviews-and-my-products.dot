@@ -1,0 +1,68 @@
+digraph F03 {
+  graph [charset="UTF-8", bgcolor="#ffffff", fontname="Noto Sans CJK KR", fontsize=24, fontcolor="#171717", labelloc=t, labeljust=l, pad="0.45", margin="0.20", ranksep="0.80", nodesep="0.55", splines=spline, compound=true, newrank=true, rankdir=TB, label="F03  리뷰 작성과 내 제품 관리\nTransparency. · 현재 모바일 서비스 흐름"];
+  node [shape=box, style="rounded,filled", fillcolor="#f6f6f6", color="#6e6e6e", penwidth=1.3, fontname="Noto Sans CJK KR", fontsize=16, fontcolor="#171717", margin="0.22,0.16", width="2.8", height="0.70"];
+  edge [fontname="Noto Sans CJK KR", fontsize=14, fontcolor="#484848", color="#777777", penwidth=1.15, arrowsize=0.8];
+    M05 [label="M05 · 제품 상세", shape="oval", fillcolor="#ededed", penwidth="1.8"];
+  subgraph cluster_reviews {
+    label="제품별 사용자 리뷰"; fontsize=17; color="#d0d0d0"; penwidth=1; style="rounded"; margin=24;
+    M14 [label="M14 · 리뷰 목록\n같은 제품 안에서 낮은 별점순"];
+    write [label="별점 1~5점 선택\n본문 10~1,000자 작성", fillcolor="#ffffff"];
+    valid [label="작성 조건을\n충족했나요?", shape="diamond", style="filled", fillcolor="#ffffff", width="3.15", height="1.10", fontsize="15"];
+    M15 [label="M15 · 입력 오류\n별점·본문 안내 후 수정"];
+    reviewSave [label="현재 브라우저에 저장\n목록·전체 개수·평균 갱신", fillcolor="#ffffff"];
+    reviewDelete [label="직접 작성한 리뷰 삭제\n별도 확인창 없이 반영", fillcolor="#ffffff"];
+    reviewNote [label="준비된 글과 입력 리뷰를 함께 집계\n작성/예시 구분과 출처 안내 유지\n입력 리뷰는 다른 기기와 공유 안 됨", shape="note", style="filled,dashed", fillcolor="#ffffff", color="#a3a3a3", fontsize="14"];
+  }
+  subgraph cluster_my {
+    label="내 제품 · 동일 목록 안의 상태"; fontsize=17; color="#d0d0d0"; penwidth=1; style="rounded"; margin=24;
+    registered [label="이미 등록된\n제품인가요?", shape="diamond", style="filled", fillcolor="#ffffff", width="3.15", height="1.10", fontsize="15"];
+    add [label="미개봉 상태로 즉시 추가\n별도 등록 폼 없음", fillcolor="#ffffff"];
+    list [label="내 제품 한 목록\n기존 등록이면 상태 그대로 유지", fillcolor="#ffffff"];
+    any [label="등록된 제품이\n있나요?", shape="diamond", style="filled", fillcolor="#ffffff", width="3.15", height="1.10", fontsize="15"];
+    M16 [label="M16 · 내 제품 비어 있음\n제품 등록하기 → 제품 탐색"];
+    done [label="선택한 제품이\n사용 완료인가요?", shape="diamond", style="filled", fillcolor="#ffffff", width="3.15", height="1.10", fontsize="15"];
+    opened [label="개봉일이\n입력되어 있나요?", shape="diamond", style="filled", fillcolor="#ffffff", width="3.15", height="1.10", fontsize="15"];
+    M17 [label="M17 · 미개봉\n개봉일이 비어 있음"];
+    M18 [label="M18 · 사용 중\n개봉일이 입력됨"];
+    M19 [label="M19 · 사용 완료\n개봉일과 별개로 완료 상태"];
+    date [label="목록에서 개봉일 인라인 수정\n비우면 미개봉으로 판정", fillcolor="#ffffff"];
+    complete [label="사용 완료 선택\n완료 상태 저장", fillcolor="#ffffff"];
+    resume [label="사용 중으로 변경 선택\n개봉일에 따라 상태 재판정", fillcolor="#ffffff"];
+    M20 [label="M20 · 등록 삭제 확인\n제품과 사용 기록을 삭제할까요?", shape="diamond", style="filled", fillcolor="#ffffff", width="3.15", height="1.10", fontsize="15"];
+    remove [label="등록 제품과 사용 기록 삭제\n남은 목록 다시 표시", fillcolor="#ffffff"];
+    myNote [label="상태별 별도 화면이나 상세 페이지 없음\nM17·M18·M19는 같은 목록의 행 상태\n제품·개봉일·상태는 브라우저에 저장", shape="note", style="filled,dashed", fillcolor="#ffffff", color="#a3a3a3", fontsize="14"];
+  }
+  M05 -> M14 [label="사용자 리뷰"];
+  M14 -> write [label="리뷰 남기기"];
+  write -> valid;
+  valid -> M15 [label="아니요"];
+  M15 -> write [label="수정", style="dashed"];
+  valid -> reviewSave [label="예"];
+  reviewSave -> M14 [label="재정렬·재집계", style="dashed"];
+  M14 -> reviewDelete [label="작성 리뷰의 삭제"];
+  reviewDelete -> reviewSave;
+  M14 -> reviewNote [style="dashed"];
+  M05 -> registered [label="내 제품에 추가"];
+  registered -> add [label="아니요"];
+  registered -> list [label="예"];
+  add -> list;
+  list -> any;
+  any -> M16 [label="아니요"];
+  any -> done [label="예"];
+  done -> M19 [label="예"];
+  done -> opened [label="아니요"];
+  opened -> M18 [label="예"];
+  opened -> M17 [label="아니요"];
+  list -> date [label="개봉일 변경"];
+  date -> done [label="저장 후 판정", style="dashed"];
+  M17 -> complete [label="사용 완료"];
+  M18 -> complete [label="사용 완료"];
+  complete -> M19;
+  M19 -> resume [label="사용 중으로 변경"];
+  resume -> opened [label="완료 해제", style="dashed"];
+  list -> M20 [label="등록 삭제"];
+  M20 -> remove [label="확인"];
+  M20 -> list [label="취소", style="dashed"];
+  remove -> list [label="목록 갱신", style="dashed"];
+  list -> myNote [style="dashed"];
+}

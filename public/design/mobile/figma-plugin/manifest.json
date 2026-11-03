@@ -1,0 +1,15 @@
+{
+  "name": "Transparency. · 모바일 와이어프레임과 플로우차트",
+  "id": "transparency-mobile-wireframes-local",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": [
+    "figma"
+  ],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "none"
+    ]
+  }
+}

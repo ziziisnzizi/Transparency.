@@ -1,0 +1,66 @@
+---
+title: "F04 · AI 질문과 근거 확인"
+---
+flowchart TD
+    %% 현재 구현을 기준으로 작성. 화면 ID는 모바일 와이어프레임과 대응합니다.
+    subgraph input["제품 상세의 질문하기 탭"]
+        M10(["M10 · 질문하기<br/>FAQ와 같은 탭에서 시작"])
+        compose["직접 질문 입력 또는 추천 질문<br/>Enter 전송 / Shift+Enter 줄바꿈"]
+        valid{"1~500자로<br/>입력했나요?"}
+        inputError["빈 질문·길이 안내<br/>질문 수정"]
+        pending["질문 전송 / 답변 준비 중<br/>입력과 추천 질문은 잠시 비활성"]
+        cancel["요청 취소<br/>질문을 초안으로 복원"]
+        clear["대화 지우기<br/>대화·진행 중 요청 초기화"]
+    end
+    subgraph answer["답변과 연결 상태"]
+        publicDocs["해당 제품의 공개 자료 확인<br/>성분·사용법·시험 자료의 범위"]
+        connected{"자료 범위 안에서<br/>AI 답변이 가능한가요?"}
+        M11["M11 · Gemini 답변<br/>답변 문장과 근거 목록 표시"]
+        M12["M12 · 제품 자료 답변<br/>AI 미연결·응답 실패·자료 밖 질문"]
+        M13["M13 · 요청 오류<br/>네트워크·지연·요청 제한 안내"]
+        retry["다시 시도<br/>기존 질문 재전송"]
+        next{"이어서 할 일 선택"}
+        memory["대화는 제품별로 화면에서만 유지<br/>새로고침하면 대화 초기화<br/>등록 자료 답변을 AI 답변과 구분"]
+    end
+    subgraph sources["선택한 제품의 근거 위치"]
+        sourceChoice["표시된 답변 근거 선택"]
+        M05["M05 · 제품 정보<br/>상세 첫 영역으로 스크롤"]
+        M07["M07 · 성분·함량<br/>같은 제품의 해당 탭"]
+        M08["M08 · 효능·근거<br/>같은 제품의 해당 탭"]
+        M09["M09 · 사용 안내<br/>같은 제품의 해당 탭"]
+    end
+    M10 --> compose
+    compose -->|"전송"| valid
+    valid -->|"아니요"| inputError
+    inputError -.->|"수정"| compose
+    valid -->|"예"| pending
+    pending -->|"요청 취소"| cancel
+    cancel -.->|"초안 복원"| compose
+    pending --> publicDocs
+    publicDocs --> connected
+    connected -->|"예 / 정상 답변"| M11
+    connected -->|"아니요 / 자료로 안내"| M12
+    pending -->|"요청 자체 실패"| M13
+    M13 -->|"다시 시도"| retry
+    retry -.->|"같은 질문"| pending
+    M11 --> next
+    M12 --> next
+    next -.->|"추가 질문"| compose
+    next -->|"대화 지우기"| clear
+    clear -.->|"빈 대화"| M10
+    next -->|"근거가 있으면 열기"| sourceChoice
+    sourceChoice -->|"제품 정보"| M05
+    sourceChoice -->|"성분·함량"| M07
+    sourceChoice -->|"효능·근거"| M08
+    sourceChoice -->|"사용 안내"| M09
+    publicDocs -.-> memory
+    classDef screen fill:#f6f6f6,stroke:#6e6e6e,color:#171717,stroke-width:1.3px,font-size:16px;
+    classDef action fill:#ffffff,stroke:#6e6e6e,color:#171717,font-size:16px;
+    classDef decision fill:#ffffff,stroke:#6e6e6e,color:#171717,font-size:15px;
+    classDef note fill:#ffffff,stroke:#a3a3a3,color:#484848,stroke-dasharray:4 3,font-size:14px;
+    classDef terminal fill:#ededed,stroke:#6e6e6e,color:#171717,stroke-width:1.8px,font-size:16px;
+    class M11,M12,M13,M05,M07,M08,M09 screen;
+    class compose,inputError,pending,cancel,publicDocs,retry,clear,sourceChoice action;
+    class valid,connected,next decision;
+    class memory note;
+    class M10 terminal;

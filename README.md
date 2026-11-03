@@ -31,6 +31,7 @@ npm 기본 캐시 경로에 쓰기 권한이 없으면 `npm ci --cache /tmp/tran
 - 제품별 사용자 리뷰 작성·삭제와 낮은 별점순 표시, 해당 제품의 평균·개수 집계
 - 제품별 예시 리뷰 10개와 직접 입력한 리뷰를 한 목록에서 낮은 별점순 표시(전체 건수와 평균 별점에 모두 반영)
 - PC는 제품 이미지 호버로 제형을 확인하고, 모바일·터치 기기는 ‘제형 보기 / 제품 보기’ 버튼으로 전환(홈·탐색·상세·내 제품)
+- [현재 모바일 와이어프레임·플로우차트](https://transparency-web-five.vercel.app/design/mobile/): 26개 화면·상태, 5개 흐름도, SVG·PDF·Figma 가져오기 패키지
 - 제품 등록, 개봉일 변경, 사용 완료·재개, 삭제
 - 질문하기 탭의 Gemini 질문·답변·근거 확인·추천 질문·취소·재시도(서버 키 미등록 시 제품 자료 답변)
 - 개인 제품 기록과 리뷰의 브라우저 localStorage 저장(다른 사용자·기기와 공유되지 않음)
@@ -45,8 +46,9 @@ npm 기본 캐시 경로에 쓰기 권한이 없으면 `npm ci --cache /tmp/tran
 
 - [전체 진행 내역·파일 경로·남은 작업](docs/project-handoff.md)
 - [화면 정보 구조](docs/information-architecture.md)
-- [상세 사용자 흐름](docs/application-flow.md)
-- [모바일 와이어프레임 20개 화면 · PNG / SVG / PDF](docs/wireframes/README.md)
+- [현재 모바일 설계 문서 · Figma 가져오기 안내](public/design/mobile/README-KO.md)
+- [원본 기획 사용자 흐름 · 미구현 기능 포함](docs/application-flow.md)
+- [초기 기획 와이어프레임 아카이브 · 20개 화면](docs/wireframes/README.md)
 - [브랜드 문구·디자인 기준과 검증](docs/brand-direction.md)
 - [콘텐츠 적용 상태와 남은 결정](docs/content-status-2026-10-27.md)
 - [제품별 예시 리뷰 30개](docs/mock-reviews.md)

@@ -1,0 +1,47 @@
+digraph F01 {
+  graph [charset="UTF-8", bgcolor="#ffffff", fontname="Noto Sans CJK KR", fontsize=24, fontcolor="#171717", labelloc=t, labeljust=l, pad="0.45", margin="0.20", ranksep="0.80", nodesep="0.55", splines=spline, compound=true, newrank=true, rankdir=LR, label="F01  전체 내비게이션\nTransparency. · 현재 모바일 서비스 흐름"];
+  node [shape=box, style="rounded,filled", fillcolor="#f6f6f6", color="#6e6e6e", penwidth=1.3, fontname="Noto Sans CJK KR", fontsize=16, fontcolor="#171717", margin="0.22,0.16", width="2.8", height="0.70"];
+  edge [fontname="Noto Sans CJK KR", fontsize=14, fontcolor="#484848", color="#777777", penwidth=1.15, arrowsize=0.8];
+    start [label="사이트 접속", shape="oval", fillcolor="#ededed", penwidth="1.8"];
+    guest [label="회원가입 없이 이용\n로그인 절차 없음", shape="note", style="filled,dashed", fillcolor="#ffffff", color="#a3a3a3", fontsize="14"];
+    header [label="모든 화면의 공통 헤더\n테마 전환: 라이트 ↔ 다크\n테마를 바꿔도 현재 화면 유지", shape="note", style="filled,dashed", fillcolor="#ffffff", color="#a3a3a3", fontsize="14"];
+    qr [label="외부 카메라로 QR 스캔\n또는 제품 상세 링크 접속", shape="oval", fillcolor="#ededed", penwidth="1.8"];
+  subgraph cluster_main {
+    label="하단 주요 메뉴"; fontsize=17; color="#d0d0d0"; penwidth=1; style="rounded"; margin=24;
+    M01 [label="M01 · 홈 첫 화면\n브랜드와 제품 살펴보기"];
+    M02 [label="M02 · 홈 제품 영역\nSTEP 01 토너 → 02 세럼 → 03 크림"];
+    M03 [label="M03 · 제품 탐색\n제품명·성분 검색 / 종류 필터"];
+    my [label="M16 / M17 / M18 / M19\n내 제품 · 한 목록에서 상태 관리"];
+    M21 [label="M21 · 더보기\n브랜드·공개 원칙·이용 안내"];
+    M22 [label="M22 · 개인정보·기록 관리\n아코디언 열기"];
+  }
+  subgraph cluster_detail {
+    label="제품 상세와 구매"; fontsize=17; color="#d0d0d0"; penwidth=1; style="rounded"; margin=24;
+    M05 [label="M05 · 제품 상세\n제품 정보·가격·구매·등록"];
+    tabs [label="M07 / M08 / M09 / M10 / M14\n성분·근거·사용 안내·질문·리뷰"];
+    M23 [label="M23 / M24 · 구매 화면\n상품·수량·배송 정보"];
+    M26 [label="M26 · 주문 내용 확인\n선택 내용 확인·수정"];
+    stop [label="현재 여기까지\n실제 결제·주문 접수 없음", shape="oval", fillcolor="#ededed", penwidth="1.8", peripheries="2"];
+  }
+  start -> M01;
+  start -> guest [style="dashed"];
+  M01 -> header [label="항상 접근 가능", style="dashed"];
+  header -> my [label="MY PRODUCTS 바로가기"];
+  M01 -> M02 [label="스크롤"];
+  M01 -> M03 [label="제품 살펴보기"];
+  M02 -> M03 [label="모든 제품 보기"];
+  M02 -> M05 [label="제품 선택"];
+  M03 -> M05 [label="제품 선택"];
+  M01 -> my [label="하단 내 제품"];
+  M01 -> M21 [label="하단 더보기"];
+  M21 -> M22 [label="안내 항목 펼치기"];
+  qr -> M05 [label="제품별 바로가기"];
+  M05 -> tabs [label="정보 탭 선택"];
+  M05 -> my [label="내 제품에 추가"];
+  my -> M05 [label="제품 정보 보기"];
+  M05 -> M23 [label="구매하기"];
+  M21 -> M23 [label="푸터 제품 구매"];
+  M23 -> M26 [label="배송 정보 확인"];
+  M26 -> stop;
+  M23 -> M05 [label="제품으로 돌아가기", style="dashed"];
+}

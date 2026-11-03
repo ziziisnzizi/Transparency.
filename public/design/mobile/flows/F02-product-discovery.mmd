@@ -1,0 +1,55 @@
+---
+title: "F02 · 제품 탐색과 상세 정보"
+---
+flowchart TD
+    %% 현재 구현을 기준으로 작성. 화면 ID는 모바일 와이어프레임과 대응합니다.
+    home(["M01 / M02 · 홈<br/>제품 살펴보기 / 모든 제품 보기"])
+    subgraph discovery["검색과 제품 선택"]
+        M03["M03 · 제품 목록<br/>토너 → 세럼 → 크림 순서"]
+        query["제품명·성분명 입력<br/>또는 제품 종류 필터 선택"]
+        found{"일치하는<br/>제품이 있나요?"}
+        results["필터링한 제품 표시<br/>사용 순서 유지"]
+        M04["M04 · 검색 결과 없음<br/>다른 검색어 / 검색·필터 초기화"]
+        M06["M06 · 제형 이미지 상태<br/>현재 영역에서 제품 ↔ 제형 전환"]
+        textureNote["제형 보기 버튼은 화면 이동이 아님<br/>모바일 터치로도 전환 가능"]
+    end
+    subgraph information["같은 제품의 상세 정보"]
+        M05["M05 · 제품 상세 첫 영역<br/>가격·제형·성분 요약·QR"]
+        tabs["보고 싶은 정보 탭 선택"]
+        M07["M07 · 성분·함량<br/>성분의 역할과 표기 기준"]
+        M08["M08 · 효능·근거<br/>연구 자료와 완제품 시험 구분"]
+        M09["M09 · 사용 안내<br/>순서·양·보관·잔량·분리배출"]
+        M10["M10 · 질문하기<br/>제품 질문과 FAQ"]
+        M14["M14 · 사용자 리뷰<br/>해당 제품의 낮은 별점부터"]
+    end
+    home --> M03
+    M03 --> query
+    query --> found
+    found -->|"예"| results
+    found -->|"아니요"| M04
+    M04 -.->|"검색어 수정"| query
+    M04 -.->|"초기화"| M03
+    results -->|"제품 카드 선택"| M05
+    M03 -->|"제품 카드 선택"| M05
+    M03 -->|"카드의 제형 보기"| M06
+    M05 -->|"상세의 제형 보기"| M06
+    M06 -.->|"원래 카드에서 제품 보기"| M03
+    M06 -.->|"원래 상세에서 제품 보기"| M05
+    M06 -.-> textureNote
+    M05 --> tabs
+    tabs -->|"성분·함량"| M07
+    tabs -->|"효능·근거"| M08
+    tabs -->|"사용 안내"| M09
+    tabs -->|"질문하기"| M10
+    tabs -->|"사용자 리뷰"| M14
+    M05 -.->|"제품 목록으로"| M03
+    classDef screen fill:#f6f6f6,stroke:#6e6e6e,color:#171717,stroke-width:1.3px,font-size:16px;
+    classDef action fill:#ffffff,stroke:#6e6e6e,color:#171717,font-size:16px;
+    classDef decision fill:#ffffff,stroke:#6e6e6e,color:#171717,font-size:15px;
+    classDef note fill:#ffffff,stroke:#a3a3a3,color:#484848,stroke-dasharray:4 3,font-size:14px;
+    classDef terminal fill:#ededed,stroke:#6e6e6e,color:#171717,stroke-width:1.8px,font-size:16px;
+    class M03,M04,M06,M05,M07,M08,M09,M10,M14 screen;
+    class query,results,tabs action;
+    class found decision;
+    class textureNote note;
+    class home terminal;

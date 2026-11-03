@@ -1,0 +1,47 @@
+digraph F05 {
+  graph [charset="UTF-8", bgcolor="#ffffff", fontname="Noto Sans CJK KR", fontsize=24, fontcolor="#171717", labelloc=t, labeljust=l, pad="0.45", margin="0.20", ranksep="0.80", nodesep="0.55", splines=spline, compound=true, newrank=true, rankdir=TB, label="F05  구매 내용 확인\nTransparency. · 현재 모바일 서비스 흐름"];
+  node [shape=box, style="rounded,filled", fillcolor="#f6f6f6", color="#6e6e6e", penwidth=1.3, fontname="Noto Sans CJK KR", fontsize=16, fontcolor="#171717", margin="0.22,0.16", width="2.8", height="0.70"];
+  edge [fontname="Noto Sans CJK KR", fontsize=14, fontcolor="#484848", color="#777777", penwidth=1.15, arrowsize=0.8];
+    M05 [label="M05 · 제품 상세\n또는 푸터 제품 구매", shape="oval", fillcolor="#ededed", penwidth="1.8"];
+  subgraph cluster_select {
+    label="상품과 금액"; fontsize=17; color="#d0d0d0"; penwidth=1; style="rounded"; margin=24;
+    M23 [label="M23 · 상품·수량 선택\n토너 / 세럼 / 크림 · 수량 1~99개"];
+    prices [label="토너 18,000원 · 세럼 24,000원\n크림 26,000원\n상품 금액 = 단가 × 수량", shape="note", style="filled,dashed", fillcolor="#ffffff", color="#a3a3a3", fontsize="14"];
+    shipping [label="상품 금액이\n50,000원 이상인가요?", shape="diamond", style="filled", fillcolor="#ffffff", width="3.15", height="1.10", fontsize="15"];
+    free [label="배송비 0원", fillcolor="#ffffff"];
+    fee [label="배송비 3,000원", fillcolor="#ffffff"];
+    total [label="주문 금액 표시\n상품 금액 + 배송비", fillcolor="#ffffff"];
+  }
+  subgraph cluster_delivery {
+    label="배송 정보 입력"; fontsize=17; color="#d0d0d0"; penwidth=1; style="rounded"; margin=24;
+    M24 [label="M24 · 배송 정보 입력\n상품 선택과 같은 구매 화면"];
+    required [label="받는 분·전화·5자리 우편번호·주소\n선택: 상세 주소·이메일·배송 요청", shape="note", style="filled,dashed", fillcolor="#ffffff", color="#a3a3a3", fontsize="14"];
+    check [label="필수 값과 입력 형식이\n올바른가요?", shape="diamond", style="filled", fillcolor="#ffffff", width="3.15", height="1.10", fontsize="15"];
+    M25 [label="M25 · 배송 입력 오류\n필드 안내 / 첫 오류 항목으로 이동"];
+  }
+  subgraph cluster_review {
+    label="주문 내용 확인"; fontsize=17; color="#d0d0d0"; penwidth=1; style="rounded"; margin=24;
+    M26 [label="M26 · 주문 내용 확인\n상품·수량·배송지·금액 확인"];
+    edit [label="수정하기\n입력한 배송 정보 유지", fillcolor="#ffffff"];
+    stop [label="여기서 종료 · 결제 버튼 비활성\n실제 결제·주문 접수는 연결 전", shape="oval", fillcolor="#ededed", penwidth="1.8", peripheries="2"];
+    memory [label="배송 정보는 화면 메모리에만 유지\n서버 전송·브라우저 저장 없음\n새로고침하면 입력 초기화", shape="note", style="filled,dashed", fillcolor="#ffffff", color="#a3a3a3", fontsize="14"];
+  }
+  M05 -> M23 [label="구매하기"];
+  M23 -> prices [style="dashed"];
+  M23 -> shipping [label="상품·수량 변경 시 계산"];
+  shipping -> free [label="예 / 50,000원 포함"];
+  shipping -> fee [label="아니요"];
+  free -> total;
+  fee -> total;
+  total -> M24 [label="배송 정보로 이어짐"];
+  M24 -> required [style="dashed"];
+  M24 -> check [label="주문 내용 확인"];
+  check -> M25 [label="아니요"];
+  M25 -> M24 [label="수정 후 다시 확인", style="dashed"];
+  check -> M26 [label="예"];
+  M26 -> edit [label="수정하기"];
+  edit -> M24 [label="제품·수량도 같은 화면에서 수정", style="dashed"];
+  M26 -> stop;
+  M24 -> memory [style="dashed"];
+  M23 -> M05 [label="제품으로 돌아가기 / 성분·사용법", style="dashed"];
+}

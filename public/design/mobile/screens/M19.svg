@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" font-family="Noto Sans KR,Noto Sans CJK KR,Apple SD Gothic Neo,Malgun Gothic,sans-serif">
+<title>M19 / 내 제품 · 사용 완료</title>
+<desc>같은 목록에서 ‘사용 완료’ 실행. 별도 완료 탭 없이 상태와 되돌리기 버튼이 바뀝니다.</desc>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="0.5" y="0.5" width="389" height="843" rx="29"/>
+<text x="25" y="16" fill="#111111" font-size="14" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">9:41</text>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="146" y="11" width="98" height="27" rx="15"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="291" y="25" width="3" height="5" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="296" y="22" width="3" height="8" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="301" y="19" width="3" height="11" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="306" y="16" width="3" height="14" rx="1"/>
+<text x="317" y="16" fill="#111111" font-size="18" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">⌁</text>
+<rect fill="#FFFFFF" stroke="#111111" stroke-width="1" x="343" y="19" width="22" height="11" rx="3"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="345" y="21" width="17" height="7" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="366" y="22" width="2" height="5" rx="1"/>
+<text x="20" y="63" fill="#111111" font-size="21" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">Transparency.</text>
+<ellipse fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" cx="268" cy="75" rx="16" ry="16"/>
+<ellipse fill="#FFFFFF" stroke="#717171" stroke-width="1" cx="268" cy="75" rx="7" ry="7"/>
+<rect fill="#717171" stroke="#717171" stroke-width="0" x="268" y="68" width="7" height="14" rx="0"/>
+<rect fill="#FAFAFA" stroke="#D0D0D0" stroke-width="1" x="292" y="60" width="79" height="30" rx="15"/>
+<text x="331" y="70" fill="#222222" font-size="10" font-weight="500" text-anchor="middle" dominant-baseline="text-before-edge">MY PRODUCTS</text>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="0" y1="101" x2="390" y2="101"/>
+<rect fill="#FAFAFA" stroke="#D0D0D0" stroke-width="1" x="16" y="757" width="358" height="66" rx="28"/>
+<rect fill="#E5E5E5" stroke="#E5E5E5" stroke-width="0" x="194" y="763" width="86" height="54" rx="22"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="56" y1="781" x2="65" y2="773"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="65" y1="773" x2="74" y2="781"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="59" y1="779" x2="59" y2="791"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="71" y1="779" x2="71" y2="791"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="59" y1="791" x2="71" y2="791"/>
+<text x="65" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">홈</text>
+<ellipse fill="#FAFAFA" stroke="#717171" stroke-width="1.5" cx="148.5" cy="779.5" rx="6.5" ry="6.5"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="153" y1="785" x2="160" y2="792"/>
+<text x="151" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">제품 탐색</text>
+<rect fill="#FAFAFA" stroke="#111111" stroke-width="1.5" x="229" y="777" width="16" height="16" rx="2"/>
+<line stroke="#111111" stroke-width="1.5" stroke-linecap="round" x1="233" y1="777" x2="233" y2="773"/>
+<line stroke="#111111" stroke-width="1.5" stroke-linecap="round" x1="241" y1="777" x2="241" y2="773"/>
+<line stroke="#111111" stroke-width="1.5" stroke-linecap="round" x1="233" y1="773" x2="241" y2="773"/>
+<text x="237" y="798" fill="#111111" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="text-before-edge">내 제품</text>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="315" cy="783.5" rx="1.5" ry="1.5"/>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="323" cy="783.5" rx="1.5" ry="1.5"/>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="331" cy="783.5" rx="1.5" ry="1.5"/>
+<text x="323" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">더보기</text>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="135" y="833" width="120" height="4" rx="2"/>
+<text x="24" y="122" fill="#717171" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">MY PRODUCTS</text>
+<text x="24" y="150" fill="#222222" font-size="28" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">나의 제품.</text>
+<text x="24" y="186" fill="#222222" font-size="28" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">나의 사용 기록.</text>
+<text x="24" y="237" fill="#717171" font-size="12" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">개봉일부터 마지막 한 방울까지, 한눈에.</text>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="24" y="277" width="342" height="44" rx="12"/>
+<text x="195" y="290" fill="#222222" font-size="12" font-weight="600" text-anchor="middle" dominant-baseline="text-before-edge">제품 등록하기 ＋</text>
+<rect fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" x="24" y="341" width="342" height="47" rx="14"/>
+<text x="70.5" y="359" fill="#222222" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="text-before-edge">전체 1</text>
+<text x="153.5" y="359" fill="#222222" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="text-before-edge">사용 중 0</text>
+<text x="236.5" y="359" fill="#222222" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="text-before-edge">미개봉 0</text>
+<text x="319.5" y="359" fill="#222222" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="text-before-edge">사용 완료 1</text>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="24" y="410" width="342" height="294" rx="16"/>
+<rect fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" x="38" y="426" width="96" height="104" rx="12"/>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="39" y1="427" x2="133" y2="529"/>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="133" y1="427" x2="39" y2="529"/>
+<rect fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" x="151" y="427" width="90" height="28" rx="14"/>
+<text x="196" y="433" fill="#222222" font-size="11" font-weight="500" text-anchor="middle" dominant-baseline="text-before-edge">사용 완료</text>
+<text x="151" y="468" fill="#222222" font-size="20" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">세럼 S.1</text>
+<text x="151" y="502" fill="#717171" font-size="10" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">Transparency. Serum S.1</text>
+<text x="151" y="520" fill="#717171" font-size="10" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">30 mL</text>
+<text x="38" y="555" fill="#222222" font-size="12" font-weight="600" text-anchor="start" dominant-baseline="text-before-edge">개봉일</text>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="38" y="577" width="314" height="39" rx="9"/>
+<text x="50" y="588" fill="#222222" font-size="12" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">2026-11-03</text>
+<text x="328" y="589" fill="#717171" font-size="13" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">▦</text>
+<text x="38" y="626" fill="#717171" font-size="10" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">개봉일을 비워두면 미개봉으로 기록됩니다.</text>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="38" y="655" width="193" height="35" rx="12"/>
+<text x="134.5" y="663.5" fill="#222222" font-size="12" font-weight="600" text-anchor="middle" dominant-baseline="text-before-edge">사용 중으로 변경 ↗</text>
+<text x="343" y="666" fill="#222222" font-size="11" font-weight="500" text-anchor="end" dominant-baseline="text-before-edge">등록 삭제</text>
+<text x="24" y="723" fill="#717171" font-size="10" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">제품 기록은 현재 사용 중인 브라우저에 저장됩니다.</text>
+</svg>

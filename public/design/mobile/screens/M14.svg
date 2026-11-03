@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" font-family="Noto Sans KR,Noto Sans CJK KR,Apple SD Gothic Neo,Malgun Gothic,sans-serif">
+<title>M14 / 사용자 리뷰 · 낮은 별점부터</title>
+<desc>S.1의 리뷰만 별점 낮은 순으로 표시. 준비된 10개 리뷰도 전체 수와 평균 별점에 포함됩니다.</desc>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="0.5" y="0.5" width="389" height="843" rx="29"/>
+<text x="25" y="16" fill="#111111" font-size="14" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">9:41</text>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="146" y="11" width="98" height="27" rx="15"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="291" y="25" width="3" height="5" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="296" y="22" width="3" height="8" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="301" y="19" width="3" height="11" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="306" y="16" width="3" height="14" rx="1"/>
+<text x="317" y="16" fill="#111111" font-size="18" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">⌁</text>
+<rect fill="#FFFFFF" stroke="#111111" stroke-width="1" x="343" y="19" width="22" height="11" rx="3"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="345" y="21" width="17" height="7" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="366" y="22" width="2" height="5" rx="1"/>
+<text x="20" y="63" fill="#111111" font-size="21" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">Transparency.</text>
+<ellipse fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" cx="268" cy="75" rx="16" ry="16"/>
+<ellipse fill="#FFFFFF" stroke="#717171" stroke-width="1" cx="268" cy="75" rx="7" ry="7"/>
+<rect fill="#717171" stroke="#717171" stroke-width="0" x="268" y="68" width="7" height="14" rx="0"/>
+<rect fill="#FAFAFA" stroke="#D0D0D0" stroke-width="1" x="292" y="60" width="79" height="30" rx="15"/>
+<text x="331" y="70" fill="#222222" font-size="10" font-weight="500" text-anchor="middle" dominant-baseline="text-before-edge">MY PRODUCTS</text>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="0" y1="101" x2="390" y2="101"/>
+<rect fill="#FAFAFA" stroke="#D0D0D0" stroke-width="1" x="16" y="757" width="358" height="66" rx="28"/>
+<rect fill="#E5E5E5" stroke="#E5E5E5" stroke-width="0" x="108" y="763" width="86" height="54" rx="22"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="56" y1="781" x2="65" y2="773"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="65" y1="773" x2="74" y2="781"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="59" y1="779" x2="59" y2="791"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="71" y1="779" x2="71" y2="791"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="59" y1="791" x2="71" y2="791"/>
+<text x="65" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">홈</text>
+<ellipse fill="#FAFAFA" stroke="#111111" stroke-width="1.5" cx="148.5" cy="779.5" rx="6.5" ry="6.5"/>
+<line stroke="#111111" stroke-width="1.5" stroke-linecap="round" x1="153" y1="785" x2="160" y2="792"/>
+<text x="151" y="798" fill="#111111" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="text-before-edge">제품 탐색</text>
+<rect fill="#FAFAFA" stroke="#717171" stroke-width="1.5" x="229" y="777" width="16" height="16" rx="2"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="233" y1="777" x2="233" y2="773"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="241" y1="777" x2="241" y2="773"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="233" y1="773" x2="241" y2="773"/>
+<text x="237" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">내 제품</text>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="315" cy="783.5" rx="1.5" ry="1.5"/>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="323" cy="783.5" rx="1.5" ry="1.5"/>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="331" cy="783.5" rx="1.5" ry="1.5"/>
+<text x="323" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">더보기</text>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="135" y="833" width="120" height="4" rx="2"/>
+<text x="24" y="116" fill="#717171" font-size="11" font-weight="500" text-anchor="start" dominant-baseline="text-before-edge">← 제품 목록</text>
+<text x="24" y="139" fill="#222222" font-size="21" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">세럼 S.1</text>
+<text x="366" y="145" fill="#717171" font-size="10" font-weight="400" text-anchor="end" dominant-baseline="text-before-edge">30 mL · 24,000원</text>
+<rect fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" x="16" y="173" width="358" height="43" rx="12"/>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="300" y="177" width="70" height="35" rx="9"/>
+<text x="55" y="188" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">성분·함량</text>
+<text x="125" y="188" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">효능·근거</text>
+<text x="195" y="188" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">사용 안내</text>
+<text x="265" y="188" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">질문하기</text>
+<text x="335" y="188" fill="#222222" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="text-before-edge">사용자 리뷰</text>
+<text x="24" y="239" fill="#717171" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">05 / USER REVIEWS</text>
+<text x="24" y="261" fill="#222222" font-size="23" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">사용자의 경험을 먼저 봅니다.</text>
+<rect fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" x="24" y="309" width="342" height="83" rx="12"/>
+<text x="38" y="321" fill="#222222" font-size="30" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">★ 3.3</text>
+<text x="350" y="324" fill="#222222" font-size="14" font-weight="700" text-anchor="end" dominant-baseline="text-before-edge">전체 10개 리뷰</text>
+<text x="38" y="363" fill="#717171" font-size="10" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">작성 0 · 예시 10</text>
+<text x="350" y="363" fill="#717171" font-size="10" font-weight="400" text-anchor="end" dominant-baseline="text-before-edge">별점은 전체 리뷰 기준</text>
+<text x="24" y="413" fill="#222222" font-size="12" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">★ 별점 낮은 순</text>
+<text x="24" y="442" fill="#717171" font-size="10" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">평균 별점과 전체 리뷰 수에는 화면 구성을 위해 작성한 글이 포함됩니다.</text>
+<text x="24" y="458" fill="#717171" font-size="10" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">해당 글은 실제 구매 후기가 아닙니다.</text>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="24" y1="505" x2="366" y2="505"/>
+<text x="24" y="524" fill="#222222" font-size="15" font-weight="600" text-anchor="start" dominant-baseline="text-before-edge">★☆☆☆☆</text>
+<text x="24" y="554" fill="#222222" font-size="12" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">젤을 스포이트로 덜 때 한 번에 얼마나 나오는지 가늠하기</text>
+<text x="24" y="575" fill="#222222" font-size="12" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">어려웠어요. 스포이트에도 한 번 사용할 양을 참고할 수 있는</text>
+<text x="24" y="596" fill="#222222" font-size="12" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">표시가 필요해 보여요.</text>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="24" y1="654" x2="366" y2="654"/>
+<text x="24" y="675" fill="#222222" font-size="15" font-weight="600" text-anchor="start" dominant-baseline="text-before-edge">★★☆☆☆</text>
+<text x="24" y="705" fill="#222222" font-size="11" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">제 기준에는 한꺼번에 많이 바르면 손에 남는 느낌이 있었어요.</text>
+</svg>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" font-family="Noto Sans KR,Noto Sans CJK KR,Apple SD Gothic Neo,Malgun Gothic,sans-serif">
+<title>M02 / 홈 · 제품 순서</title>
+<desc>홈 제품 영역의 T.1 전체 카드와 S.1 시작 부분. 스크롤 순서는 T.1 → S.1 → C.1입니다.</desc>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="0.5" y="0.5" width="389" height="843" rx="29"/>
+<text x="25" y="16" fill="#111111" font-size="14" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">9:41</text>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="146" y="11" width="98" height="27" rx="15"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="291" y="25" width="3" height="5" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="296" y="22" width="3" height="8" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="301" y="19" width="3" height="11" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="306" y="16" width="3" height="14" rx="1"/>
+<text x="317" y="16" fill="#111111" font-size="18" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">⌁</text>
+<rect fill="#FFFFFF" stroke="#111111" stroke-width="1" x="343" y="19" width="22" height="11" rx="3"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="345" y="21" width="17" height="7" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="366" y="22" width="2" height="5" rx="1"/>
+<text x="20" y="63" fill="#111111" font-size="21" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">Transparency.</text>
+<ellipse fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" cx="268" cy="75" rx="16" ry="16"/>
+<ellipse fill="#FFFFFF" stroke="#717171" stroke-width="1" cx="268" cy="75" rx="7" ry="7"/>
+<rect fill="#717171" stroke="#717171" stroke-width="0" x="268" y="68" width="7" height="14" rx="0"/>
+<rect fill="#FAFAFA" stroke="#D0D0D0" stroke-width="1" x="292" y="60" width="79" height="30" rx="15"/>
+<text x="331" y="70" fill="#222222" font-size="10" font-weight="500" text-anchor="middle" dominant-baseline="text-before-edge">MY PRODUCTS</text>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="0" y1="101" x2="390" y2="101"/>
+<rect fill="#FAFAFA" stroke="#D0D0D0" stroke-width="1" x="16" y="757" width="358" height="66" rx="28"/>
+<rect fill="#E5E5E5" stroke="#E5E5E5" stroke-width="0" x="22" y="763" width="86" height="54" rx="22"/>
+<line stroke="#111111" stroke-width="1.5" stroke-linecap="round" x1="56" y1="781" x2="65" y2="773"/>
+<line stroke="#111111" stroke-width="1.5" stroke-linecap="round" x1="65" y1="773" x2="74" y2="781"/>
+<line stroke="#111111" stroke-width="1.5" stroke-linecap="round" x1="59" y1="779" x2="59" y2="791"/>
+<line stroke="#111111" stroke-width="1.5" stroke-linecap="round" x1="71" y1="779" x2="71" y2="791"/>
+<line stroke="#111111" stroke-width="1.5" stroke-linecap="round" x1="59" y1="791" x2="71" y2="791"/>
+<text x="65" y="798" fill="#111111" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="text-before-edge">홈</text>
+<ellipse fill="#FAFAFA" stroke="#717171" stroke-width="1.5" cx="148.5" cy="779.5" rx="6.5" ry="6.5"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="153" y1="785" x2="160" y2="792"/>
+<text x="151" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">제품 탐색</text>
+<rect fill="#FAFAFA" stroke="#717171" stroke-width="1.5" x="229" y="777" width="16" height="16" rx="2"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="233" y1="777" x2="233" y2="773"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="241" y1="777" x2="241" y2="773"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="233" y1="773" x2="241" y2="773"/>
+<text x="237" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">내 제품</text>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="315" cy="783.5" rx="1.5" ry="1.5"/>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="323" cy="783.5" rx="1.5" ry="1.5"/>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="331" cy="783.5" rx="1.5" ry="1.5"/>
+<text x="323" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">더보기</text>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="135" y="833" width="120" height="4" rx="2"/>
+<text x="24" y="120" fill="#717171" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">THE FORMULAS</text>
+<text x="24" y="144" fill="#222222" font-size="26" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">궁금했던 성분부터.</text>
+<text x="24" y="188" fill="#717171" font-size="12" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">토너 → 세럼 → 크림</text>
+<text x="366" y="188" fill="#222222" font-size="11" font-weight="500" text-anchor="end" dominant-baseline="text-before-edge">모든 제품 보기 ↗</text>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="24" y="231" width="342" height="336" rx="20"/>
+<rect fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" x="34" y="241" width="322" height="170" rx="12"/>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="35" y1="242" x2="355" y2="410"/>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="355" y1="242" x2="35" y2="410"/>
+<rect fill="#F2F2F2" stroke="#F2F2F2" stroke-width="0" x="104.5" y="313" width="181" height="26" rx="4"/>
+<text x="195" y="318" fill="#717171" font-size="11" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">토너 T.1 · 제품 이미지</text>
+<rect fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" x="45" y="253" width="72" height="28" rx="14"/>
+<text x="81" y="259" fill="#222222" font-size="11" font-weight="500" text-anchor="middle" dominant-baseline="text-before-edge">수분 토너</text>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="246" y="253" width="100" height="44" rx="12"/>
+<text x="296" y="266" fill="#222222" font-size="12" font-weight="600" text-anchor="middle" dominant-baseline="text-before-edge">제형 보기</text>
+<text x="39" y="428" fill="#717171" font-size="10" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">Transparency. Toner T.1</text>
+<text x="341" y="428" fill="#717171" font-size="10" font-weight="400" text-anchor="end" dominant-baseline="text-before-edge">150 mL</text>
+<text x="39" y="450" fill="#222222" font-size="20" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">토너 T.1</text>
+<text x="341" y="455" fill="#222222" font-size="13" font-weight="600" text-anchor="end" dominant-baseline="text-before-edge">18,000원</text>
+<text x="39" y="487" fill="#222222" font-size="12" font-weight="600" text-anchor="start" dominant-baseline="text-before-edge">★ 3.1  전체 10개 리뷰</text>
+<text x="39" y="513" fill="#717171" font-size="10" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">글리세린 3.0% · 판테놀 0.5% · 베타글루칸 0.1%</text>
+<text x="39" y="545" fill="#717171" font-size="10" font-weight="500" text-anchor="start" dominant-baseline="text-before-edge">STEP 01 · 피부 정돈하기</text>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="24" y="585" width="342" height="157" rx="20"/>
+<rect fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" x="34" y="595" width="322" height="147" rx="12"/>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="35" y1="596" x2="355" y2="741"/>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="355" y1="596" x2="35" y2="741"/>
+<rect fill="#F2F2F2" stroke="#F2F2F2" stroke-width="0" x="104.5" y="655.5" width="181" height="26" rx="4"/>
+<text x="195" y="660.5" fill="#717171" font-size="11" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">세럼 S.1 · 제품 이미지</text>
+<rect fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" x="45" y="607" width="72" height="28" rx="14"/>
+<text x="81" y="613" fill="#222222" font-size="11" font-weight="500" text-anchor="middle" dominant-baseline="text-before-edge">수분 세럼</text>
+</svg>

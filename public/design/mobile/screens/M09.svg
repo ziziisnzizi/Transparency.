@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" font-family="Noto Sans KR,Noto Sans CJK KR,Apple SD Gothic Neo,Malgun Gothic,sans-serif">
+<title>M09 / 사용 안내 · 루틴과 주의사항</title>
+<desc>세럼 S.1 사용 안내 탭. 사용 순서·약 0.5 mL·잔량 확인·보관·분리배출 안내입니다.</desc>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="0.5" y="0.5" width="389" height="843" rx="29"/>
+<text x="25" y="16" fill="#111111" font-size="14" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">9:41</text>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="146" y="11" width="98" height="27" rx="15"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="291" y="25" width="3" height="5" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="296" y="22" width="3" height="8" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="301" y="19" width="3" height="11" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="306" y="16" width="3" height="14" rx="1"/>
+<text x="317" y="16" fill="#111111" font-size="18" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">⌁</text>
+<rect fill="#FFFFFF" stroke="#111111" stroke-width="1" x="343" y="19" width="22" height="11" rx="3"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="345" y="21" width="17" height="7" rx="1"/>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="366" y="22" width="2" height="5" rx="1"/>
+<text x="20" y="63" fill="#111111" font-size="21" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">Transparency.</text>
+<ellipse fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" cx="268" cy="75" rx="16" ry="16"/>
+<ellipse fill="#FFFFFF" stroke="#717171" stroke-width="1" cx="268" cy="75" rx="7" ry="7"/>
+<rect fill="#717171" stroke="#717171" stroke-width="0" x="268" y="68" width="7" height="14" rx="0"/>
+<rect fill="#FAFAFA" stroke="#D0D0D0" stroke-width="1" x="292" y="60" width="79" height="30" rx="15"/>
+<text x="331" y="70" fill="#222222" font-size="10" font-weight="500" text-anchor="middle" dominant-baseline="text-before-edge">MY PRODUCTS</text>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="0" y1="101" x2="390" y2="101"/>
+<rect fill="#FAFAFA" stroke="#D0D0D0" stroke-width="1" x="16" y="757" width="358" height="66" rx="28"/>
+<rect fill="#E5E5E5" stroke="#E5E5E5" stroke-width="0" x="108" y="763" width="86" height="54" rx="22"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="56" y1="781" x2="65" y2="773"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="65" y1="773" x2="74" y2="781"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="59" y1="779" x2="59" y2="791"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="71" y1="779" x2="71" y2="791"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="59" y1="791" x2="71" y2="791"/>
+<text x="65" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">홈</text>
+<ellipse fill="#FAFAFA" stroke="#111111" stroke-width="1.5" cx="148.5" cy="779.5" rx="6.5" ry="6.5"/>
+<line stroke="#111111" stroke-width="1.5" stroke-linecap="round" x1="153" y1="785" x2="160" y2="792"/>
+<text x="151" y="798" fill="#111111" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="text-before-edge">제품 탐색</text>
+<rect fill="#FAFAFA" stroke="#717171" stroke-width="1.5" x="229" y="777" width="16" height="16" rx="2"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="233" y1="777" x2="233" y2="773"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="241" y1="777" x2="241" y2="773"/>
+<line stroke="#717171" stroke-width="1.5" stroke-linecap="round" x1="233" y1="773" x2="241" y2="773"/>
+<text x="237" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">내 제품</text>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="315" cy="783.5" rx="1.5" ry="1.5"/>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="323" cy="783.5" rx="1.5" ry="1.5"/>
+<ellipse fill="#717171" stroke="#717171" stroke-width="0" cx="331" cy="783.5" rx="1.5" ry="1.5"/>
+<text x="323" y="798" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">더보기</text>
+<rect fill="#111111" stroke="#111111" stroke-width="0" x="135" y="833" width="120" height="4" rx="2"/>
+<text x="24" y="116" fill="#717171" font-size="11" font-weight="500" text-anchor="start" dominant-baseline="text-before-edge">← 제품 목록</text>
+<text x="24" y="139" fill="#222222" font-size="21" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">세럼 S.1</text>
+<text x="366" y="145" fill="#717171" font-size="10" font-weight="400" text-anchor="end" dominant-baseline="text-before-edge">30 mL · 24,000원</text>
+<rect fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" x="16" y="173" width="358" height="43" rx="12"/>
+<rect fill="#FFFFFF" stroke="#D0D0D0" stroke-width="1" x="160" y="177" width="70" height="35" rx="9"/>
+<text x="55" y="188" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">성분·함량</text>
+<text x="125" y="188" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">효능·근거</text>
+<text x="195" y="188" fill="#222222" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="text-before-edge">사용 안내</text>
+<text x="265" y="188" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">질문하기</text>
+<text x="335" y="188" fill="#717171" font-size="10" font-weight="400" text-anchor="middle" dominant-baseline="text-before-edge">사용자 리뷰</text>
+<text x="24" y="239" fill="#717171" font-size="10" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">03 / HOW TO USE</text>
+<text x="24" y="262" fill="#222222" font-size="25" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">첫 사용부터,</text>
+<text x="24" y="294" fill="#222222" font-size="25" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">마지막 한 방울까지.</text>
+<rect fill="#F2F2F2" stroke="#D0D0D0" stroke-width="1" x="24" y="338" width="342" height="66" rx="12"/>
+<text x="38" y="351" fill="#717171" font-size="11" font-weight="600" text-anchor="start" dominant-baseline="text-before-edge">사용 순서</text>
+<text x="38" y="377" fill="#222222" font-size="11" font-weight="600" text-anchor="start" dominant-baseline="text-before-edge">세안 → 토너 T.1 → 세럼 S.1 → 크림 C.1</text>
+<text x="24" y="427" fill="#222222" font-size="13" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">1회 사용량</text>
+<text x="24" y="453" fill="#717171" font-size="12" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">약 0.5 mL · 피부 상태와 사용감에 맞춰 조절</text>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="24" y1="474" x2="366" y2="474"/>
+<text x="24" y="488" fill="#222222" font-size="13" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">잔량 확인</text>
+<text x="24" y="514" fill="#717171" font-size="12" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">용기에서 남은 양을 직접 확인</text>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="24" y1="535" x2="366" y2="535"/>
+<text x="24" y="549" fill="#222222" font-size="13" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">보관 방법</text>
+<text x="24" y="575" fill="#717171" font-size="12" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">직사광선과 고온을 피해 보관</text>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="24" y1="596" x2="366" y2="596"/>
+<text x="24" y="610" fill="#222222" font-size="13" font-weight="700" text-anchor="start" dominant-baseline="text-before-edge">분리배출</text>
+<text x="24" y="636" fill="#717171" font-size="12" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">부품별 재질 확인 후 분리</text>
+<line stroke="#D0D0D0" stroke-width="1" stroke-linecap="round" x1="24" y1="657" x2="366" y2="657"/>
+<text x="24" y="679" fill="#717171" font-size="11" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">사용 중 피부에 이상이 생기면 사용을 멈추고</text>
+<text x="24" y="698" fill="#717171" font-size="11" font-weight="400" text-anchor="start" dominant-baseline="text-before-edge">전문가와 상담하세요. 제품의 주의사항을 확인하세요.</text>
+</svg>
