@@ -24,9 +24,13 @@ if (localStorage.getItem('transparency-catalog-version') !== catalogVersion) {
 const arrow = '<span aria-hidden="true">↗</span>';
 const logoMark = 'Transparency.';
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const imageViews = new Map();
 
 function bottle(p) {
-  return `<div class="bottle-scene product-visual"><img class="product-packshot" src="${p.image}" alt="${p.name} 제품 이미지" width="${p.imageWidth}" height="${p.imageHeight}" loading="${selected?.id === p.id ? 'eager' : 'lazy'}" decoding="async"><img class="product-texture" src="${p.textureImage}" alt="" aria-hidden="true" width="1536" height="1024" loading="lazy" decoding="async"></div>`;
+  const view = imageViews.get(p.slug) || 'auto';
+  const textureShown = view === 'texture';
+  const action = textureShown ? '제품 보기' : '제형 보기';
+  return `<div class="bottle-scene product-visual" data-product-visual="${p.slug}" data-image-view="${view}"><img class="product-packshot" src="${p.image}" alt="${p.name} 제품 이미지" aria-hidden="${textureShown}" width="${p.imageWidth}" height="${p.imageHeight}" loading="${selected?.id === p.id ? 'eager' : 'lazy'}" decoding="async"><img class="product-texture" src="${p.textureImage}" alt="${p.name} ${p.texture} 제형 이미지" aria-hidden="${!textureShown}" width="1536" height="1024" loading="lazy" decoding="async"><button type="button" class="texture-toggle" data-texture-toggle="${p.slug}" aria-label="${p.name} ${action}"><span aria-hidden="true">◐</span><span class="texture-toggle-label">${action}</span></button></div>`;
 }
 
 const navIcons = {
@@ -70,7 +74,7 @@ function ratingSummary(p, isDetail = false) {
 }
 
 function card(p) {
-  return `<button class="product" data-id="${p.id}" aria-label="${p.name} 상세 보기"><div class="product-image">${bottle(p)}<span class="badge">${p.type}</span><span class="round-arrow" aria-hidden="true">↗</span></div><div class="product-meta"><span>${p.en}</span><span>${p.volume}</span></div><h3>${p.name}</h3><div class="product-price">${formatPurchasePrice(p.price)}</div>${ratingSummary(p)}<p>${p.ingredient}<span>성분 확인 ${arrow}</span></p><span class="routine-step">${p.routineStep}</span></button>`;
+  return `<article class="product"><button type="button" class="product-open" data-id="${p.id}" aria-label="${p.name} 상세 보기"></button><div class="product-image">${bottle(p)}<span class="badge">${p.type}</span><span class="round-arrow" aria-hidden="true">↗</span></div><div class="product-meta"><span>${p.en}</span><span>${p.volume}</span></div><h3>${p.name}</h3><div class="product-price">${formatPurchasePrice(p.price)}</div>${ratingSummary(p)}<p>${p.ingredient}<span>성분 확인 ${arrow}</span></p><span class="routine-step">${p.routineStep}</span></article>`;
 }
 
 function productResults(list) {
@@ -115,7 +119,7 @@ function detail() {
 function my() {
   return `<section class="section page-section"><div class="eyebrow">MY PRODUCTS</div><div class="section-head"><div><h1 class="page-title">나의 제품.<br>나의 사용 기록.</h1><p class="page-intro">개봉일부터 마지막 한 방울까지, 한눈에.</p></div><button class="dark" data-page="제품 탐색">제품 등록하기 <span aria-hidden="true">＋</span></button></div><div class="shelf-summary"><span>전체 <strong>${saved.length}</strong></span><span>사용 중 <strong>${saved.filter(s => !s.done && s.date).length}</strong></span><span>미개봉 <strong>${saved.filter(s => !s.done && !s.date).length}</strong></span><span>사용 완료 <strong>${saved.filter(s => s.done).length}</strong></span></div><div class="my-list">${saved.map((s, i) => {
     const p = products.find(p => p.id === s.id);
-    return `<article class="my-row"><button class="my-product-image" data-id="${p.id}" aria-label="${p.name} 정보 보기">${bottle(p)}</button><div class="my-product-copy"><span class="status-badge">${s.done ? '사용 완료' : s.date ? '사용 중' : '미개봉'}</span><h2>${p.name}</h2><span class="product-english">${p.en} / ${p.volume}</span><label class="date-label">개봉일 <input aria-label="${p.name} 개봉일" type="date" data-date="${i}" value="${escape(s.date || '')}"></label><span class="date-hint">개봉일을 비워두면 미개봉으로 기록됩니다.</span></div><div class="my-actions"><button data-done="${i}">${s.done ? '사용 중으로 변경' : '사용 완료'} ${arrow}</button><button data-delete="${i}" class="delete-btn">등록 삭제</button></div></article>`;
+    return `<article class="my-row"><div class="my-product-image"><button type="button" class="my-product-open" data-id="${p.id}" aria-label="${p.name} 정보 보기"></button>${bottle(p)}</div><div class="my-product-copy"><span class="status-badge">${s.done ? '사용 완료' : s.date ? '사용 중' : '미개봉'}</span><h2>${p.name}</h2><span class="product-english">${p.en} / ${p.volume}</span><label class="date-label">개봉일 <input aria-label="${p.name} 개봉일" type="date" data-date="${i}" value="${escape(s.date || '')}"></label><span class="date-hint">개봉일을 비워두면 미개봉으로 기록됩니다.</span></div><div class="my-actions"><button data-done="${i}">${s.done ? '사용 중으로 변경' : '사용 완료'} ${arrow}</button><button data-delete="${i}" class="delete-btn">등록 삭제</button></div></article>`;
   }).join('') || '<div class="empty"><div class="empty-mark" aria-hidden="true">＋</div><span class="eyebrow">YOUR DAILY RECORD</span><h2>첫 제품을 등록해 보세요.</h2><p>개봉일부터 사용 완료까지,<br>나의 제품을 투명하게 기록하세요.</p><button data-page="제품 탐색" class="text-btn">등록할 제품 찾기 ↗</button></div>'}</div><p class="storage-note">제품 기록은 현재 사용 중인 브라우저에 저장됩니다.</p></section>`;
 }
 
@@ -252,6 +256,27 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Tab') document.body.classList.add('keyboard-navigation');
 });
 document.addEventListener('pointerdown', () => document.body.classList.remove('keyboard-navigation'));
+document.addEventListener('click', event => {
+  const button = event.target.closest?.('[data-texture-toggle]');
+  if (!button) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const product = products.find(item => item.slug === button.dataset.textureToggle);
+  if (!product) return;
+  const view = button.closest('.product-visual').dataset.imageView === 'texture' ? 'product' : 'texture';
+  imageViews.set(product.slug, view);
+  document.querySelectorAll('[data-product-visual]').forEach(visual => {
+    if (visual.dataset.productVisual !== product.slug) return;
+    const textureShown = view === 'texture';
+    visual.dataset.imageView = view;
+    visual.querySelector('.product-packshot').setAttribute('aria-hidden', String(textureShown));
+    visual.querySelector('.product-texture').setAttribute('aria-hidden', String(!textureShown));
+    const toggle = visual.querySelector('.texture-toggle');
+    const action = textureShown ? '제품 보기' : '제형 보기';
+    toggle.querySelector('.texture-toggle-label').textContent = action;
+    toggle.setAttribute('aria-label', `${product.name} ${action}`);
+  });
+});
 window.addEventListener('storage', event => {
   if (event.key === REVIEW_STORAGE_KEY || event.key === null) render();
 });
