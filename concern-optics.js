@@ -1,21 +1,26 @@
 // Decorative optics only: no input text, network, storage or device sensors.
+import { createPrismRenderer } from './concern-prism.js';
 const mounted = new WeakMap();
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 
-export function mountConcernOptics(root) {
+export function mountConcernOptics(root, { forceCanvas = false } = {}) {
   mounted.get(root)?.();
   const stage = root.querySelector('.concern-visual-stage');
   const water = root.querySelector('.concern-water');
-  const canvas = root.querySelector('[data-concern-optics]');
+  let canvas = root.querySelector('[data-concern-optics]');
   if (!stage || !water || !canvas) return () => {};
 
+  const dark = document.documentElement.dataset.theme === 'dark';
+  const renderer = forceCanvas ? null : createPrismRenderer(canvas, { dark, compact: root.classList.contains('has-results') });
+  if (renderer) canvas = renderer.canvas;
   let context;
-  try { context = canvas.getContext('2d', { alpha: true }); } catch { /* CSS material remains. */ }
+  if (!renderer) {
+    try { context = canvas.getContext('2d', { alpha: true }); } catch { /* CSS material remains. */ }
+  }
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const transparency = matchMedia('(prefers-reduced-transparency: reduce)');
   const forcedColors = matchMedia('(forced-colors: active)');
   const coarse = matchMedia('(pointer: coarse)').matches;
-  const dark = document.documentElement.dataset.theme === 'dark';
   const interval = 1000 / 30;
   let disposed = false, frame = 0, previous = 0, time = 0, onScreen = true;
   let width = 1, height = 1, scale = 1, bounds = null, dirtyLight = true;
@@ -37,8 +42,11 @@ export function mountConcernOptics(root) {
     width = Math.max(1, rect.width);
     height = Math.max(1, rect.height);
     scale = Math.min(devicePixelRatio || 1, coarse ? 1.25 : 1.5, Math.sqrt(1100000 / (width * height)));
-    if (canvas.width !== Math.round(width * scale)) canvas.width = Math.round(width * scale);
-    if (canvas.height !== Math.round(height * scale)) canvas.height = Math.round(height * scale);
+    if (renderer) renderer.resize(width, height, scale);
+    else {
+      if (canvas.width !== Math.round(width * scale)) canvas.width = Math.round(width * scale);
+      if (canvas.height !== Math.round(height * scale)) canvas.height = Math.round(height * scale);
+    }
     paint();
   }
 
@@ -113,9 +121,13 @@ export function mountConcernOptics(root) {
       root.style.setProperty('--concern-light-x', `${x.toFixed(1)}%`);
       root.style.setProperty('--concern-light-y', `${y.toFixed(1)}%`);
       root.style.setProperty('--concern-glass-angle', `${(145 + target.x * 25 - target.y * 14).toFixed(1)}deg`);
-      root.style.setProperty('--concern-offset-x', `${(target.x * 18).toFixed(1)}px`);
-      root.style.setProperty('--concern-offset-y', `${(target.y * 12).toFixed(1)}px`);
+      root.style.setProperty('--concern-offset-x', `${(target.x * 42).toFixed(1)}px`);
+      root.style.setProperty('--concern-offset-y', `${(target.y * 28).toFixed(1)}px`);
       dirtyLight = false;
+    }
+    if (renderer) {
+      renderer.render({ time: motion.matches ? 3.5 : time, pointer, focus, ripples, hidden: transparency.matches || forcedColors.matches });
+      return;
     }
     if (!context) return;
     const ctx = context;
@@ -178,14 +190,14 @@ export function mountConcernOptics(root) {
       previous = stamp;
       if (!reduced()) {
         time += delta;
-        pointer.x += (target.x - pointer.x) * .085;
-        pointer.y += (target.y - pointer.y) * .085;
+        pointer.x += (target.x - pointer.x) * .16;
+        pointer.y += (target.y - pointer.y) * .16;
         focus += (focusTarget - focus) * .08;
         while (ripples.length && time - ripples[0].started > 2.4) ripples.shift();
       }
       paint();
     }
-    if (context && !reduced()) frame = requestAnimationFrame(tick);
+    if ((context || renderer) && !reduced()) frame = requestAnimationFrame(tick);
   }
 
   function schedule() {
@@ -206,10 +218,10 @@ export function mountConcernOptics(root) {
     if (visible()) { paint(); if (!reduced()) schedule(); }
   }
 
-  listen(stage, 'pointermove', event => {
-    if (reduced() || !bounds) return;
-    target.x = clamp((event.clientX - bounds.left) / bounds.width * 2 - 1, -1, 1);
-    target.y = clamp((event.clientY - bounds.top) / bounds.height * 2 - 1, -1, 1);
+  listen(window, 'pointermove', event => {
+    if (reduced() || !visible()) return;
+    target.x = clamp(event.clientX / innerWidth * 2 - 1, -1, 1);
+    target.y = clamp(event.clientY / innerHeight * 2 - 1, -1, 1);
     dirtyLight = true;
     schedule();
   }, { passive: true });
@@ -218,11 +230,11 @@ export function mountConcernOptics(root) {
     dirtyLight = true;
     schedule();
   }
-  listen(stage, 'pointerleave', resetPointer, { passive: true });
-  listen(stage, 'pointercancel', resetPointer, { passive: true });
-  listen(stage, 'pointerup', event => { if (event.pointerType !== 'mouse') resetPointer(); }, { passive: true });
-  listen(stage, 'pointerdown', event => {
-    if (reduced() || event.button > 0) return;
+  listen(document.documentElement, 'pointerleave', resetPointer, { passive: true });
+  listen(window, 'pointercancel', resetPointer, { passive: true });
+  listen(window, 'pointerup', event => { if (event.pointerType !== 'mouse') resetPointer(); }, { passive: true });
+  listen(window, 'pointerdown', event => {
+    if (reduced() || !visible() || event.button > 0) return;
     const rect = water.getBoundingClientRect();
     ripples.push({ x: clamp((event.clientX - rect.left) / rect.width, 0, 1), y: clamp((event.clientY - rect.top) / rect.height, 0, 1), started: time });
     if (ripples.length > 4) ripples.shift();
@@ -237,6 +249,13 @@ export function mountConcernOptics(root) {
   resize.observe(water);
   const intersection = new IntersectionObserver(entries => { onScreen = entries[0].isIntersecting; sync(); });
   intersection.observe(stage);
+  if (renderer) listen(canvas, 'webglcontextlost', event => {
+    event.preventDefault();
+    const replacement = canvas.cloneNode();
+    canvas.replaceWith(replacement);
+    dispose();
+    if (root.isConnected) mountConcernOptics(root, { forceCanvas: true });
+  });
 
   function dispose() {
     if (disposed) return;
@@ -247,6 +266,7 @@ export function mountConcernOptics(root) {
     intersection.disconnect();
     cleanups.forEach(cleanup => cleanup());
     ripples.length = 0;
+    renderer?.dispose();
     // Release the backing surface when this search view is removed/replaced.
     canvas.width = canvas.height = 1;
     if (mounted.get(root) === dispose) mounted.delete(root);
@@ -256,7 +276,7 @@ export function mountConcernOptics(root) {
   cleanups.push(() => removal.disconnect());
   listen(root, 'concern-before-refresh', dispose);
   mounted.set(root, dispose);
-  water.dataset.optics = context ? 'canvas' : 'css';
+  water.dataset.optics = renderer ? 'webgl' : context ? 'canvas' : 'css';
   measure();
   sync();
   return dispose;
