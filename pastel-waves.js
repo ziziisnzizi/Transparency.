@@ -29,18 +29,18 @@ void main(){
  float d2=p.y-second;
  float d3=p.y-third;
 
- vec3 low=mix(vec3(.78,.89,.97),vec3(.025,.060,.100),dark);
- vec3 high=mix(vec3(.95,.98,1.),vec3(.045,.100,.160),dark);
+ vec3 low=mix(vec3(.955),vec3(.028),dark);
+ vec3 high=mix(vec3(1.),vec3(.065),dark);
  float wash=clamp(uv.y*.72+uv.x*.18,0.,1.);
  vec3 color=mix(low,high,wash);
- vec3 blue=mix(vec3(.67,.83,.95),vec3(.055,.150,.240),dark);
- vec3 ice=mix(vec3(.96,.99,1.),vec3(.110,.230,.340),dark);
+ vec3 foldTone=mix(vec3(.88),vec3(.085),dark);
+ vec3 ice=mix(vec3(1.),vec3(.14),dark);
 
  // Three broad, differently curved water folds replace the repeated grey ribs.
  float body1=softBand(d1,.145);
  float body2=softBand(d2,.180);
  float body3=softBand(d3,.150);
- color=mix(color,blue,body1*.28+body2*.16+body3*.10);
+ color=mix(color,foldTone,body1*.28+body2*.16+body3*.10);
  float rim1=softBand(d1+.075,.034);
  float rim2=softBand(d2+.090,.043);
  float rim3=softBand(d3+.065,.035);
@@ -49,7 +49,7 @@ void main(){
  // An airy white pool keeps the centre quiet behind reading and form fields.
  vec2 pool=(uv-vec2(.56,.59))*vec2(.88,1.);
  float daylight=exp(-dot(pool,pool)*5.5);
- color=mix(color,mix(vec3(.94,.98,1.),vec3(.040,.100,.165),dark),daylight*.22);
+ color=mix(color,mix(vec3(.985),vec3(.045),dark),daylight*.22);
 
  // Taps add a broad, fading disturbance with no coloured rings or UI distortion.
  for(int i=0;i<4;i++){

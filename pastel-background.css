@@ -1,24 +1,24 @@
-/* One quiet blue atmosphere behind the whole app. UI and product photography
+/* One quiet white atmosphere behind the whole app. UI and product photography
    retain their native opacity; the background never filters or distorts them. */
 html:root {
-  --muted: #52606d;
-  --ambient-page-base: #eaf4fc;
-  --ambient-powder: #d9ecfa;
-  --ambient-blue: #d0e7f7;
-  --ambient-deep-blue: #accfe9;
+  --muted: #666;
+  --ambient-page-base: #fafafa;
+  --ambient-powder: #f4f4f4;
+  --ambient-shade: #ededed;
+  --ambient-deep-shade: #dedede;
   --ambient-light: rgb(255 255 255 / .88);
-  --ambient-fold: rgb(173 210 236 / .30);
+  --ambient-fold: rgb(215 215 215 / .30);
   background: var(--ambient-page-base);
 }
 
 html:root[data-theme="dark"] {
   --muted: #aaaeb5;
-  --ambient-page-base: #0c1725;
-  --ambient-powder: #12253a;
-  --ambient-blue: #1c3852;
-  --ambient-deep-blue: #244862;
-  --ambient-light: rgb(131 181 216 / .13);
-  --ambient-fold: rgb(75 126 166 / .14);
+  --ambient-page-base: #101010;
+  --ambient-powder: #171717;
+  --ambient-shade: #202020;
+  --ambient-deep-shade: #303030;
+  --ambient-light: rgb(190 190 190 / .13);
+  --ambient-fold: rgb(105 105 105 / .14);
   background: var(--ambient-page-base);
 }
 
@@ -41,7 +41,7 @@ html:root body::after { content: none; }
   pointer-events: none;
   background:
     radial-gradient(ellipse at 19% 9%, var(--ambient-light), transparent 65%),
-    linear-gradient(145deg, var(--ambient-page-base), var(--ambient-powder) 54%, var(--ambient-blue));
+    linear-gradient(145deg, var(--ambient-page-base), var(--ambient-powder) 54%, var(--ambient-shade));
 }
 
 .ambient-wave-canvas {
@@ -58,7 +58,7 @@ html:root body::after { content: none; }
   inset: -32px;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 82% 75%, var(--ambient-blue), transparent 62%),
+    radial-gradient(ellipse at 82% 75%, var(--ambient-shade), transparent 62%),
     radial-gradient(ellipse at 17% 22%, var(--ambient-light), transparent 58%);
   transform: translate3d(var(--ambient-shift-x, 0px), var(--ambient-shift-y, 0px), 0);
 }
