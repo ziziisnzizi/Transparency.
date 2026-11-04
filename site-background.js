@@ -68,10 +68,17 @@ vec2 rotatePoint(vec2 p,float angle){
  float c=cos(angle),s=sin(angle);
  return vec2(c*p.x-s*p.y,s*p.x+c*p.y);
 }
+float organicRegion(vec2 p,vec2 centre,vec2 size,float phase){
+ vec2 q=(p-centre)/size;
+ float edgeNoise=latticeNoise(p*3.2+vec2(phase*.14,-phase*.11))*2.-1.;
+ float edgeWave=sin(atan(q.y,q.x)*3.+phase)*.11;
+ float edge=length(q)+edgeNoise*.20+edgeWave;
+ return 1.-smoothstep(.25,1.28,edge);
+}
 void main(){
  vec2 uv=gl_FragCoord.xy/resolution;
  float aspect=viewport.x/max(viewport.y,1.);
- float t=clock*timeScale;
+ float t=clock*timeScale*1.6;
  vec2 memory=motionHistory.xy;
  float circulation=motionHistory.z;
  float memoryWave=sin(motionHistory.w);
@@ -112,52 +119,35 @@ void main(){
  )*2.-1.;
  vec2 warped=pushed+(first*.42+second*.58)*amount*.30;
 
- // A cohesive S-shaped diagonal fold. Whole-field bend and tilt respond to the
- // pointer; the autonomous phase continues when the pointer stops moving.
- float angle=rotation+sin(t*.25)*.20+(drag.x*.30+velocity.x*.025)*gesture+circulation*.34+memoryWave*.10;
- vec2 bandPoint=rotatePoint((warped-.5)*vec2(.96,1.04),angle);
- float curve=bandPoint.y+sin(bandPoint.x*2.6+t*.32+drag.y*.50*gesture)*(.17+drag.x*.035*gesture);
- curve+=sin(t*.50)*.22+(drag.x*.18+drag.y*.22+velocity.y*.025)*gesture;
- curve+=memory.y*.18+memoryWave*.16+memoryTurn*.055;
- // Multiple low-frequency noise fields make the displaced colour boundary bend
- // as a fluid sheet, with the whole field retaining the path of the gesture.
- curve+=(first.x*.07+second.y*.11)*pointerActive*gesture;
- float band=.5+curve;
- float shoulder=exp(-pow((curve-.04)/.17,2.));
- float crest=exp(-pow((curve-.075)/.10,2.));
- // Broad white and saturated blue streams share one continuous global canvas.
- float secondCurve=bandPoint.y*.90-bandPoint.x*.24+cos(bandPoint.x*1.9-t*.26+drag.x*.42)*.22-.31+(drag.y*.075-drag.x*.10)*gesture;
- secondCurve+=memory.x*.16-circulation*.10+memoryWave*.12;
- float firstStream=exp(-pow((curve-.015)/.13,2.));
- float secondStream=exp(-pow((secondCurve+.11)/.16,2.));
- vec3 color=mix(white,sky,clamp(firstStream*.68+secondStream*.42,0.,.94));
- color=mix(color,blue,clamp(firstStream*.38+secondStream*.55+firstStream*secondStream*.15,0.,.94));
- color=mix(color,white,crest*.92);
-
- // Cursor position changes occupied area, not merely the angle of a pale
- // wash. At one end the ice-blue fold retreats; at the other it dominates
- // the centre/right. The shared composition keeps moving between gestures.
- float dominance=clamp(.50+drag.x*.56*gesture+drag.y*.12*gesture+sin(t*.27)*.14+memory.x*.18+circulation*.10+memoryWave*.12,0.,1.);
- vec2 rightCentre=vec2(mix(1.36,.59,dominance)+sin(t*.39)*.045,.52+cos(t*.26)*.07+drag.y*.10);
- vec2 topCentre=vec2(.28+sin(t*.31)*.12+drag.x*.12,mix(1.36,1.10,dominance)+drag.y*.07);
- vec2 rightSize=vec2(mix(.52,.72,dominance),mix(.46,.66,dominance));
- vec2 topSize=vec2(mix(.64,.84,dominance),mix(.34,.48,dominance));
- vec2 lobePoint=warped+first*.025;
- vec2 rightShape=rotatePoint(lobePoint-rightCentre,-.12+drag.y*.12)/rightSize;
- vec2 topShape=rotatePoint(lobePoint-topCentre,.12+drag.x*.10)/topSize;
- float rightLobe=1.-smoothstep(.35,1.10,length(rightShape));
- float topLobe=1.-smoothstep(.35,1.10,length(topShape));
- float pocket=max(rightLobe,topLobe);
- color=mix(color,ice,pocket*.42);
- // The dark scene uses the same moving field, but with deep ink and spectral
- // cyan-to-orange bands inspired by the reference rather than darkening UI.
- float coolBand=exp(-pow((curve+.14)/.30,2.));
- float coolRim=exp(-pow((curve+.04)/.12,2.));
- float warmBand=exp(-pow((curve-.23)/.27,2.));
- vec3 darkColor=mix(darkBlack,darkBlue,clamp(coolBand*.92,0.,1.));
- darkColor=mix(darkColor,darkCyan,coolRim*.68);
- darkColor=mix(darkColor,darkWarm,warmBand*.86);
- darkColor=mix(darkColor,darkBlack,pocket*.65);
+ // Independent, soft-edged regions take the place of parallel colour bands.
+ // Each region has its own drifting centre and deformed boundary; pointer
+ // movement pulls and rotates the shared coordinate field above, so the
+ // regions bend and merge rather than sliding together in a straight line.
+ vec2 flow=warped+(first*.12+second*.11)*amount;
+ flow=rotatePoint(flow-.5,rotation*.12)+.5;
+ vec2 c1=vec2(.17+.16*sin(t*.31+memoryWave*.6)+drag.x*.14,
+              .63+.14*cos(t*.24+circulation*.4)+drag.y*.12);
+ vec2 c2=vec2(.77+.15*cos(t*.22+circulation*.5)-drag.y*.10,
+              .29+.17*sin(t*.27+memoryWave*.5)+drag.x*.12);
+ vec2 c3=vec2(.64+.17*sin(t*.19+1.7)-drag.x*.12,
+              .90+.13*cos(t*.29+1.2)-drag.y*.10);
+ vec2 c4=vec2(.32+.19*cos(t*.20+2.1)+drag.y*.10,
+              .08+.15*sin(t*.23+.9)-drag.x*.10);
+ float l1=organicRegion(flow,c1,vec2(.36,.43),t*.24);
+ float l2=organicRegion(flow,c2,vec2(.33,.38),t*.19+2.);
+ float l3=organicRegion(flow,c3,vec2(.34,.29),t*.21+4.);
+ float l4=organicRegion(flow,c4,vec2(.33,.31),t*.17+6.);
+ float blueArea=clamp(max(l1*.83,l2*.78)+l3*.31,0.,.91);
+ float iceArea=clamp(max(l2*.56,l4*.65)+l3*.20,0.,.85);
+ vec3 color=mix(white,ice,iceArea*.50);
+ color=mix(color,sky,blueArea*.60);
+ color=mix(color,blue,blueArea*.37);
+ // Dark mode uses the same organic motion with its existing palette.
+ float warmArea=clamp(max(l1*.84,l3*.74),0.,.92);
+ float coolArea=clamp(max(l2*.86,l4*.72),0.,.90);
+ vec3 darkColor=mix(darkBlack,darkBlue,coolArea*.90);
+ darkColor=mix(darkColor,darkCyan,clamp(l4*.44+l2*.12,0.,.52));
+ darkColor=mix(darkColor,darkWarm,warmArea*.84);
  color=mix(color,darkColor,darkMode);
  // No exposure lift or whitening veil. Foreground glass and local scrims
  // provide legibility above the active theme’s artwork.
