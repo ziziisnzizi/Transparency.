@@ -2,8 +2,10 @@ import { createLandingLensRenderer } from './landing-lens-renderer.js';
 import { rasterizeTextLensPlane } from './landing-text-lens.js';
 
 const mounted = new WeakMap();
-const semantic = 'h1,h2,h3,h4,h5,h6,p,a,button,summary,label,dt,dd,small,figcaption';
-const forbidden = 'input,textarea,select,option,[contenteditable]:not([contenteditable="false"]),svg,canvas,script,style,code,pre,dialog[open],[popover],.sr-only,.visually-hidden,[data-site-wide-ui]';
+const semantic = 'h1,h2,h3,h4,h5,h6,p,dt,dd,figcaption';
+// Controls remain native even when their children are large, or when an
+// invisible card-wide button sits over an otherwise eligible heading.
+const forbidden = 'button,a,label,summary,nav,[role="button"],[role="link"],[role="navigation"],[role="menuitem"],input,textarea,select,option,[contenteditable]:not([contenteditable="false"]),svg,canvas,script,style,code,pre,dialog[open],[popover],.sr-only,.visually-hidden,[data-site-wide-ui]';
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const number = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const within = (point, rect) => point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
@@ -22,18 +24,18 @@ function segments(text) {
   return [...text.matchAll(/\s+|[^\s]+/g)].map(part=>({text:part[0],index:part.index}));
 }
 
-function visibleNode(node) {
+function visibleNode(node, minFontSize) {
   const parent = node.parentElement;
   if (!parent || !node.textContent.trim() || parent.closest(forbidden) || parent.closest('[data-language-plane="ja"],[aria-hidden="true"]')) return false;
   const style = getComputedStyle(parent);
-  return style.display !== 'none' && style.visibility !== 'hidden';
+  return style.display !== 'none' && style.visibility !== 'hidden' && parseFloat(style.fontSize) >= minFontSize;
 }
 
-function textNodes(element, document) {
+function textNodes(element, document, minFontSize = 0) {
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
   const nodes = []; let characters = 0;
   for (let node=walker.nextNode();node;node=walker.nextNode()) {
-    if (!visibleNode(node)) continue;
+    if (!visibleNode(node, minFontSize)) continue;
     nodes.push(node); characters += node.length;
     if (nodes.length > 120 || characters > 6000) return [];
   }
@@ -46,8 +48,8 @@ function opacityFor(element) {
   return opacity;
 }
 
-function staticRuns(element, document) {
-  const nodes = textNodes(element,document), runs = [];
+function staticRuns(element, document, minFontSize) {
+  const nodes = textNodes(element,document,minFontSize), runs = [];
   const range = document.createRange();
   for (const node of nodes) {
     const style = getComputedStyle(node.parentElement);
@@ -92,6 +94,7 @@ export function mountSiteWideTextLens(document,config={}) {
   mounted.get(document)?.();
   const view=document.defaultView,settings=config.lens||config;
   const diameter=clamp(number(settings.diameter,180),140,200),radius=diameter/2;
+  const minFontSize=clamp(number(settings.minFontSize,16),12,32);
   const optical={radius,rimWidth:clamp(number(settings.rimWidth,10),1,radius/3),refraction:clamp(number(settings.refraction,7),0,20),rgbOffset:clamp(number(settings.rgbOffset,1.5),0,4)};
   const coarse=view.matchMedia('(pointer: coarse), (hover: none), (max-width: 750px), (forced-colors: active)');
   const motion=view.matchMedia('(prefers-reduced-motion: reduce)');
@@ -122,18 +125,25 @@ export function mountSiteWideTextLens(document,config={}) {
   function eligible(element){
     if(!(element instanceof Element)||element.closest(forbidden)||element.closest('[data-language-plane="ja"],[aria-hidden="true"]'))return null;
     const primary=element.closest('[data-site-text-region][data-landing-title]');
-    if(primary)return primary;
+    if(primary)return textNodes(primary,document,minFontSize).length?primary:null;
     const group=element.closest(semantic)||element.closest('span,li');
-    if(!group||group.closest(forbidden)||!group.textContent.trim())return null;
+    if(!group||group.closest(forbidden)||!textNodes(group,document,minFontSize).length)return null;
     return group;
   }
   function pick(){
-    for(const element of document.elementsFromPoint(target.x,target.y)){
-      const group=eligible(element);if(!group)continue;
+    const element=document.elementFromPoint(target.x,target.y);
+    // This is a hard stop, rather than a search through lower paint layers:
+    // hovering a nav/button or small text must not refract a heading behind it.
+    if(!element||element.closest(forbidden)||element.closest('[data-language-plane="ja"],[aria-hidden="true"]')||parseFloat(getComputedStyle(element).fontSize)<minFontSize)return null;
+    const group=eligible(element);
+    if(group){
       if(active?.element===group)return group;
-      const range=document.createRange();range.selectNodeContents(group);
-      const hits=[...range.getClientRects()].some(rect=>rect.width>1&&rect.height>1&&within(target,rect));range.detach?.();
-      if(hits&&textNodes(group,document).length)return group;
+      const range=document.createRange();
+      const hits=textNodes(group,document,minFontSize).some(node=>{
+        range.selectNodeContents(node);
+        return [...range.getClientRects()].some(rect=>rect.width>1&&rect.height>1&&within(target,rect));
+      });range.detach?.();
+      if(hits)return group;
     }
     return active&&active.element.isConnected&&separation(target,active.bounds)<radius?active.element:null;
   }
@@ -143,8 +153,11 @@ export function mountSiteWideTextLens(document,config={}) {
     if(!element||!ensureRenderer())return;
     const source=element.querySelector('[data-site-source-plane]');
     const translated=element.querySelector('[data-language-plane="ja"]');
-    const primary=Boolean(source&&translated);
-    const snapshot=primary?null:staticRuns(element,document);
+    // Mixed headings containing a small caption/control use the ordinary path
+    // so those descendants retain native glyphs, opacity and interaction.
+    const sourceNodes=source?textNodes(source,document):[];
+    const primary=Boolean(source&&translated&&sourceNodes.length&&!source.querySelector(forbidden)&&sourceNodes.length===textNodes(source,document,minFontSize).length);
+    const snapshot=primary?null:staticRuns(element,document,minFontSize);
     const titleRect=primary?element.getBoundingClientRect():null;
     const padding=Math.ceil(optical.refraction+optical.rgbOffset+3);
     const bounds=primary?{left:titleRect.left-padding,top:titleRect.top-padding,right:titleRect.right+padding,bottom:titleRect.bottom+padding,width:titleRect.width+padding*2,height:titleRect.height+padding*2}:snapshot?.bounds;
@@ -175,11 +188,11 @@ export function mountSiteWideTextLens(document,config={}) {
     if(dirtyPick){dirtyPick=false;activate(pointerPresent?pick():null);}
     const delta=last?Math.min((stamp-last)/1000,.15):1/60;last=stamp;
     const follow=motion.matches?1:1-Math.exp(-number(settings.followRate,12)*delta),fade=motion.matches?1:1-Math.exp(-number(settings.fadeRate,10)*delta);
-    const opacityTarget=pointerPresent&&renderer?1:0;
+    const opacityTarget=pointerPresent&&renderer&&active?1:0;
     const revealTarget=pointerPresent&&active?.primary&&active.lines.some(rect=>within(target,rect))?1:0;
     current.x+=(target.x-current.x)*follow;current.y+=(target.y-current.y)*follow;opacity+=(opacityTarget-opacity)*fade;reveal+=(revealTarget-reveal)*fade;
     if(Math.abs(opacity-opacityTarget)<.0001)opacity=opacityTarget;if(Math.abs(reveal-revealTarget)<.0001)reveal=revealTarget;
-    rim.hidden=!renderer;paint();
+    rim.hidden=!renderer||!active;paint();
     if(!opacity&&!pointerPresent)releaseActive();
     if(Math.abs(current.x-target.x)+Math.abs(current.y-target.y)>.02||Math.abs(opacity-opacityTarget)>.0001||Math.abs(reveal-revealTarget)>.0001)schedule();else last=0;
   }

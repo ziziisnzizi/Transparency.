@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
 const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('node:os').tmpdir(), 'transparency-background-interaction.json');
 
 (async () => {
-  const names = ['site-background.js', 'site-effects-config.js'];
+  const names = ['site-background.js', 'site-effects-config.js', 'background-motion.js'];
   const sources = Object.fromEntries(await Promise.all(names.map(async name => [name, await fs.readFile(path.join(root, name), 'utf8')])));
   const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage', '--enable-webgl', '--enable-unsafe-swiftshader'] });
   let result;
@@ -27,6 +27,7 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
     result = await page.evaluate(async () => {
       const { createSiteBackground } = await import('/site-background.js');
       const { siteEffectsConfig } = await import('/site-effects-config.js');
+      const { createBackgroundMotion, stepBackgroundMotion } = await import('/background-motion.js');
       const settings = siteEffectsConfig.background || {};
       const W = 360, H = 240, clock = 3, times = [0, 1, 3, 5];
       const pointer = (x, y, extra = {}) => ({ x, y, active: 1, trailX: x, trailY: y, vx: 0, vy: 0, ...extra });
@@ -194,6 +195,36 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         checks[`${name}ShapeChangesBeyondBestTranslation`] = bestTranslation.best.meanRGBDelta > minimum / 2 && bestTranslation.residualFraction > .15;
         checks[`${name}TrailAndVelocityAffectSameEndpoint`] = trailResponse.meanRGBDelta > minimum / 2 && velocityResponse.meanRGBDelta > .01;
       }
+      // Identical final kinematics and clock isolate actual path memory from
+      // endpoint, pointer lag, velocity, grain or the autonomous time field.
+      function closedPathHistory(direction) {
+        let history = createBackgroundMotion(), previous = { x: 0, y: 0 };
+        function advance(x, y) {
+          history = stepBackgroundMotion(history, { x, y, dx: x - previous.x, dy: y - previous.y, active: 1 }, 1 / 60, settings);
+          previous = { x, y };
+        }
+        advance(.68, 0);
+        for (let i = 1; i <= 120; i++) {
+          const angle = direction * i / 120 * Math.PI * 2;
+          advance(.68 * Math.cos(angle), .52 * Math.sin(angle));
+        }
+        advance(0, 0);
+        for (let i = 0; i < 12; i++) advance(0, 0);
+        return history;
+      }
+      const sharedHistoryPointer = pointer(0, 0);
+      const forwardHistory = closedPathHistory(1), reverseHistory = closedPathHistory(-1), replayHistory = closedPathHistory(1);
+      const historyFrame = history => field.capture({ time: clock, pointer: sharedHistoryPointer, history });
+      const forwardFrame = historyFrame(forwardHistory), reverseFrame = historyFrame(reverseHistory);
+      const differentPaths = difference(forwardFrame, reverseFrame);
+      const replayPixels = difference(forwardFrame, historyFrame(replayHistory));
+      const neutralHistoryFrame = historyFrame(createBackgroundMotion());
+      historyFrame(reverseHistory);
+      const omittedResetsHistory = difference(neutralHistoryFrame, field.capture({ time: clock, pointer: sharedHistoryPointer }));
+      const historyObservation = { time: clock, pointer: sharedHistoryPointer, path: { ellipseRadii: [.68, .52], loopSteps: 120, settleSteps: 12, secondsPerStep: 1 / 60, sameEndpoint: [0, 0] }, states: { forward: forwardHistory, reverse: reverseHistory, replay: replayHistory }, differentPaths, replayPixels, omittedResetsHistory };
+      checks.pathMemoryChangesPixelsWithIdenticalInstantInputs = differentPaths.meanRGBDelta > 1 && differentPaths.fractionOver2 > .05;
+      checks.pathMemoryReplayIsDeterministic = JSON.stringify(forwardHistory) === JSON.stringify(replayHistory) && replayPixels.maxRGBDelta === 0;
+      checks.omittedHistoryRestoresNeutralField = omittedResetsHistory.maxRGBDelta === 0;
       const withoutGrain = grainStates.map(options => field.capture(options));
       const grain = { samples: 0, sum: 0, squares: 0, absolute: 0, over2: 0, maxChannelSpread: 0, maxStateResidualDifference: 0 };
       for (let i = 0; i < withGrain[0].length; i += 4) {
@@ -218,7 +249,7 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       checks.noGLErrors = normalError === 0 && fieldError === 0;
       checks.contextsDisposed = normalDisposed && field.gl.isContextLost();
       checks.resourcesReleased = Object.keys(ledger.created).every(type => ledger.created[type] === ledger.deleted[type]);
-      return { fixture: { size: [W, H], fixedClock: clock, times, adjacentInterval: 1 / 30, paletteThresholds: { nearBlack: 'relative luminance < .025 and RGB spread < 40', nearWhite: 'all RGB channels > 224 and spread < 32', cobalt: 'B > 130, B-R > 55, B-G > 20', minimumBlackPointerAreaChange: .25 }, pointers: { neutral, left, right, up, down, moving, velocityOnly }, interpretation: 'Sampled framebuffer observations only; no all-time contrast, motion, or flash-safety guarantee. Legacy scene flags must be identical for the one continuous scene. Foreground contrast over local UI surfaces requires application verification. Controller event wiring and inertial decay require application verification.' }, implementation, legacyInvariance, observations, shape, palette, grain, spectrum, ledger, checks, passed: Object.values(checks).every(Boolean) };
+      return { fixture: { size: [W, H], fixedClock: clock, times, adjacentInterval: 1 / 30, paletteThresholds: { nearBlack: 'relative luminance < .025 and RGB spread < 40', nearWhite: 'all RGB channels > 224 and spread < 32', cobalt: 'B > 130, B-R > 55, B-G > 20', minimumBlackPointerAreaChange: .25 }, pointers: { neutral, left, right, up, down, moving, velocityOnly }, interpretation: 'Sampled framebuffer observations only; no all-time contrast, motion, or flash-safety guarantee. Legacy scene flags must be identical for the one continuous scene. Foreground contrast over local UI surfaces requires application verification. Controller event wiring and inertial decay require application verification.' }, implementation, legacyInvariance, observations, shape, historyObservation, palette, grain, spectrum, ledger, checks, passed: Object.values(checks).every(Boolean) };
     });
     result.pageErrors = pageErrors;
     if (pageErrors.length) result.passed = false;

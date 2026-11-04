@@ -1,6 +1,7 @@
 import { createSiteBackground } from './site-background.js';
 import { siteEffectsConfig } from './site-effects-config.js';
 import { createBackdropInk } from './backdrop-ink.js';
+import { createBackgroundMotion, stepBackgroundMotion } from './background-motion.js';
 
 const mounted = new WeakMap();
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
@@ -29,6 +30,9 @@ export function mountAmbientBackground(document = globalThis.document) {
   let width = 1, height = 1;
   const pointer = { x: 0, y: 0, active: 0, trailX: 0, trailY: 0, vx: 0, vy: 0 }, target = { x: 0, y: 0, active: 0 };
   const inertia = { x: 0, y: 0 };
+  let history = createBackgroundMotion();
+  const pendingFlows = [];
+  let lastTouch = null, scrollY = view.scrollY || 0, scrollIgnoreUntil = 0;
   const cleanups = [];
   const hidden = () => transparency.matches || contrast.matches || forcedColors.matches;
   const still = () => motion.matches || hidden();
@@ -67,9 +71,9 @@ export function mountAmbientBackground(document = globalThis.document) {
       geometryDirty = true;
     }
     if (geometryDirty) measure();
-    layer.style.setProperty('--ambient-shift-x', `${(pointer.x * pointer.active * 24).toFixed(2)}px`);
-    layer.style.setProperty('--ambient-shift-y', `${(pointer.y * pointer.active * 18).toFixed(2)}px`);
-    renderer?.render({ time: still() ? Number(config.staticTime) || 3.4 : time, pointer });
+    layer.style.setProperty('--ambient-shift-x', `${(pointer.x * pointer.active * 24 + history.x * 70 + Math.sin(history.phase) * 36).toFixed(2)}px`);
+    layer.style.setProperty('--ambient-shift-y', `${(pointer.y * pointer.active * 18 + history.y * 60).toFixed(2)}px`);
+    renderer?.render({ time: still() ? Number(config.staticTime) || 3.4 : time, pointer, history });
     ink.update(renderer, still());
   }
   function tick(stamp) {
@@ -81,7 +85,7 @@ export function mountAmbientBackground(document = globalThis.document) {
     if (!previous || stamp - previous >= 1000 / 30) {
       const elapsed = previous ? Math.min((stamp - previous) / 1000, .15) : 1 / 30;
       previous = stamp;
-      time += Math.min(elapsed, .1);
+      time += Math.min(elapsed, .1) * (coarse.matches ? clamp(Number(config.mobileFlowMultiplier) || 2, 1, 3) : 1);
       const followRate = clamp(Number(config.followRate) || 7.5, 1, 30);
       const response = 1 - Math.exp(-elapsed * followRate);
       const trailResponse = 1 - Math.exp(-elapsed * clamp(Number(config.trailRate) || 2.6, 1, 20));
@@ -105,6 +109,17 @@ export function mountAmbientBackground(document = globalThis.document) {
       pointer.vy += (vy - pointer.vy) * velocityResponse;
       if (settledX && Math.abs(pointer.vx) < .002) pointer.vx = 0;
       if (settledY && Math.abs(pointer.vy) < .002) pointer.vy = 0;
+      // Preserve event order: a fast closed path must not cancel merely because
+      // its endpoint returns before the next animation frame.
+      if (pendingFlows.length) {
+        const slice = elapsed / pendingFlows.length;
+        const distance = pendingFlows.reduce((sum, movement) => sum + Math.hypot(movement.dx, movement.dy), 0);
+        const strength = Math.min(1, .35 / Math.max(distance, .001));
+        for (const movement of pendingFlows) history = stepBackgroundMotion(history, {
+          ...movement, dx: movement.dx * strength, dy: movement.dy * strength,
+        }, slice, config);
+        pendingFlows.length = 0;
+      } else history = stepBackgroundMotion(history, {}, elapsed, config);
       paint();
     }
     const settling = Math.abs(target.x - pointer.x) + Math.abs(target.y - pointer.y) + Math.abs(target.active - pointer.active) + Math.abs(pointer.x - inertia.x) + Math.abs(pointer.y - inertia.y) + Math.abs(pointer.vx) + Math.abs(pointer.vy) > .002;
@@ -114,7 +129,10 @@ export function mountAmbientBackground(document = globalThis.document) {
   function sync() {
     view.cancelAnimationFrame(frame); frame = 0; previous = 0;
     layer.dataset.paused = String(!active() || still());
-    if (still()) { target.x = target.y = target.active = pointer.x = pointer.y = pointer.active = pointer.trailX = pointer.trailY = pointer.vx = pointer.vy = inertia.x = inertia.y = 0; }
+    if (still()) {
+      target.x = target.y = target.active = pointer.x = pointer.y = pointer.active = pointer.trailX = pointer.trailY = pointer.vx = pointer.vy = inertia.x = inertia.y = 0;
+      history = createBackgroundMotion(); pendingFlows.length = 0; lastTouch = null;
+    }
     if (active()) { paint(); schedule(); }
   }
   const point = event => {
@@ -123,6 +141,7 @@ export function mountAmbientBackground(document = globalThis.document) {
     const y = clamp(event.clientY / height * 2 - 1, -1, 1);
     // Ignore subpixel device chatter so a resting mouse does not twitch the field.
     if (target.active && Math.hypot((x - target.x) * width * .5, (y - target.y) * height * .5) < .45) return;
+    if (target.active) queueFlow(x, y, x - target.x, y - target.y);
     target.x = x;
     target.y = y;
     target.active = 1;
@@ -136,8 +155,44 @@ export function mountAmbientBackground(document = globalThis.document) {
   listen(view, 'blur', recenter);
   listen(view, 'resize', () => { geometryDirty = true; if (active()) paint(); schedule(); }, { passive: true });
   listen(document, 'visibilitychange', sync);
-  listen(view, 'scroll', () => ink.update(renderer), { passive: true });
-  listen(document, 'site-content-ready', () => ink.update(renderer, true));
+  function queueFlow(x, y, dx, dy) {
+    if (!active() || still()) return;
+    pendingFlows.push({ x: clamp(x, -1, 1), y: clamp(y, -1, 1), dx: clamp(dx, -.30, .30), dy: clamp(dy, -.30, .30), active: 1 });
+    if (pendingFlows.length > 64) pendingFlows.shift();
+    schedule();
+  }
+  listen(view, 'touchstart', event => {
+    lastTouch = event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null;
+  }, { passive: true });
+  listen(view, 'touchmove', event => {
+    if (event.touches.length !== 1) { lastTouch = null; return; }
+    const touch = event.touches[0];
+    if (lastTouch) {
+      const gain = clamp(Number(config.touchFlowGain) || .70, 0, 2);
+      queueFlow(touch.clientX / width * 2 - 1, touch.clientY / height * 2 - 1,
+        clamp((touch.clientX - lastTouch.x) / width * 2, -.20, .20) * gain,
+        clamp((touch.clientY - lastTouch.y) / height * 2, -.20, .20) * gain);
+    }
+    lastTouch = { x: touch.clientX, y: touch.clientY };
+  }, { passive: true });
+  listen(view, 'touchend', () => { lastTouch = null; }, { passive: true });
+  listen(view, 'touchcancel', () => { lastTouch = null; }, { passive: true });
+  function seedScroll() {
+    scrollY = view.scrollY || 0;
+    scrollIgnoreUntil = view.performance.now() + 220;
+  }
+  listen(view, 'scroll', () => {
+    ink.update(renderer);
+    const next = view.scrollY || 0, delta = next - scrollY;
+    scrollY = next;
+    // A route's first scroll position is seeded, not injected as a gesture.
+    // A later first physical wheel tick still responds instead of being lost.
+    if (view.performance.now() < scrollIgnoreUntil || Math.abs(delta) > Math.max(height * .85, 480)) return;
+    const gain = clamp(Number(config.scrollFlowGain) || .60, 0, 2);
+    queueFlow(pointer.x, pointer.y, 0, clamp(delta / height, -.12, .12) * gain);
+  }, { passive: true });
+  listen(document, 'site-content-ready', () => { seedScroll(); ink.update(renderer, true); });
+  listen(view, 'popstate', seedScroll);
   for (const preference of [motion, transparency, contrast, forcedColors]) listen(preference, 'change', sync);
   listen(coarse, 'change', () => { if (coarse.matches) target.active = pointer.active = 0; sync(); });
   const size = new view.ResizeObserver(() => { geometryDirty = true; if (active()) paint(); schedule(); });
@@ -153,7 +208,7 @@ export function mountAmbientBackground(document = globalThis.document) {
     if (disposed) return;
     disposed = true; view.cancelAnimationFrame(frame); frame = 0;
     cleanups.forEach(cleanup => cleanup()); size.disconnect();
-    ink.dispose(); renderer?.dispose(); renderer = null;
+    ink.dispose(); renderer?.dispose(); renderer = null; history = createBackgroundMotion(); pendingFlows.length = 0;
     canvas.width = canvas.height = 1; layer.remove(); delete document.body.dataset.siteArt;
     if (mounted.get(document) === dispose) mounted.delete(document);
   }

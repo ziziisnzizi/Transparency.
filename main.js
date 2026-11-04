@@ -8,6 +8,7 @@ import { renderConcerns, bindConcerns, seedConcernSearch } from './concerns.js';
 import { mountAmbientBackground } from './ambient-background.js';
 import { siteEffectsConfig } from './site-effects-config.js';
 import { mountSiteTextEffects } from './site-text-effects.js';
+import { mountScrollPosition } from './scroll-position.js';
 
 
 
@@ -19,7 +20,7 @@ if (initialUrl.searchParams.get('view') === 'landing') {
   window.history.replaceState({ page: '홈' }, '', `${initialUrl.pathname}${initialUrl.search}${initialUrl.hash}`);
 }
 const initialView = initialUrl.searchParams.get('view');
-let disposeTextEffects = null, disposeAmbientBackground = null;
+let disposeTextEffects = null, disposeAmbientBackground = null, disposeScrollPosition = null;
 let page = initialView === 'concerns' ? '내 고민' : '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
 let isPurchase = initialView === 'buy';
 // One light presentation; former saved theme preferences no longer alter it.
@@ -69,6 +70,7 @@ function render() {
     <footer><div><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button><p>성분에 장난 없이.</p></div><div class="footer-links"><button data-buy="toner-t1">제품 구매 ${arrow}</button><button data-page="더보기">브랜드 소개 ${arrow}</button><a href="mailto:ztheng@inha.edu">ztheng@inha.edu</a></div><small>© 2026 Transparency. All rights reserved.<br>성분부터 사용법까지, 투명하게.</small></footer>`;
   bind();
   if (!disposeAmbientBackground) disposeAmbientBackground = mountAmbientBackground(document);
+  if (!disposeScrollPosition) disposeScrollPosition = mountScrollPosition(document);
   disposeTextEffects = mountSiteTextEffects(document, siteEffectsConfig);
   document.dispatchEvent(new Event('site-content-ready'));
 }

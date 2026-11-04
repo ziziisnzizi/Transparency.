@@ -30,6 +30,7 @@ uniform vec2 viewport;
 uniform vec2 pointer;
 uniform vec2 pointerTrail;
 uniform vec2 pointerVelocity;
+uniform vec4 motionHistory;
 uniform float clock;
 uniform float timeScale;
 uniform float rotation;
@@ -66,12 +67,16 @@ void main(){
  vec2 uv=gl_FragCoord.xy/resolution;
  float aspect=viewport.x/max(viewport.y,1.);
  float t=clock*timeScale;
+ vec2 memory=motionHistory.xy;
+ float circulation=motionHistory.z;
+ float memoryWave=sin(motionHistory.w);
+ float memoryTurn=cos(motionHistory.w)-1.;
  // The supplied reference bends the whole colour field, rather than making
  // a small cursor bubble. A slower trail and velocity create a broad inertial sweep.
  vec2 drag=vec2(pointerTrail.x,-pointerTrail.y)*pointerActive;
  vec2 velocity=vec2(pointerVelocity.x,-pointerVelocity.y)*pointerActive;
  float gesture=clamp(pointerPush/.30,0.,2.);
- float seed=sin(t*.23)*.13+drag.y*.42*gesture;
+ float seed=sin(t*.23)*.13+drag.y*.42*gesture+memory.y*.65+circulation*.24+memoryWave*.18;
  float amount=distortion*.52;
  vec2 cursor=vec2(pointer.x*.5+.5,.5-pointer.y*.5);
  vec2 delta=(uv-cursor)*vec2(aspect,1.);
@@ -85,6 +90,8 @@ void main(){
  float curl=clamp(velocity.x*.22-velocity.y*.16+drag.x*.12,-.7,.7);
  vec2 gravity=(radial*.48+tangent*curl*.24)*influence*pointerPush*pointerActive;
  vec2 pushed=uv-gravity/vec2(max(aspect,.25),1.);
+ vec2 centre=uv-.5;
+ pushed+=memory*.20*(1.-dot(centre,centre)*.30)+vec2(-centre.y,centre.x)*circulation*.12;
  vec2 base=(pushed-.5)*vec2(clamp(aspect,.65,1.7),1.)*.80;
  base+=vec2(seed*.73,-seed*1.31);
  vec2 first=vec2(
@@ -99,15 +106,17 @@ void main(){
 
  // A cohesive S-shaped diagonal fold. Whole-field bend and tilt respond to the
  // pointer; the autonomous phase continues when the pointer stops moving.
- float angle=rotation+sin(t*.25)*.20+(drag.x*.30+velocity.x*.025)*gesture;
+ float angle=rotation+sin(t*.25)*.20+(drag.x*.30+velocity.x*.025)*gesture+circulation*.34+memoryWave*.10;
  vec2 bandPoint=rotatePoint((warped-.5)*vec2(.96,1.04),angle);
  float curve=bandPoint.y+sin(bandPoint.x*2.6+t*.32+drag.y*.50*gesture)*(.17+drag.x*.035*gesture);
  curve+=sin(t*.50)*.22+(drag.x*.18+drag.y*.22+velocity.y*.025)*gesture;
+ curve+=memory.y*.18+memoryWave*.16+memoryTurn*.055;
  float band=.5+curve;
  float shoulder=exp(-pow((curve-.04)/.17,2.));
  float crest=exp(-pow((curve-.075)/.10,2.));
  // Broad white and saturated blue streams share one continuous global canvas.
  float secondCurve=bandPoint.y*.90-bandPoint.x*.24+cos(bandPoint.x*1.9-t*.26+drag.x*.42)*.22-.31+(drag.y*.075-drag.x*.10)*gesture;
+ secondCurve+=memory.x*.16-circulation*.10+memoryWave*.12;
  float firstStream=exp(-pow((curve-.015)/.27,2.));
  float secondStream=exp(-pow((secondCurve+.11)/.37,2.));
  vec3 color=mix(white,sky,clamp(firstStream*.68+secondStream*.42,0.,.94));
@@ -117,7 +126,7 @@ void main(){
  // Cursor position changes occupied area, not merely the angle of a pale
  // wash. At one end the black retreats offscreen; at the other it dominates
  // the centre/right. The shared composition keeps moving between gestures.
- float dominance=clamp(.50+drag.x*.56*gesture+drag.y*.12*gesture+sin(t*.27)*.14,0.,1.);
+ float dominance=clamp(.50+drag.x*.56*gesture+drag.y*.12*gesture+sin(t*.27)*.14+memory.x*.18+circulation*.10+memoryWave*.12,0.,1.);
  vec2 rightCentre=vec2(mix(1.36,.59,dominance)+sin(t*.39)*.045,.52+cos(t*.26)*.07+drag.y*.10);
  vec2 topCentre=vec2(.28+sin(t*.31)*.12+drag.x*.12,mix(1.36,1.10,dominance)+drag.y*.07);
  vec2 rightSize=vec2(mix(.52,.72,dominance),mix(.46,.66,dominance));
@@ -245,7 +254,7 @@ export function createSiteBackground(canvas, background = {}) {
       return complete;
     }
     if (!allocateField(1, 1)) throw new Error('Background framebuffer unavailable');
-    const names = ['resolution', 'viewport', 'pointer', 'pointerTrail', 'pointerVelocity', 'clock', 'timeScale', 'rotation', 'distortion', 'ink', 'white', 'sky', 'blue', 'navy', 'pointerActive', 'pointerRadius', 'pointerPush'];
+    const names = ['resolution', 'viewport', 'pointer', 'pointerTrail', 'pointerVelocity', 'motionHistory', 'clock', 'timeScale', 'rotation', 'distortion', 'ink', 'white', 'sky', 'blue', 'navy', 'pointerActive', 'pointerRadius', 'pointerPush'];
     const uniforms = Object.fromEntries(names.map(name => [name, gl.getUniformLocation(scene.program, name)]));
     const finalUniforms = Object.fromEntries(['field', 'resolution', 'grainStrength', 'grainCellSize'].map(name => [name, gl.getUniformLocation(composite.program, name)]));
     bindQuad(scene);
@@ -274,7 +283,7 @@ export function createSiteBackground(canvas, background = {}) {
         if ((nextFieldWidth !== fieldWidth || nextFieldHeight !== fieldHeight) && !allocateField(nextFieldWidth, nextFieldHeight)) return false;
         return true;
       },
-      render({ time = 0, pointer = { x: 0, y: 0, active: 0 }, dark = false, poster = false } = {}) {
+      render({ time = 0, pointer = { x: 0, y: 0, active: 0 }, history = {}, dark = false, poster = false } = {}) {
         if (disposed || gl.isContextLost()) return;
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
         gl.viewport(0, 0, fieldWidth, fieldHeight);
@@ -286,6 +295,7 @@ export function createSiteBackground(canvas, background = {}) {
         gl.uniform2f(uniforms.pointer, clamp(finite(pointer?.x, 0), -1, 1), clamp(finite(pointer?.y, 0), -1, 1));
         gl.uniform2f(uniforms.pointerTrail, clamp(finite(pointer?.trailX, finite(pointer?.x, 0)), -1, 1), clamp(finite(pointer?.trailY, finite(pointer?.y, 0)), -1, 1));
         gl.uniform2f(uniforms.pointerVelocity, clamp(finite(pointer?.vx, 0), -2.5, 2.5), clamp(finite(pointer?.vy, 0), -2.5, 2.5));
+        gl.uniform4f(uniforms.motionHistory, clamp(finite(history?.x, 0), -.55, .55), -clamp(finite(history?.y, 0), -.55, .55), clamp(finite(history?.spin, 0), -1.1, 1.1), clamp(finite(history?.phase, 0), -Math.PI, Math.PI));
         gl.uniform1f(uniforms.clock, Math.max(0, finite(time, 0)));
         gl.uniform1f(uniforms.pointerActive, clamp(finite(pointer?.active, 0), 0, 1));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
