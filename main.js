@@ -22,8 +22,15 @@ const initialView = initialUrl.searchParams.get('view');
 let disposeTextEffects = null, disposeAmbientBackground = null;
 let page = initialView === 'concerns' ? '내 고민' : '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
 let isPurchase = initialView === 'buy';
-let theme = localStorage.getItem('transparency-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-document.documentElement.dataset.theme = theme;
+// The head bootstrap applies the saved choice or dark before styles can paint.
+let theme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+function applyTheme() {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.content = theme === 'dark' ? '#030811' : '#f7fbff';
+}
+applyTheme();
 const requestedProduct = new URLSearchParams(window.location.search).get('product');
 selected = initialView === 'concerns' ? null : products.find(product => product.slug === requestedProduct) || null;
 if (isPurchase && !selected) selected = orderProductsByRoutine(products)[0];
@@ -252,7 +259,7 @@ function bind() {
   });
   document.querySelector('#theme-toggle')?.addEventListener('click', () => {
     theme = theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = theme;
+    applyTheme();
     localStorage.setItem('transparency-theme', theme);
     render();
     document.querySelector('#theme-toggle')?.focus();

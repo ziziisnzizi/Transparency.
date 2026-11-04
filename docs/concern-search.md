@@ -74,7 +74,7 @@ URL·브라우저 저장소·분석 도구·외부 검색 서비스로 자동 �
 | `reviews.js`, `reviews.css` | 실제 작성 리뷰 읽기·불편 검색 버튼 |
 | `concern-optics.css`, `concern-glass.css` | ‘내 고민’의 반응형 검색 영역·투명 검색창 |
 | `concern-atmosphere.css` | 빈 검색 화면의 큰 타이포그래피·흰색 컨트롤·전용 내비게이션 재질 |
-| `ambient-background.js`, `site-background.js`, `site-effects-config.js` | 앱 전체 그레인 그라데이션·국소 포인터 반발·테마·효과 감소 설정 |
+| `ambient-background.js`, `site-background.js`, `site-effects-config.js` | 앱 전체 그레인 그라데이션·전역 포인터 곡률·테마·효과 감소 설정 |
 | `site-text-effects.js`, `site-effects.css` | 기존 대표 제목의 렌즈·언어 전환·공통 배경·가독성 |
 | `liquid-surfaces.css` | 내비게이션·카드·탭·입력·모달 등 앱 전체의 투명 배경·경계·상태·블러 |
 | `tests/concern-search.test.mjs`, `tests/concern-news-api.test.mjs` | 연결 범위·자료·부정문·출처·개인정보·요청 검증 |
@@ -89,7 +89,7 @@ URL·브라우저 저장소·분석 도구·외부 검색 서비스로 자동 �
 홈·제품 탐색·내 고민·내 제품·더보기·상세·구매가 같은 배경 Canvas 하나를
 사용합니다. 흰색·검정·하늘색·파란색은 배경 효과의 팔레트이며 기존 콘텐츠와
 UI의 색을 일괄 변경하지 않습니다. 저주파 노이즈로 색 띠와 검은 영역이 자동으로
-천천히 움직이고, 포인터 주변에서만 색이 바깥으로 밀립니다. 픽셀에 고정된
+천천히 움직이고, 포인터 위치와 관성에 따라 화면 전체 색 띠가 휘고 이동합니다. 픽셀에 고정된
 무채색 그레인이 더해집니다. 홈과 빈 검색 화면은 넓은 명암을, 검색 결과 등
 읽기 화면은 기존 글자색에 맞는 낮은 강도를 사용합니다.
 

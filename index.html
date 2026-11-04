@@ -1,9 +1,21 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-theme="dark">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#e9e9eb">
+    <meta name="theme-color" content="#030811">
+    <meta name="color-scheme" content="dark light">
+    <script>
+      (() => {
+        let initialTheme = 'dark';
+        try {
+          if (localStorage.getItem('transparency-theme') === 'light') initialTheme = 'light';
+        } catch { /* Keep the default when storage is unavailable. */ }
+        document.documentElement.dataset.theme = initialTheme;
+        document.documentElement.style.colorScheme = initialTheme;
+        document.querySelector('meta[name="theme-color"]').content = initialTheme === 'dark' ? '#030811' : '#f7fbff';
+      })();
+    </script>
     <meta name="description" content="가릴 것이 없으니까. 궁금했던 성분부터, 나에게 맞는 사용법까지. 극도의 투명함, 손안에서. Transparency.">
     <title>Transparency. — 가릴 것이 없으니까.</title>
     <link rel="icon" type="image/svg+xml" href="/images/transparency-favicon.svg">

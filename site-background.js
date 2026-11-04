@@ -2,7 +2,7 @@
 // this renderer has no events, animation loop, textures, DOM capture or I/O.
 const DEFAULTS = {
   palette: { white: '#f7fbff', sky: '#acdfff', blue: '#3574e8', navy: '#10244f', black: '#030811' },
-  timeScale: .16, rotation: -.55, distortion: .65, grain: .10, pointerRadius: .46, pointerPush: .30,
+  timeScale: .12, rotation: -.55, distortion: .56, grain: .10, pointerRadius: .72, pointerPush: .30,
   maxPixelRatio: 1.5, pixelBudget: 1800000,
 };
 const finite = (value, fallback) => typeof value === 'number' && Number.isFinite(value) ? value : fallback;
@@ -27,6 +27,8 @@ precision mediump float;
 uniform vec2 resolution;
 uniform vec2 viewport;
 uniform vec2 pointer;
+uniform vec2 pointerTrail;
+uniform vec2 pointerVelocity;
 uniform float clock;
 uniform float timeScale;
 uniform float rotation;
@@ -66,51 +68,58 @@ void main(){
  vec2 uv=gl_FragCoord.xy/resolution;
  float aspect=viewport.x/max(viewport.y,1.);
  float t=clock*timeScale;
- // Autonomous field evolution remains independent of the pointer. Cursor
- // movement affects only its bounded local repulsion footprint below.
- float seed=sin(t*.52)*.32;
- float amount=distortion*.90;
- // Local repulsion acts only on the decorative colour field, never the DOM.
+ // The supplied reference bends the whole colour field, rather than making
+ // a small cursor bubble. A slower trail and velocity create a broad inertial sweep.
+ vec2 drag=vec2(pointerTrail.x,-pointerTrail.y)*pointerActive;
+ vec2 velocity=vec2(pointerVelocity.x,-pointerVelocity.y)*pointerActive;
+ float gesture=clamp(pointerPush/.30,0.,2.);
+ float seed=sin(t*.23)*.13+drag.y*.42*gesture;
+ float amount=distortion*.52;
  vec2 cursor=vec2(pointer.x*.5+.5,.5-pointer.y*.5);
  vec2 delta=(uv-cursor)*vec2(aspect,1.);
  float radius=max(pointerRadius,.025);
- float distanceToPointer=length(delta);
- float influence=1.-smoothstep(0.,radius,distanceToPointer);
- vec2 radial=delta/max(distanceToPointer+.035,.035);
- vec2 pushed=uv-radial/vec2(max(aspect,.25),1.)*influence*pointerPush*pointerActive;
- vec2 base=(pushed-.5)*vec2(max(aspect,.55),1.)*1.37;
+ float influence=1.-smoothstep(0.,radius,length(delta));
+ vec2 radial=delta/max(length(delta)+.065,.065);
+ // A wide, weak outward pull supports the main sweep without drawing a ring.
+ vec2 pushed=uv-radial/vec2(max(aspect,.25),1.)*influence*pointerPush*.22*pointerActive;
+ vec2 base=(pushed-.5)*vec2(clamp(aspect,.65,1.7),1.)*.80;
  base+=vec2(seed*.73,-seed*1.31);
  vec2 first=vec2(
-  latticeNoise(base+vec2(t*.36,-t*.27)),
-  latticeNoise(base+vec2(4.93-t*.23,7.17+t*.31))
+  latticeNoise(base+vec2(t*.16,-t*.12)),
+  latticeNoise(base+vec2(4.93-t*.10,7.17+t*.15))
  )*2.-1.;
  vec2 second=vec2(
-  latticeNoise(base*1.14+first*1.67+vec2(9.21+t*.22,2.73)),
-  latticeNoise(base*1.14+first*1.67+vec2(-3.67,11.83-t*.25))
+  latticeNoise(base*1.08+first*1.15+vec2(9.21+t*.12,2.73)),
+  latticeNoise(base*1.08+first*1.15+vec2(-3.67,11.83-t*.14))
  )*2.-1.;
- vec2 warped=pushed+(first*.42+second*.58)*amount*.64;
+ vec2 warped=pushed+(first*.42+second*.58)*amount*.30;
 
- // A moving, bending diagonal colour field creates broad atmospheric bands.
- float angle=rotation+sin(t*.46)*.46+sin(t*.91)*.10;
- vec2 bandPoint=rotatePoint((warped-.5)*vec2(.95,1.05),angle);
- float band=.5+bandPoint.x*.94+sin(t*.78)*.30;
- vec3 color=mix(white,sky,smoothstep(.10,.51,band));
- color=mix(color,blue,smoothstep(.53,.88,band));
- color=mix(color,navy,smoothstep(.87,1.12,band));
+ // A cohesive S-shaped diagonal fold. Whole-field bend and tilt respond to the
+ // pointer; the autonomous phase continues when the pointer stops moving.
+ float angle=rotation+sin(t*.25)*.20+(drag.x*.30+velocity.x*.025)*gesture;
+ vec2 bandPoint=rotatePoint((warped-.5)*vec2(.96,1.04),angle);
+ float curve=bandPoint.y+sin(bandPoint.x*2.6+t*.32+drag.y*.50*gesture)*(.17+drag.x*.035*gesture);
+ curve+=sin(t*.50)*.22+(drag.y*.22+velocity.y*.025)*gesture;
+ float band=.5+curve;
+ float shoulder=exp(-pow((curve-.04)/.17,2.));
+ float crest=exp(-pow((curve-.075)/.060,2.));
+ vec3 color=mix(blue,navy,smoothstep(-.12,.25,curve)*.66);
+ color=mix(color,sky,shoulder*.90);
+ color=mix(color,white,crest*.30);
 
- // This deep negative space travels from the centre towards either edge even
- // with a stationary pointer. Noise bends its boundary into an uneven cloud.
- vec2 pocketCentre=vec2(.50+sin(t*.96)*.58,.48+sin(t*.73+.15)*.30);
- vec2 pocketSize=vec2(.60+sin(t*.47)*.10,.45+cos(t*.53)*.055);
- vec2 pocketPoint=pushed+first*.075+second*.055-pocketCentre;
- pocketPoint=rotatePoint(pocketPoint,rotation*.45+t*.13);
- float distanceToPocket=length(pocketPoint/pocketSize);
- float pocket=1.-smoothstep(.20,1.12,distanceToPocket);
- pocket=smoothstep(.025,.98,pocket);
+ // Top and right negative spaces enter and retreat from the centre as a single
+ // large-scale composition. Their broad edges follow the same quiet warp.
+ vec2 rightCentre=vec2(1.06+sin(t*.39)*.17+drag.x*.32*gesture,.58+cos(t*.26)*.08+drag.y*.16*gesture);
+ vec2 topCentre=vec2(.26+sin(t*.31)*.18+drag.x*.24*gesture,1.12+cos(t*.29)*.05+drag.y*.22*gesture);
+ vec2 lobePoint=warped+first*.025;
+ vec2 rightShape=rotatePoint(lobePoint-rightCentre,-.18+drag.y*.12*gesture)/vec2(.65+sin(t*.27)*.05,.47+cos(t*.33)*.03);
+ vec2 topShape=rotatePoint(lobePoint-topCentre,.12+drag.x*.10*gesture)/vec2(.86,.45);
+ float rightLobe=1.-smoothstep(.28,1.08,length(rightShape));
+ float topLobe=1.-smoothstep(.22,1.10,length(topShape));
+ float pocket=max(rightLobe,topLobe);
  color=mix(color,ink,pocket*.985);
  // Larger moving blue/white folds remain visible on reading pages. A light
  // floor and dark ceiling protect native text while retaining hue variation.
- float crest=1.-smoothstep(.045,.24,abs(band-.46));
  vec3 lightPage=mix(white,mix(sky,blue,smoothstep(.32,.94,band)),.12+smoothstep(.12,.86,band)*.46);
  lightPage=mix(lightPage,white,crest*.48);
  lightPage=mix(lightPage,navy,pocket*.11);
@@ -124,14 +133,25 @@ void main(){
  darkPage=mix(darkPage,sky,crest*.085);
  darkPage=mix(darkPage,ink,pocket*.64);
  float darkLuma=dot(pow(max(darkPage,vec3(0.)),vec3(2.2)),vec3(.2126,.7152,.0722));
- darkPage*=pow(min(1.,.095/max(darkLuma,.001)),1./2.2);
+ darkPage*=pow(min(1.,.074/max(darkLuma,.001)),1./2.2);
  color=mix(mix(lightPage,darkPage,dark),color,poster);
 
  // Static one-output-pixel grain stays visible behind native glass panels.
  // No clock, field seed or pointer enters its hash.
  vec2 pixel=floor(gl_FragCoord.xy);
  float grain=(latticeHash(pixel+vec2(31.7,19.3))-.5)*grainStrength;
- gl_FragColor=vec4(clamp(color+vec3(grain),0.,1.),1.);
+ vec3 finalColor=clamp(color+vec3(grain),0.,1.);
+ // The grain-inclusive reading surface stays below the small-copy contrast
+ // ceiling. This final guard uses the actual sRGB transfer curve.
+ if(dark>.5&&poster<.5){
+  vec3 linear=mix(finalColor/12.92,pow((finalColor+.055)/1.055,vec3(2.4)),step(vec3(.04045),finalColor));
+  float finalLuma=dot(linear,vec3(.2126,.7152,.0722));
+  if(finalLuma>.112){
+   linear*=.112/finalLuma;
+   finalColor=mix(linear*12.92,1.055*pow(linear,vec3(1./2.4))-.055,step(vec3(.0031308),linear));
+  }
+ }
+ gl_FragColor=vec4(finalColor,1.);
 }`;
 
 export function createSiteBackground(canvas, background = {}) {
@@ -187,7 +207,7 @@ export function createSiteBackground(canvas, background = {}) {
     const attribute = gl.getAttribLocation(program, 'position');
     gl.enableVertexAttribArray(attribute);
     gl.vertexAttribPointer(attribute, 2, gl.FLOAT, false, 0, 0);
-    const names = ['resolution', 'viewport', 'pointer', 'clock', 'timeScale', 'rotation', 'distortion', 'grainStrength', 'ink', 'white', 'sky', 'blue', 'navy', 'dark', 'poster', 'pointerActive', 'pointerRadius', 'pointerPush'];
+    const names = ['resolution', 'viewport', 'pointer', 'pointerTrail', 'pointerVelocity', 'clock', 'timeScale', 'rotation', 'distortion', 'grainStrength', 'ink', 'white', 'sky', 'blue', 'navy', 'dark', 'poster', 'pointerActive', 'pointerRadius', 'pointerPush'];
     const uniforms = Object.fromEntries(names.map(name => [name, gl.getUniformLocation(program, name)]));
     for (const [uniform, key] of [['ink', 'black'], ['white', 'white'], ['sky', 'sky'], ['blue', 'blue'], ['navy', 'navy']]) {
       gl.uniform3fv(uniforms[uniform], rgb(palette[key], DEFAULTS.palette[key]));
@@ -217,6 +237,8 @@ export function createSiteBackground(canvas, background = {}) {
         gl.uniform2f(uniforms.resolution, canvas.width, canvas.height);
         gl.uniform2f(uniforms.viewport, width, height);
         gl.uniform2f(uniforms.pointer, clamp(finite(pointer?.x, 0), -1, 1), clamp(finite(pointer?.y, 0), -1, 1));
+        gl.uniform2f(uniforms.pointerTrail, clamp(finite(pointer?.trailX, finite(pointer?.x, 0)), -1, 1), clamp(finite(pointer?.trailY, finite(pointer?.y, 0)), -1, 1));
+        gl.uniform2f(uniforms.pointerVelocity, clamp(finite(pointer?.vx, 0), -2.5, 2.5), clamp(finite(pointer?.vy, 0), -2.5, 2.5));
         gl.uniform1f(uniforms.clock, Math.max(0, finite(time, 0)));
         gl.uniform1f(uniforms.dark, Number(Boolean(dark)));
         gl.uniform1f(uniforms.poster, Number(Boolean(poster)));

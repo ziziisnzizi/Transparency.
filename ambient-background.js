@@ -25,7 +25,7 @@ export function mountAmbientBackground(document = globalThis.document) {
   let renderer = null, failed = false, disposed = false;
   let frame = 0, previous = 0, time = 0, geometryDirty = true;
   let width = 1, height = 1, poster = false;
-  const pointer = { x: 0, y: 0, active: 0 }, target = { x: 0, y: 0, active: 0 };
+  const pointer = { x: 0, y: 0, active: 0, trailX: 0, trailY: 0, vx: 0, vy: 0 }, target = { x: 0, y: 0, active: 0 };
   const posters = new Map(), cleanups = [];
   const hidden = () => transparency.matches || contrast.matches || forcedColors.matches;
   const still = () => motion.matches || hidden();
@@ -68,24 +68,34 @@ export function mountAmbientBackground(document = globalThis.document) {
   function tick(stamp) {
     frame = 0;
     if (!active()) return;
+    // Some engines deliver preference changes after the next animation tick.
+    // Read the live value here so a newly static scene is also neutral/paused.
+    if (still()) { sync(); return; }
     if (!previous || stamp - previous >= 1000 / 30) {
       const elapsed = previous ? Math.min((stamp - previous) / 1000, .15) : 1 / 30;
       previous = stamp;
       time += Math.min(elapsed, .1);
-      const response = 1 - Math.exp(-elapsed * (Number(config.followRate) || 11));
+      const response = 1 - Math.exp(-elapsed * (Number(config.followRate) || 4.8));
+      const trailResponse = 1 - Math.exp(-elapsed * (Number(config.trailRate) || 2.2));
+      const velocityResponse = 1 - Math.exp(-elapsed * (Number(config.velocityRate) || 4.2));
+      const oldX = pointer.x, oldY = pointer.y;
       pointer.x += (target.x - pointer.x) * response;
       pointer.y += (target.y - pointer.y) * response;
       pointer.active += (target.active - pointer.active) * response;
+      pointer.trailX += (pointer.x - pointer.trailX) * trailResponse;
+      pointer.trailY += (pointer.y - pointer.trailY) * trailResponse;
+      pointer.vx += (clamp((pointer.x - oldX) / Math.max(elapsed, .001), -2.5, 2.5) - pointer.vx) * velocityResponse;
+      pointer.vy += (clamp((pointer.y - oldY) / Math.max(elapsed, .001), -2.5, 2.5) - pointer.vy) * velocityResponse;
       paint();
     }
-    const settling = Math.abs(target.x - pointer.x) + Math.abs(target.y - pointer.y) + Math.abs(target.active - pointer.active) > .002;
+    const settling = Math.abs(target.x - pointer.x) + Math.abs(target.y - pointer.y) + Math.abs(target.active - pointer.active) + Math.abs(pointer.x - pointer.trailX) + Math.abs(pointer.y - pointer.trailY) + Math.abs(pointer.vx) + Math.abs(pointer.vy) > .002;
     if (!still() && (renderer || settling)) frame = view.requestAnimationFrame(tick);
   }
   function schedule() { if (!frame && active() && !still()) frame = view.requestAnimationFrame(tick); }
   function sync() {
     view.cancelAnimationFrame(frame); frame = 0; previous = 0;
     layer.dataset.paused = String(!active() || still());
-    if (still()) { target.x = target.y = target.active = pointer.x = pointer.y = pointer.active = 0; }
+    if (still()) { target.x = target.y = target.active = pointer.x = pointer.y = pointer.active = pointer.trailX = pointer.trailY = pointer.vx = pointer.vy = 0; }
     if (active()) { paint(); schedule(); }
   }
   function updatePoster() {
