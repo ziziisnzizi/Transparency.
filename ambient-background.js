@@ -11,7 +11,7 @@ export function mountAmbientBackground(document = globalThis.document) {
   mounted.get(document)?.();
   const view = document.defaultView;
   const config = siteEffectsConfig.background || {};
-  const ink = createBackdropInk(document, config.palette);
+  const ink = createBackdropInk(document);
   const layer = document.createElement('div');
   layer.className = 'ambient-background';
   layer.setAttribute('data-ambient-background', '');

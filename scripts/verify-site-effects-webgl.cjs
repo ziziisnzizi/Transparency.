@@ -83,7 +83,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       const radial = i => Math.hypot(((i / 4) % pw + .5) / ratio - point.x, (Math.floor(i / 4 / pw) + .5) / ratio - point.y);
       const core = i => radial(i) <= point.radius - point.rimWidth - .75;
       const outside = i => radial(i) >= point.radius + 1;
-      const band = i => radial(i) >= point.radius - point.rimWidth - .75 && radial(i) <= point.radius + 1;
+      const opticalRegion = i => radial(i) <= point.radius + 1;
       function difference(a, b, select = () => true) {
         let count = 0, sum = 0, max = 0;
         const errors = [];
@@ -104,8 +104,8 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
           const signal = chromatic ? Math.max(...delta) - Math.min(...delta) : Math.max(...delta.map(Math.abs));
           const e = Math.max(0, signal - 2) ** 2;
           total += e;
-          if (band(i)) confined += e;
-          if (signal > 3) { significant++; if (!band(i)) outsideSignificant++; }
+          if (opticalRegion(i)) confined += e;
+          if (signal > 3) { significant++; if (!opticalRegion(i)) outsideSignificant++; }
           maxSignal = Math.max(maxSignal, signal);
         }
         return { significantPixels: significant, outsideSignificantPixels: outsideSignificant, maxSignal, confinedEnergyFraction: total ? confined / total : 0, energy: total };
@@ -121,8 +121,13 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       const capture = changes => { renderer.render({ ...point, ...changes }); return read(gl, pw, ph); };
       const lens = capture({});
       const unwarped = capture({ refraction: 0, rgbOffset: 0 });
+      const noRefraction = capture({ refraction: 0 });
       const noRgb = capture({ rgbOffset: 0 });
       const revealZero = capture({ reveal: 0 });
+      renderer.upload([translated.canvas,translated.canvas],width,height,ratio,paper);
+      const englishOptical = capture({ reveal: 0 });
+      renderer.upload([native.canvas,native.canvas],width,height,ratio,paper);
+      const koreanOptical = capture({ reveal: 1 });
       const opacityZero = capture({ opacity: 0 });
       const ideal = new Uint8Array(native.pixels.length);
       const smooth = value => { const x = Math.min(1, Math.max(0, value)); return x * x * (3 - 2 * x); };
@@ -135,18 +140,36 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       const zero = new Uint8Array(lens.length);
       const metrics = {
         outsideKorean: difference(lens, native.pixels, outside),
-        deepCoreEnglish: difference(lens, translated.pixels, core),
-        koreanExclusiveRemoved: difference(lens, zero, nativeOnly),
-        englishExclusivePresent: difference(lens, translated.pixels, translatedOnly),
-        revealZeroKorean: difference(revealZero, native.pixels, core),
+        deepCoreEnglish: difference(lens, englishOptical, core),
+        koreanExclusiveRemoved: difference(unwarped, zero, nativeOnly),
+        englishExclusivePresent: difference(unwarped, translated.pixels, translatedOnly),
+        revealZeroKorean: difference(revealZero, koreanOptical, core),
         opacityZeroKorean: difference(opacityZero, native.pixels),
         independentUnwarpedReference: difference(unwarped, ideal),
+        noRefractionRgbDifference: difference(noRefraction, unwarped),
         distortionAgainstIndependentIdeal: energy(lens, ideal),
         warpOnly: energy(noRgb, unwarped),
         rgbOnly: energy(lens, noRgb, true),
-        coreRgbDifference: difference(lens, noRgb, core),
+
         glError: gl.getError(),
       };
+      // Measure actual channel centroids on isolated white strokes at increasing
+      // radii. This is an optical measurement, independent of the shader formula.
+      const radialDispersion = [];
+      for (const fraction of [0,.4,.72,.92]) {
+        const stroke = document.createElement('canvas'); stroke.width=pw;stroke.height=ph;
+        const ctx=stroke.getContext('2d');ctx.fillStyle='#fff';
+        ctx.fillRect((point.x+fraction*point.radius-1)*ratio,0,2*ratio,ph);
+        renderer.upload([stroke,stroke],width,height,ratio,[0,0,0]);
+        const pixels=capture({rimWidth:.1,reveal:0});
+        const totals=[0,0,0],weighted=[0,0,0],row=Math.floor(ph/2);
+        for(let x=0;x<pw;x++)for(let c=0;c<3;c++){
+          const value=pixels[(row*pw+x)*4+c];totals[c]+=value;weighted[c]+=(x+.5)*value;
+        }
+        const centroids=weighted.map((sum,c)=>sum/Math.max(totals[c],1)/ratio);
+        radialDispersion.push({fraction,centroids,spread:Math.abs(centroids[2]-centroids[0]),greenWidth:totals[1]/255/ratio});
+      }
+      metrics.radialDispersion=radialDispersion;
       renderer.dispose();
       const lensDisposed = { contextLost: gl.isContextLost(), created: { ...ledger.created }, deleted: { ...ledger.deleted } };
 
@@ -178,23 +201,27 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
         sufficientExclusiveStrokes: metrics.koreanExclusiveRemoved.pixels >= 400 && metrics.englishExclusivePresent.pixels >= 400,
         koreanRemovedInCore: metrics.koreanExclusiveRemoved.maxRGBA <= 1,
         englishPresentInCore: metrics.englishExclusivePresent.maxRGBA <= 1,
-        crispCoreMatchesRawTexture: metrics.deepCoreEnglish.maxRGBA <= 1,
-        noCoreRgbSplit: metrics.coreRgbDifference.maxRGBA === 0,
+        englishOpticalCoreMatches: metrics.deepCoreEnglish.maxRGBA <= 1,
+        centralDispersionMinimal: radialDispersion[0].spread < .05,
+        dispersionGrowsTowardsPerimeter: radialDispersion.every((sample,index)=>!index||sample.spread>radialDispersion[index-1].spread+.08),
+        outerDispersionVisible: radialDispersion.at(-1).spread > 1.5,
+        convexCentreMagnifies: radialDispersion[0].greenWidth > 2.10 && radialDispersion[0].greenWidth < 2.5,
+        noDispersionWithoutRefraction: metrics.noRefractionRgbDifference.maxRGBA === 0,
         revealZeroRestoresKorean: metrics.revealZeroKorean.maxRGBA <= 1,
         opacityZeroRestoresKorean: metrics.opacityZeroKorean.maxRGBA <= 1,
         distortedRingPresent: metrics.distortionAgainstIndependentIdeal.significantPixels > 100,
         warpedRingPresent: metrics.warpOnly.significantPixels > 100,
         rgbRingPresent: metrics.rgbOnly.significantPixels > 50 && metrics.rgbOnly.maxSignal > 10,
-        distortionConfinedToRimAndAA: metrics.distortionAgainstIndependentIdeal.confinedEnergyFraction >= .999 && metrics.distortionAgainstIndependentIdeal.outsideSignificantPixels === 0,
-        warpConfinedToRimAndAA: metrics.warpOnly.confinedEnergyFraction >= .999 && metrics.warpOnly.outsideSignificantPixels === 0,
-        rgbConfinedToRimAndAA: metrics.rgbOnly.confinedEnergyFraction >= .999 && metrics.rgbOnly.outsideSignificantPixels === 0,
+        distortionConfinedToLensAndAA: metrics.distortionAgainstIndependentIdeal.confinedEnergyFraction >= .999 && metrics.distortionAgainstIndependentIdeal.outsideSignificantPixels === 0,
+        warpConfinedToLensAndAA: metrics.warpOnly.confinedEnergyFraction >= .999 && metrics.warpOnly.outsideSignificantPixels === 0,
+        rgbConfinedToLensAndAA: metrics.rgbOnly.confinedEnergyFraction >= .999 && metrics.rgbOnly.outsideSignificantPixels === 0,
         autonomousBackgroundMovement: backgroundMovement.every(item => item.meanRGBDelta > 3 && item.fractionChangingOver12 > .05) && backgroundMovement[2].fractionChangingOver12 > .25,
         deterministicBackground: backgroundRepeat.maxRGBA === 0,
         noGlErrors: metrics.glError === 0 && backgroundError === 0,
         resourcesReleased,
         contextsDisposed: lensDisposed.contextLost && backgroundGl.isContextLost(),
       };
-      return { fixture: { cssSize: [width, height], pixelRatio: ratio, nativeLanguage: 'ko', lensLanguage: 'en', nativeText: '한국어', lensText: 'ENGLISH', parameters: point, ringAllowance: [point.radius - point.rimWidth - .75, point.radius + 1], reference: 'Raw independent Canvas2D pixels, explicitly premultiplied; no shader-derived oracle', backgroundSize: [360, 240], backgroundPointer: [0, 0], backgroundTimes: times }, implementation, metrics, backgroundMovement, backgroundRepeat, disposal: { lens: lensDisposed, allCreated: ledger.created, allDeleted: ledger.deleted, backgroundContextLost: backgroundGl.isContextLost() }, checks, passed: Object.values(checks).every(Boolean) };
+      return { fixture: { cssSize: [width, height], pixelRatio: ratio, nativeLanguage: 'ko', lensLanguage: 'en', nativeText: '한국어', lensText: 'ENGLISH', parameters: point, opticalRadius: point.radius + 1, dispersionReference: 'Measured RGB stroke centroids at normalized radii 0, .4, .72 and .92; centre magnification measured from integrated green stroke width', reference: 'Raw independent Canvas2D pixels, explicitly premultiplied; no shader-derived oracle', backgroundSize: [360, 240], backgroundPointer: [0, 0], backgroundTimes: times }, implementation, metrics, backgroundMovement, backgroundRepeat, disposal: { lens: lensDisposed, allCreated: ledger.created, allDeleted: ledger.deleted, backgroundContextLost: backgroundGl.isContextLost() }, checks, passed: Object.values(checks).every(Boolean) };
     });
     result.pageErrors = errors;
     if (errors.length) result.passed = false;

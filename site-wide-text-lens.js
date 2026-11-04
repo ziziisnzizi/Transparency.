@@ -145,7 +145,9 @@ export function mountSiteWideTextLens(document,config={}) {
     const translated=element.querySelector('[data-language-plane="ja"]');
     const primary=Boolean(source&&translated);
     const snapshot=primary?null:staticRuns(element,document);
-    const bounds=primary?element.getBoundingClientRect():snapshot?.bounds;
+    const titleRect=primary?element.getBoundingClientRect():null;
+    const padding=Math.ceil(optical.refraction+optical.rgbOffset+3);
+    const bounds=primary?{left:titleRect.left-padding,top:titleRect.top-padding,right:titleRect.right+padding,bottom:titleRect.bottom+padding,width:titleRect.width+padding*2,height:titleRect.height+padding*2}:snapshot?.bounds;
     if(!bounds||bounds.width<1||bounds.height<1)return;
     const ratio=Math.min(number(settings.maxPixelRatio,2.5),Math.max(2,view.devicePixelRatio||1),Math.sqrt(number(settings.pixelBudget,4000000)/(bounds.width*bounds.height)),renderer.maxTextureSize/bounds.width,renderer.maxTextureSize/bounds.height);
     const sourceImage=primary?rasterizeTextLensPlane(source,bounds,ratio):rasterRuns(snapshot,ratio,document);

@@ -38,9 +38,14 @@ void main(){
  vec2 normal=delta/max(distance,.001);
  float progress=clamp((distance-(radius-rimWidth))/max(rimWidth,.1),0.,1.);
  float annulus=sin(progress*3.14159265359);
- // The middle of the lens remains exactly sharp and undistorted.
- vec2 warped=p+normal*refraction*annulus;
- vec2 split=normal*rgbOffset*annulus;
+ float radial=clamp(distance/max(radius,.1),0.,1.);
+ float strength=min(abs(refraction)/7.,1.);
+ // A shallow convex lens magnifies without blur and meets the native text at
+ // its boundary. Channel separation is nearly absent at the centre and grows
+ // cubically towards the perimeter, rather than forming a coloured outline.
+ float convex=.10*strength*pow(1.-radial*radial,2.);
+ vec2 warped=center+delta*(1.-convex)+normal*refraction*annulus;
+ vec2 split=normal*rgbOffset*strength*pow(radial,3.);
  vec4 en=dispersed(englishTexture,warped,split);
  vec4 ja=dispersed(japaneseTexture,warped,split);
  float circle=1.-smoothstep(radius-.6,radius+.6,distance);

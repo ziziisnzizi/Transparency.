@@ -29,7 +29,7 @@ export const siteEffectsConfig = {
     diameter: 180,
     rimWidth: 10,
     refraction: 7,
-    rgbOffset: 1.5,
+    rgbOffset: 2,
     followRate: 12,
     fadeRate: 10,
     maxPixelRatio: 2.5,
