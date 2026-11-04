@@ -1,0 +1,247 @@
+/* Shared decorative field. Existing app surfaces, photography and ink keep
+   their original theme; only the home poster owns white display typography. */
+main#content { position: relative; }
+
+body .ambient-background[data-scene="page"] {
+  background: var(--site-bg-white, #f8faff);
+}
+body .ambient-background[data-scene="poster"] {
+  background: var(--site-bg-black, #03060b);
+}
+body .ambient-background[data-renderer="css"] .ambient-wave-fallback {
+  inset: -32px;
+  background:
+    radial-gradient(ellipse at 85% 12%, color-mix(in srgb, var(--site-bg-blue, #264caa) 8%, transparent), transparent 48%),
+    radial-gradient(ellipse at 13% 88%, color-mix(in srgb, var(--site-bg-blue, #264caa) 4%, transparent), transparent 55%),
+    linear-gradient(135deg, var(--site-bg-white, #f8faff) 15%, #fff 55%, color-mix(in srgb, var(--site-bg-white, #f8faff) 93%, var(--site-bg-blue, #264caa)));
+}
+body .ambient-background[data-scene="poster"][data-renderer="css"] .ambient-wave-fallback {
+  background:
+    radial-gradient(ellipse at 62% 39%, var(--site-bg-black, #03060b) 9%, color-mix(in srgb, var(--site-bg-black, #03060b) 91%, transparent) 26%, transparent 64%),
+    radial-gradient(ellipse at 4% 2%, var(--site-bg-white, #f8faff) 0%, color-mix(in srgb, var(--site-bg-white, #f8faff) 64%, transparent) 11%, transparent 46%),
+    linear-gradient(128deg, var(--site-bg-white, #f8faff), var(--site-bg-blue, #264caa) 37%, var(--site-bg-black, #03060b) 70%, var(--site-bg-blue, #264caa) 100%);
+}
+body .ambient-background[data-renderer="css"] .ambient-wave-fallback::before,
+body .ambient-background[data-renderer="css"] .ambient-wave-fallback::after { content: none; }
+body .ambient-background[data-renderer="css"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .12;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.91' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Cpath filter='url(%23n)' d='M0 0h160v160H0z'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+body .ambient-background[data-renderer="webgl"]::after { content: none; }
+html[data-theme="dark"] body .ambient-background[data-scene="page"][data-renderer="css"] .ambient-wave-fallback {
+  background:
+    radial-gradient(ellipse at 85% 8%, color-mix(in srgb, var(--site-bg-blue, #264caa) 22%, transparent), transparent 53%),
+    radial-gradient(ellipse at 12% 94%, #ffffff0a, transparent 58%),
+    linear-gradient(140deg, var(--site-bg-black, #03060b), color-mix(in srgb, var(--site-bg-black, #03060b) 80%, var(--site-bg-blue, #264caa)) 65%, var(--site-bg-black, #03060b));
+}
+html[data-theme="dark"] body .ambient-background[data-scene="page"] { background: var(--site-bg-black, #03060b); }
+
+/* The existing black navigation remains readable over the light-theme poster.
+   The concern search already owns its white-on-dark header treatment. */
+html:root:not([data-theme="dark"]) body[data-site-art="poster"]:not(:has(.concerns-page.is-empty)) header {
+  background: linear-gradient(180deg, #ffffffd9, #ffffffb8);
+  border-bottom-color: #ffffff85;
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+}
+html:root:not([data-theme="dark"]) body[data-site-art="poster"]:not(:has(.concerns-page.is-empty)) nav {
+  background: linear-gradient(135deg, #ffffffde, #ffffffbd);
+  border-color: #ffffffbd;
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+}
+
+/* The empty search uses white ink in both themes. Shade its bright left edge
+   behind the existing content, leaving the shared blue field visible. */
+html:root .concerns-page.is-empty::before {
+  background:
+    linear-gradient(90deg, #030811a3, #03081157 54%, #03081124),
+    linear-gradient(180deg, #03081133, #0308111f 48%, #0308116b);
+}
+html:root body:has(.concerns-page.is-empty) :is(header, nav) {
+  background: #030811b3;
+}
+
+.site-hero {
+  position: relative;
+  width: 100vw;
+  min-height: calc(100svh - 72px);
+  margin-inline: calc(50% - 50vw);
+  color: #fff;
+  background: transparent;
+  isolation: isolate;
+}
+.site-hero::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, #0308119e, #03081157 48%, #03081100 84%),
+    linear-gradient(0deg, #030811b8, #03081100 29%, #03081100 73%, #03081173);
+}
+.site-hero-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: min(100%, 1680px);
+  min-height: inherit;
+  margin: 0 auto;
+  padding: clamp(30px, 5vh, 65px) 7% clamp(34px, 5vh, 64px);
+}
+.site-hero-eyebrow {
+  display: block;
+  color: #ffffffd9;
+  font: 10px/1.6 Arial, sans-serif;
+  letter-spacing: .17em;
+}
+.site-hero .site-hero-title {
+  width: 100%;
+  max-width: 1180px;
+  margin: auto 0;
+  padding: 44px 0;
+  color: #fff;
+  font-family: Arial, 'Noto Sans KR', sans-serif;
+  font-size: clamp(58px, 8.3vw, 120px);
+  font-weight: 300;
+  line-height: 1.04;
+  letter-spacing: -.055em;
+}
+.site-hero [data-site-hero-line] {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: .055em 0 .055em var(--site-line-offset, 0%);
+  white-space: nowrap;
+}
+.site-hero-bottom {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 26px;
+}
+.site-hero-bottom > p {
+  max-width: 480px;
+  margin: 0;
+  color: #ffffffd9;
+  font-size: 13px;
+  line-height: 1.9;
+  word-break: keep-all;
+}
+.site-hero-bottom > .text-btn {
+  flex-shrink: 0;
+  color: #fff;
+  border-color: #ffffff80;
+  background: #ffffff08;
+  box-shadow: none;
+}
+.site-hero-bottom > .text-btn:hover { color: #fff; background: #ffffff1a; }
+
+/* One native H1 per app view remains selectable and accessible beneath its
+   decorative canvas. The alternate plane stays measurable for lens rendering. */
+main#content [data-site-text-region][data-landing-title] {
+  position: relative;
+  display: block;
+}
+main#content [data-site-text-region] [data-language-plane] {
+  display: block;
+  font: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+main#content [data-site-text-region] [data-language-plane="en"] { position: relative; }
+main#content [data-site-text-region] [data-language-plane="ja"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: inherit;
+  opacity: 0;
+  pointer-events: none;
+}
+main#content [data-site-text-region] [data-landing-line] {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+}
+main#content .concern-page-intro [data-site-text-region] [data-landing-line] { margin-inline: auto; }
+main#content [data-site-text-region] [data-landing-text-canvas] {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+main#content > [data-landing-lens] {
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  left: 0;
+  width: 180px;
+  height: 180px;
+  border: 1px solid #ffffff57;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 1px 1px #ffffff63, inset 0 -1px 2px #0000001f, 0 2px 8px #0000000a;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+main#content [data-landing-language][data-site-language] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 56px;
+  min-height: 36px;
+  margin: 12px 0 0;
+  padding: 7px 11px;
+  border: 1px solid currentColor;
+  border-radius: 20px;
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: .035em;
+  opacity: .8;
+}
+main#content [data-landing-language][data-site-language]:hover { opacity: 1; }
+main#content [data-landing-language][data-site-language]:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+main#content [data-site-text-region] [hidden],
+main#content [data-landing-lens][hidden],
+main#content [data-landing-language][hidden] { display: none !important; }
+
+@media (max-width: 750px) {
+  .site-hero { min-height: calc(100svh - 60px); }
+  .site-hero-content { padding: 30px 6% 112px; }
+  .site-hero-eyebrow { font-size: 9px; }
+  .site-hero .site-hero-title { padding: 44px 0; font-size: clamp(40px, 10.7vw, 78px); }
+  .site-hero-bottom { align-items: start; flex-direction: column; gap: 20px; }
+  .site-hero-bottom > p { max-width: 360px; font-size: 12px; }
+  .site-hero-bottom > .text-btn { min-height: 42px; padding: 10px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main#content > [data-landing-lens] { will-change: auto; }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  body .ambient-background[data-suppressed="true"] { background: var(--ambient-page-base); }
+  body .ambient-background[data-suppressed="true"][data-scene="poster"] { background: #03060b; }
+  body .ambient-background[data-suppressed="true"]::after { content: none; }
+  html:root body:has(.concerns-page.is-empty) :is(header, nav) { background: #030811; }
+  html:root:not([data-theme="dark"]) body[data-site-art="poster"]:not(:has(.concerns-page.is-empty)) :is(header, nav) { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .site-hero-bottom > .text-btn { border-color: #fff; background: #03060b; }
+}
+@media (forced-colors: active) {
+  .site-hero, .site-hero :is(.site-hero-eyebrow, .site-hero-title, p, .text-btn) { color: CanvasText; }
+  .site-hero-bottom > .text-btn { border-color: ButtonText; background: ButtonFace; color: ButtonText; }
+  main#content > [data-landing-lens] { display: none; }
+}

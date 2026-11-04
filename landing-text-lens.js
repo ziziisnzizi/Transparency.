@@ -65,6 +65,10 @@ export function mountLandingTextLens(hero, lens = {}) {
   const button = hero?.querySelector('[data-landing-language]');
   if (!title || !english || !japanese || !canvas || !rim) return () => {};
   const options = lens.lens || lens;
+  const paperOption = options.paperRGB ?? options.paper;
+  const paperRGB = Array.isArray(paperOption) && paperOption.length === 3
+    && paperOption.every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1)
+    ? [...paperOption] : null;
   const diameter = clamp(finite(options.diameter, 180), 140, 200);
   const radius = diameter / 2;
   const settings = {
@@ -171,7 +175,7 @@ export function mountLandingTextLens(hero, lens = {}) {
     if (!renderer) { failed = true; fallback(); return; }
     const ratio = Math.min(maxPixelRatio, Math.max(2, devicePixelRatio || 1), Math.sqrt(pixelBudget / (titleRect.width * titleRect.height)), renderer.maxTextureSize / titleRect.width, renderer.maxTextureSize / titleRect.height);
     const images = [rasterize(english, ratio), rasterize(japanese, ratio)];
-    if (images.some(image => !image) || !renderer.upload(images, titleRect.width, titleRect.height, ratio, backgroundColor(hero))) {
+    if (images.some(image => !image) || !renderer.upload(images, titleRect.width, titleRect.height, ratio, paperRGB || backgroundColor(hero))) {
       failed = true;
       releaseRenderer();
       fallback();

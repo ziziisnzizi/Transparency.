@@ -1,8 +1,8 @@
 // Original procedural artwork. Only the supplied decorative canvas is drawn;
 // this renderer has no events, animation loop, textures, DOM capture or I/O.
 const DEFAULTS = {
-  palette: { black: '#030407', orange: '#ad593a', teal: '#c2dbd5', cobalt: '#244bc3', navy: '#111c42' },
-  timeScale: .07, rotation: -.55, distortion: .65, grain: .035,
+  palette: { white: '#f7fbff', sky: '#acdfff', blue: '#3574e8', navy: '#10244f', black: '#030811' },
+  timeScale: .07, rotation: -.55, distortion: .65, grain: .10, pointerRadius: .32, pointerPush: .20,
   maxPixelRatio: 1.5, pixelBudget: 1800000,
 };
 const finite = (value, fallback) => typeof value === 'number' && Number.isFinite(value) ? value : fallback;
@@ -33,9 +33,14 @@ uniform float rotation;
 uniform float distortion;
 uniform float grainStrength;
 uniform vec3 ink;
-uniform vec3 orange;
-uniform vec3 teal;
-uniform vec3 cobalt;
+uniform vec3 white;
+uniform vec3 sky;
+uniform vec3 blue;
+uniform float dark;
+uniform float poster;
+uniform float pointerActive;
+uniform float pointerRadius;
+uniform float pointerPush;
 uniform vec3 navy;
 
 float latticeHash(vec2 cell){
@@ -61,11 +66,19 @@ void main(){
  vec2 uv=gl_FragCoord.xy/resolution;
  float aspect=viewport.x/max(viewport.y,1.);
  float t=clock*timeScale;
- // The pointer changes field parameters; it never merely translates the art.
- float seed=pointer.y*.95+sin(t*.37)*.21;
- float displacement=(pointer.x+1.)*2.5;
- float amount=distortion*(.15+displacement*.17);
- vec2 base=(uv-.5)*vec2(max(aspect,.55),1.)*1.37;
+ // Autonomous field evolution remains independent of the pointer. Cursor
+ // movement affects only its bounded local repulsion footprint below.
+ float seed=sin(t*.37)*.21;
+ float amount=distortion*.72;
+ // Local repulsion acts only on the decorative colour field, never the DOM.
+ vec2 cursor=vec2(pointer.x*.5+.5,.5-pointer.y*.5);
+ vec2 delta=(uv-cursor)*vec2(aspect,1.);
+ float radius=max(pointerRadius,.025);
+ float distanceToPointer=length(delta);
+ float influence=1.-smoothstep(0.,radius,distanceToPointer);
+ vec2 radial=delta/max(distanceToPointer+.035,.035);
+ vec2 pushed=uv-radial/vec2(max(aspect,.25),1.)*influence*pointerPush*pointerActive;
+ vec2 base=(pushed-.5)*vec2(max(aspect,.55),1.)*1.37;
  base+=vec2(seed*.73,-seed*1.31);
  vec2 first=vec2(
   latticeNoise(base+vec2(t*.21,-t*.16)),
@@ -75,42 +88,52 @@ void main(){
   latticeNoise(base*1.14+first*1.67+vec2(9.21+t*.12,2.73)),
   latticeNoise(base*1.14+first*1.67+vec2(-3.67,11.83-t*.15))
  )*2.-1.;
- vec2 warped=uv+(first*.42+second*.58)*amount*.54;
+ vec2 warped=pushed+(first*.42+second*.58)*amount*.54;
 
  // A moving, bending diagonal colour field creates broad atmospheric bands.
  float angle=rotation+sin(t*.46)*.34+sin(t*.91)*.08;
  vec2 bandPoint=rotatePoint((warped-.5)*vec2(.95,1.05),angle);
  float band=.5+bandPoint.x*.94+sin(t*.58)*.15;
- vec3 color=mix(orange,teal,smoothstep(.10,.51,band));
- color=mix(color,cobalt,smoothstep(.53,.88,band));
+ vec3 color=mix(white,sky,smoothstep(.10,.51,band));
+ color=mix(color,blue,smoothstep(.53,.88,band));
  color=mix(color,navy,smoothstep(.87,1.12,band));
 
  // This deep negative space travels from the centre towards either edge even
  // with a stationary pointer. Noise bends its boundary into an uneven cloud.
  vec2 pocketCentre=vec2(.50+sin(t*.82)*.53,.48+sin(t*.61+.15)*.28);
  vec2 pocketSize=vec2(.60+sin(t*.47)*.10,.45+cos(t*.53)*.055);
- vec2 pocketPoint=uv+first*.075+second*.055-pocketCentre;
+ vec2 pocketPoint=pushed+first*.075+second*.055-pocketCentre;
  pocketPoint=rotatePoint(pocketPoint,rotation*.45+t*.13);
  float distanceToPocket=length(pocketPoint/pocketSize);
  float pocket=1.-smoothstep(.20,1.12,distanceToPocket);
  pocket=smoothstep(.025,.98,pocket);
  color=mix(color,ink,pocket*.985);
+ // Reading pages keep their native foreground colours. They receive the same
+ // moving field at a restrained luminance appropriate to the current theme.
+ vec3 lightPage=mix(white,mix(sky,blue,smoothstep(.45,.98,band)),.14+smoothstep(.28,.92,band)*.11);
+ lightPage=mix(lightPage,navy,pocket*.055);
+ vec3 darkPage=mix(ink,mix(navy,blue,.52),.27+smoothstep(.18,.85,band)*.19);
+ darkPage=mix(darkPage,white,(1.-smoothstep(.12,.47,band))*.035);
+ darkPage=mix(darkPage,ink,pocket*.55);
+ color=mix(mix(lightPage,darkPage,dark),color,poster);
 
- // Screen-space grain is stable in CSS-pixel units: no time, pointer or field
- // seed enters this hash, so autonomous motion never animates the grain.
- vec2 pixel=floor(gl_FragCoord.xy*viewport/resolution);
+ // Static one-output-pixel grain stays visible behind native glass panels.
+ // No clock, field seed or pointer enters its hash.
+ vec2 pixel=floor(gl_FragCoord.xy);
  float grain=(latticeHash(pixel+vec2(31.7,19.3))-.5)*grainStrength;
  gl_FragColor=vec4(clamp(color+vec3(grain),0.,1.),1.);
 }`;
 
-export function createLandingBackground(canvas, background = {}) {
+export function createSiteBackground(canvas, background = {}) {
   const source = background && typeof background === 'object' ? background : {};
   const palette = source.palette && typeof source.palette === 'object' ? source.palette : {};
   const settings = {
     timeScale: clamp(finite(source.timeScale, DEFAULTS.timeScale), 0, 1),
     rotation: finite(source.rotation, DEFAULTS.rotation),
     distortion: clamp(finite(source.distortion, DEFAULTS.distortion), 0, 2),
-    grain: clamp(finite(source.grain, DEFAULTS.grain), 0, .15),
+    grain: clamp(finite(source.grain, DEFAULTS.grain), 0, .20),
+    pointerRadius: clamp(finite(source.pointerRadius, DEFAULTS.pointerRadius), .04, 1),
+    pointerPush: clamp(finite(source.pointerPush, DEFAULTS.pointerPush), 0, .6),
     maxPixelRatio: clamp(finite(source.maxPixelRatio, DEFAULTS.maxPixelRatio), .5, 3),
     pixelBudget: clamp(finite(source.pixelBudget, DEFAULTS.pixelBudget), 100000, 8000000),
   };
@@ -154,15 +177,17 @@ export function createLandingBackground(canvas, background = {}) {
     const attribute = gl.getAttribLocation(program, 'position');
     gl.enableVertexAttribArray(attribute);
     gl.vertexAttribPointer(attribute, 2, gl.FLOAT, false, 0, 0);
-    const names = ['resolution', 'viewport', 'pointer', 'clock', 'timeScale', 'rotation', 'distortion', 'grainStrength', 'ink', 'orange', 'teal', 'cobalt', 'navy'];
+    const names = ['resolution', 'viewport', 'pointer', 'clock', 'timeScale', 'rotation', 'distortion', 'grainStrength', 'ink', 'white', 'sky', 'blue', 'navy', 'dark', 'poster', 'pointerActive', 'pointerRadius', 'pointerPush'];
     const uniforms = Object.fromEntries(names.map(name => [name, gl.getUniformLocation(program, name)]));
-    for (const [uniform, key] of [['ink', 'black'], ['orange', 'orange'], ['teal', 'teal'], ['cobalt', 'cobalt'], ['navy', 'navy']]) {
+    for (const [uniform, key] of [['ink', 'black'], ['white', 'white'], ['sky', 'sky'], ['blue', 'blue'], ['navy', 'navy']]) {
       gl.uniform3fv(uniforms[uniform], rgb(palette[key], DEFAULTS.palette[key]));
     }
     gl.uniform1f(uniforms.timeScale, settings.timeScale);
     gl.uniform1f(uniforms.rotation, settings.rotation);
     gl.uniform1f(uniforms.distortion, settings.distortion);
     gl.uniform1f(uniforms.grainStrength, settings.grain);
+    gl.uniform1f(uniforms.pointerRadius, settings.pointerRadius);
+    gl.uniform1f(uniforms.pointerPush, settings.pointerPush);
     return {
       canvas,
       resize(nextWidth, nextHeight, dpr = 1) {
@@ -176,13 +201,16 @@ export function createLandingBackground(canvas, background = {}) {
         if (canvas.height !== nextH) canvas.height = nextH;
         gl.viewport(0, 0, canvas.width, canvas.height);
       },
-      render({ time = 0, pointer = { x: 0, y: 0 } } = {}) {
+      render({ time = 0, pointer = { x: 0, y: 0, active: 0 }, dark = false, poster = false } = {}) {
         if (disposed || gl.isContextLost()) return;
         gl.useProgram(program);
         gl.uniform2f(uniforms.resolution, canvas.width, canvas.height);
         gl.uniform2f(uniforms.viewport, width, height);
         gl.uniform2f(uniforms.pointer, clamp(finite(pointer?.x, 0), -1, 1), clamp(finite(pointer?.y, 0), -1, 1));
         gl.uniform1f(uniforms.clock, Math.max(0, finite(time, 0)));
+        gl.uniform1f(uniforms.dark, Number(Boolean(dark)));
+        gl.uniform1f(uniforms.poster, Number(Boolean(poster)));
+        gl.uniform1f(uniforms.pointerActive, clamp(finite(pointer?.active, 0), 0, 1));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       },
       dispose,

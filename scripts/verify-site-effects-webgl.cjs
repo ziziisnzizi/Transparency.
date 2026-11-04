@@ -11,8 +11,8 @@ catch {
 }
 
 const root = path.resolve(__dirname, '..');
-const output = process.env.LANDING_QA_OUTPUT || path.join(require('node:os').tmpdir(), 'transparency-landing-webgl.json');
-const names = ['landing-lens-renderer.js', 'landing-background.js', 'landing-config.js'];
+const output = process.env.SITE_EFFECTS_QA_OUTPUT || path.join(require('node:os').tmpdir(), 'transparency-site-effects-webgl.json');
+const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-config.js'];
 
 (async () => {
   const sources = Object.fromEntries(await Promise.all(names.map(async name => [name, await fs.readFile(path.join(root, name), 'utf8')])));
@@ -49,8 +49,8 @@ const names = ['landing-lens-renderer.js', 'landing-background.js', 'landing-con
         }
       }
       const { createLandingLensRenderer } = await import('/landing-lens-renderer.js');
-      const { createLandingBackground } = await import('/landing-background.js');
-      const { landingConfig } = await import('/landing-config.js');
+      const { createSiteBackground } = await import('/site-background.js');
+      const { siteEffectsConfig } = await import('/site-effects-config.js');
       const width = 240, height = 160, ratio = 2;
       const pw = width * ratio, ph = height * ratio;
       const point = { x: 120, y: 80, radius: 50, rimWidth: 6, refraction: 7, rgbOffset: 1.5, opacity: 1, reveal: 1 };
@@ -151,12 +151,12 @@ const names = ['landing-lens-renderer.js', 'landing-background.js', 'landing-con
       const lensDisposed = { contextLost: gl.isContextLost(), created: { ...ledger.created }, deleted: { ...ledger.deleted } };
 
       const backgroundCanvas = document.createElement('canvas'); document.body.append(backgroundCanvas);
-      const background = createLandingBackground(backgroundCanvas, landingConfig.background);
+      const background = createSiteBackground(backgroundCanvas, siteEffectsConfig.background);
       if (!background) throw new Error('Actual background WebGL renderer unavailable');
       background.resize(360, 240, 1);
       const backgroundGl = backgroundCanvas.getContext('webgl');
       const times = [0, 5, 20, 45];
-      const frames = times.map(time => { background.render({ time, pointer: { x: 0, y: 0 } }); return read(backgroundGl, 360, 240); });
+      const frames = times.map(time => { background.render({ time, pointer: { x: 0, y: 0 }, poster: true }); return read(backgroundGl, 360, 240); });
       const backgroundMovement = times.slice(1).map((time, index) => {
         const frame = frames[index + 1];
         let sum = 0, changed = 0;
@@ -167,7 +167,7 @@ const names = ['landing-lens-renderer.js', 'landing-background.js', 'landing-con
         }
         return { from: 0, to: time, meanRGBDelta: sum / (360 * 240 * 3), fractionChangingOver12: changed / (360 * 240) };
       });
-      background.render({ time: 20, pointer: { x: 0, y: 0 } });
+      background.render({ time: 20, pointer: { x: 0, y: 0 }, poster: true });
       const backgroundRepeat = difference(read(backgroundGl, 360, 240), frames[2]);
       const backgroundError = backgroundGl.getError();
       background.dispose();
