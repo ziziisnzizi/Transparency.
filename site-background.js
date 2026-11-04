@@ -2,6 +2,7 @@
 // this renderer has no events, animation loop, DOM/image capture or I/O.
 const DEFAULTS = {
   palette: { white: '#f7fbff', ice: '#dcefff', sky: '#acdfff', blue: '#4c8ee8' },
+  darkPalette: { black: '#080b13', blue: '#183f86', cyan: '#9cd5de', warm: '#e65c21' },
   timeScale: .12, rotation: -.55, distortion: .68, grain: .045, grainCellSize: 1.3, pointerRadius: 1.05, pointerPush: .38,
   maxPixelRatio: 1.5, pixelBudget: 1800000,
   outputMaxPixelRatio: 3, outputPixelBudget: 8400000,
@@ -39,6 +40,11 @@ uniform vec3 ice;
 uniform vec3 white;
 uniform vec3 sky;
 uniform vec3 blue;
+uniform vec3 darkBlack;
+uniform vec3 darkBlue;
+uniform vec3 darkCyan;
+uniform vec3 darkWarm;
+uniform float darkMode;
 uniform float pointerActive;
 uniform float pointerRadius;
 uniform float pointerPush;
@@ -75,7 +81,7 @@ void main(){
  vec2 drag=vec2(pointerTrail.x,-pointerTrail.y)*pointerActive;
  vec2 velocity=vec2(pointerVelocity.x,-pointerVelocity.y)*pointerActive;
  float gesture=clamp(pointerPush/.30,0.,2.);
- float seed=sin(t*.23)*.13+drag.y*.12*gesture+memory.y*.65+circulation*.24+memoryWave*.18;
+ float seed=sin(t*.23)*.13+drag.y*.42*gesture+memory.y*.65+circulation*.24+memoryWave*.18;
  float amount=distortion*.52;
  vec2 cursor=vec2(pointer.x*.5+.5,.5-pointer.y*.5);
  vec2 delta=(uv-cursor)*vec2(aspect,1.);
@@ -108,27 +114,30 @@ void main(){
 
  // A cohesive S-shaped diagonal fold. Whole-field bend and tilt respond to the
  // pointer; the autonomous phase continues when the pointer stops moving.
- float angle=rotation+sin(t*.25)*.20+(drag.x*.10+velocity.x*.025)*gesture+circulation*.34+memoryWave*.10;
+ float angle=rotation+sin(t*.25)*.20+(drag.x*.30+velocity.x*.025)*gesture+circulation*.34+memoryWave*.10;
  vec2 bandPoint=rotatePoint((warped-.5)*vec2(.96,1.04),angle);
- float curve=bandPoint.y+sin(bandPoint.x*2.6+t*.32+drag.y*.18*gesture)*(.17+drag.x*.035*gesture);
- curve+=sin(t*.50)*.22+(drag.x*.08+drag.y*.09+velocity.y*.025)*gesture;
+ float curve=bandPoint.y+sin(bandPoint.x*2.6+t*.32+drag.y*.50*gesture)*(.17+drag.x*.035*gesture);
+ curve+=sin(t*.50)*.22+(drag.x*.18+drag.y*.22+velocity.y*.025)*gesture;
  curve+=memory.y*.18+memoryWave*.16+memoryTurn*.055;
+ // Multiple low-frequency noise fields make the displaced colour boundary bend
+ // as a fluid sheet, with the whole field retaining the path of the gesture.
+ curve+=(first.x*.07+second.y*.11)*pointerActive*gesture;
  float band=.5+curve;
  float shoulder=exp(-pow((curve-.04)/.17,2.));
  float crest=exp(-pow((curve-.075)/.10,2.));
  // Broad white and saturated blue streams share one continuous global canvas.
  float secondCurve=bandPoint.y*.90-bandPoint.x*.24+cos(bandPoint.x*1.9-t*.26+drag.x*.42)*.22-.31+(drag.y*.075-drag.x*.10)*gesture;
  secondCurve+=memory.x*.16-circulation*.10+memoryWave*.12;
- float firstStream=exp(-pow((curve-.015)/.085,2.));
- float secondStream=exp(-pow((secondCurve+.11)/.10,2.));
- vec3 color=mix(white,sky,clamp(firstStream*.60+secondStream*.35,0.,.85));
- color=mix(color,blue,clamp(firstStream*.32+secondStream*.38+firstStream*secondStream*.12,0.,.78));
+ float firstStream=exp(-pow((curve-.015)/.13,2.));
+ float secondStream=exp(-pow((secondCurve+.11)/.16,2.));
+ vec3 color=mix(white,sky,clamp(firstStream*.68+secondStream*.42,0.,.94));
+ color=mix(color,blue,clamp(firstStream*.38+secondStream*.55+firstStream*secondStream*.15,0.,.94));
  color=mix(color,white,crest*.92);
 
  // Cursor position changes occupied area, not merely the angle of a pale
  // wash. At one end the ice-blue fold retreats; at the other it dominates
  // the centre/right. The shared composition keeps moving between gestures.
- float dominance=clamp(.50+drag.x*.28*gesture+drag.y*.08*gesture+sin(t*.27)*.14+memory.x*.18+circulation*.10+memoryWave*.12,0.,1.);
+ float dominance=clamp(.50+drag.x*.56*gesture+drag.y*.12*gesture+sin(t*.27)*.14+memory.x*.18+circulation*.10+memoryWave*.12,0.,1.);
  vec2 rightCentre=vec2(mix(1.36,.59,dominance)+sin(t*.39)*.045,.52+cos(t*.26)*.07+drag.y*.10);
  vec2 topCentre=vec2(.28+sin(t*.31)*.12+drag.x*.12,mix(1.36,1.10,dominance)+drag.y*.07);
  vec2 rightSize=vec2(mix(.52,.72,dominance),mix(.46,.66,dominance));
@@ -140,8 +149,18 @@ void main(){
  float topLobe=1.-smoothstep(.35,1.10,length(topShape));
  float pocket=max(rightLobe,topLobe);
  color=mix(color,ice,pocket*.42);
- // No exposure lift, whitening veil or page/theme-dependent palette. Native
- // foreground glass and local scrims provide legibility above the artwork.
+ // The dark scene uses the same moving field, but with deep ink and spectral
+ // cyan-to-orange bands inspired by the reference rather than darkening UI.
+ float coolBand=exp(-pow((curve+.14)/.30,2.));
+ float coolRim=exp(-pow((curve+.04)/.12,2.));
+ float warmBand=exp(-pow((curve-.23)/.27,2.));
+ vec3 darkColor=mix(darkBlack,darkBlue,clamp(coolBand*.92,0.,1.));
+ darkColor=mix(darkColor,darkCyan,coolRim*.68);
+ darkColor=mix(darkColor,darkWarm,warmBand*.86);
+ darkColor=mix(darkColor,darkBlack,pocket*.65);
+ color=mix(color,darkColor,darkMode);
+ // No exposure lift or whitening veil. Foreground glass and local scrims
+ // provide legibility above the active theme’s artwork.
 
  // Render only the smooth colour field here. Grain belongs to the final,
  // high-resolution pass, so a lower scene budget never enlarges its pixels.
@@ -176,6 +195,7 @@ void main(){
 export function createSiteBackground(canvas, background = {}) {
   const source = background && typeof background === 'object' ? background : {};
   const palette = source.palette && typeof source.palette === 'object' ? source.palette : {};
+  const darkPalette = source.darkPalette && typeof source.darkPalette === 'object' ? source.darkPalette : {};
   const settings = {
     timeScale: clamp(finite(source.timeScale, DEFAULTS.timeScale), 0, 1),
     rotation: finite(source.rotation, DEFAULTS.rotation),
@@ -256,11 +276,12 @@ export function createSiteBackground(canvas, background = {}) {
       return complete;
     }
     if (!allocateField(1, 1)) throw new Error('Background framebuffer unavailable');
-    const names = ['resolution', 'viewport', 'pointer', 'pointerTrail', 'pointerVelocity', 'motionHistory', 'clock', 'timeScale', 'rotation', 'distortion', 'ice', 'white', 'sky', 'blue', 'pointerActive', 'pointerRadius', 'pointerPush'];
+    const names = ['resolution', 'viewport', 'pointer', 'pointerTrail', 'pointerVelocity', 'motionHistory', 'clock', 'timeScale', 'rotation', 'distortion', 'ice', 'white', 'sky', 'blue', 'darkBlack', 'darkBlue', 'darkCyan', 'darkWarm', 'darkMode', 'pointerActive', 'pointerRadius', 'pointerPush'];
     const uniforms = Object.fromEntries(names.map(name => [name, gl.getUniformLocation(scene.program, name)]));
     const finalUniforms = Object.fromEntries(['field', 'resolution', 'grainStrength', 'grainCellSize'].map(name => [name, gl.getUniformLocation(composite.program, name)]));
     bindQuad(scene);
     for (const [uniform, key] of [['ice', 'ice'], ['white', 'white'], ['sky', 'sky'], ['blue', 'blue']]) gl.uniform3fv(uniforms[uniform], rgb(palette[key], DEFAULTS.palette[key]));
+    for (const [uniform, key] of [['darkBlack', 'black'], ['darkBlue', 'blue'], ['darkCyan', 'cyan'], ['darkWarm', 'warm']]) gl.uniform3fv(uniforms[uniform], rgb(darkPalette[key], DEFAULTS.darkPalette[key]));
     for (const [uniform, value] of [['timeScale', settings.timeScale], ['rotation', settings.rotation], ['distortion', settings.distortion], ['pointerRadius', settings.pointerRadius], ['pointerPush', settings.pointerPush]]) gl.uniform1f(uniforms[uniform], value);
     bindQuad(composite);
     gl.uniform1i(finalUniforms.field, 0);
@@ -299,6 +320,7 @@ export function createSiteBackground(canvas, background = {}) {
         gl.uniform2f(uniforms.pointerVelocity, clamp(finite(pointer?.vx, 0), -2.5, 2.5), clamp(finite(pointer?.vy, 0), -2.5, 2.5));
         gl.uniform4f(uniforms.motionHistory, clamp(finite(history?.x, 0), -.55, .55), -clamp(finite(history?.y, 0), -.55, .55), clamp(finite(history?.spin, 0), -1.1, 1.1), clamp(finite(history?.phase, 0), -Math.PI, Math.PI));
         gl.uniform1f(uniforms.clock, Math.max(0, finite(time, 0)));
+        gl.uniform1f(uniforms.darkMode, dark ? 1 : 0);
         gl.uniform1f(uniforms.pointerActive, clamp(finite(pointer?.active, 0), 0, 1));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);

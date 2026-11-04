@@ -4,7 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f7fbff">
-    <meta name="color-scheme" content="light">
+    <meta name="color-scheme" content="light dark">
+    <script>
+      (() => {
+        let theme = 'light';
+        try { if (localStorage.getItem('transparency-theme') === 'dark') theme = 'dark'; } catch { /* Light remains available without storage. */ }
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#050c18' : '#f7fbff';
+      })();
+    </script>
     <meta name="description" content="가릴 것이 없으니까. 궁금했던 성분부터, 나에게 맞는 사용법까지. 극도의 투명함, 손안에서. Transparency.">
     <title>Transparency. — 가릴 것이 없으니까.</title>
     <link rel="icon" type="image/svg+xml" href="/images/transparency-favicon.svg">
@@ -23,6 +32,7 @@
     <link rel="stylesheet" href="/site-effects.css">
     <link rel="stylesheet" href="/site-wide-text-lens.css">
     <link rel="stylesheet" href="/scroll-position.css">
+    <link rel="stylesheet" href="/dark-theme.css">
   </head>
   <body>
     <div id="app"></div>

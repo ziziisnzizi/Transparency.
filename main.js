@@ -23,9 +23,14 @@ const initialView = initialUrl.searchParams.get('view');
 let disposeTextEffects = null, disposeAmbientBackground = null, disposeScrollPosition = null;
 let page = initialView === 'concerns' ? '내 고민' : '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
 let isPurchase = initialView === 'buy';
-// One light presentation; former saved theme preferences no longer alter it.
-document.documentElement.dataset.theme = 'light';
-document.documentElement.style.colorScheme = 'light';
+let theme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+function applyTheme() {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.content = theme === 'dark' ? '#050c18' : '#f7fbff';
+  document.dispatchEvent(new Event('site-theme-change'));
+}
 const requestedProduct = new URLSearchParams(window.location.search).get('product');
 selected = initialView === 'concerns' ? null : products.find(product => product.slug === requestedProduct) || null;
 if (isPurchase && !selected) selected = orderProductsByRoutine(products)[0];
@@ -63,7 +68,7 @@ function render() {
     <a class="skip-link" href="#content">본문으로 이동</a>
     <header><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button>
 
-      <div class="header-actions"><button class="account" data-page="내 제품">MY PRODUCTS ${arrow}</button></div>
+      <div class="header-actions"><button class="theme-toggle" id="theme-toggle" type="button" aria-label="${theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}" aria-pressed="${theme === 'dark'}"><span aria-hidden="true">${theme === 'dark' ? '☀' : '☾'}</span></button><button class="account" data-page="내 제품">MY PRODUCTS ${arrow}</button></div>
     </header>
       <nav aria-label="주요 메뉴">${navPages.map(x => `<button ${!selected && page === x ? 'aria-current="page"' : ''} class="${page === x ? 'active' : ''}" data-page="${x}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${navIcons[x]}</svg><span>${x}</span></button>`).join('')}</nav>
     <main id="content" tabindex="-1">${isPurchase ? renderPurchase(orderProductsByRoutine(products), selected?.slug, purchasePricing) : selected ? detail() : page === '홈' ? home() : page === '제품 탐색' ? explore() : page === '내 고민' ? renderConcerns() : page === '내 제품' ? my() : more()}</main>
@@ -219,6 +224,15 @@ function refreshSearchResults(value) {
   bindSearchReset();
 }
 function bind() {
+  document.querySelector('#theme-toggle')?.addEventListener('click', (event) => {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('transparency-theme', theme); } catch { /* Continue without storage. */ }
+    const button = event.currentTarget;
+    button.setAttribute('aria-label', theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환');
+    button.setAttribute('aria-pressed', String(theme === 'dark'));
+    button.querySelector('span').textContent = theme === 'dark' ? '☀' : '☾';
+    applyTheme();
+  });
   if (!isPurchase && !selected && page === '내 고민') bindConcerns({
     onProduct: slug => openProduct(slug),
     onReview: slug => openProduct(slug, false, '사용자 리뷰'),

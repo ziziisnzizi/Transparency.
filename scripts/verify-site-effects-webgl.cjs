@@ -158,7 +158,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       // Measure actual channel centroids on isolated white strokes at increasing
       // radii. This is an optical measurement, independent of the shader formula.
       const radialDispersion = [];
-      let softFringes={pixels:0,minRatio:1,maxRatio:0,maxGreen:0,redPixels:0,bluePixels:0}, smallerSpread=0;
+      let softFringes={pixels:0,minRatio:1,maxRatio:0,redPixels:0,bluePixels:0,yellowPixels:0,cyanPixels:0,magentaPixels:0}, smallerSpread=0;
       for (const fraction of [0,.4,.72,.92]) {
         const stroke = document.createElement('canvas'); stroke.width=pw;stroke.height=ph;
         const ctx=stroke.getContext('2d');ctx.fillStyle='#fff';
@@ -175,7 +175,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
           const base=capture({rimWidth:.1,reveal:0,fringeOpacity:0}),opaque=capture({rimWidth:.1,reveal:0,fringeOpacity:1});
           const noSplit=capture({rimWidth:.1,reveal:0,rgbOffset:0});
           metrics.fringeOffMatchesSharpCarrier=difference(base,noSplit);
-          for(let i=0;i<pixels.length;i+=4)if(radial(i)<point.radius-2&&base[i+3]===0&&opaque[i+3]>=250){const value=pixels[i+3]/opaque[i+3];softFringes.pixels++;softFringes.minRatio=Math.min(softFringes.minRatio,value);softFringes.maxRatio=Math.max(softFringes.maxRatio,value);softFringes.maxGreen=Math.max(softFringes.maxGreen,pixels[i+1]);if(pixels[i]>pixels[i+2]*1.5&&pixels[i]>30)softFringes.redPixels++;if(pixels[i+2]>pixels[i]*1.5&&pixels[i+2]>30)softFringes.bluePixels++;}
+          for(let i=0;i<pixels.length;i+=4)if(radial(i)<point.radius-2&&base[i+3]===0&&opaque[i+3]>=250){const value=pixels[i+3]/opaque[i+3],r=pixels[i],g=pixels[i+1],b=pixels[i+2];softFringes.pixels++;softFringes.minRatio=Math.min(softFringes.minRatio,value);softFringes.maxRatio=Math.max(softFringes.maxRatio,value);if(r>200&&g<70&&b<30)softFringes.redPixels++;if(b>200&&g<70&&r<30)softFringes.bluePixels++;if(r>200&&g>128&&b<30)softFringes.yellowPixels++;if(b>200&&g>128&&r<30)softFringes.cyanPixels++;if(r>30&&b>30)softFringes.magentaPixels++;}
         }
         if(fraction===.92){
           const smaller=capture({rimWidth:.1,reveal:0,rgbOffset:2}),sum=[0,0,0],weighted=[0,0,0];
@@ -213,7 +213,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
         outsideKoreanUnchanged: metrics.outsideKorean.maxRGBA <= 1,
         overlayTransparentOutsideLens:metrics.overlayOutside.maxRGBA===0,
         separatedColoursFullyOpaque:softFringes.pixels>5&&softFringes.minRatio>.995&&softFringes.maxRatio<=1,
-        fringesAreRedAndBlue:softFringes.maxGreen===0&&softFringes.redPixels>5&&softFringes.bluePixels>5,
+        fringesFollowReferenceSpectrum:softFringes.redPixels>5&&softFringes.bluePixels>5&&softFringes.yellowPixels>5&&softFringes.cyanPixels>5&&softFringes.magentaPixels===0,
         fringeOpacityZeroRestoresCarrier:metrics.fringeOffMatchesSharpCarrier.maxRGBA<=1,
         coloursExtendFurtherThanTwoPixels:radialDispersion.at(-1).spread>smallerSpread+.10,
         independentReferenceAligned: metrics.independentUnwarpedReference.maxRGBA <= 2,

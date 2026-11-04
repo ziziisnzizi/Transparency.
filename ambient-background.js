@@ -73,7 +73,7 @@ export function mountAmbientBackground(document = globalThis.document) {
     if (geometryDirty) measure();
     layer.style.setProperty('--ambient-shift-x', `${(pointer.x * pointer.active * 24 + history.x * 70 + Math.sin(history.phase) * 36).toFixed(2)}px`);
     layer.style.setProperty('--ambient-shift-y', `${(pointer.y * pointer.active * 18 + history.y * 60).toFixed(2)}px`);
-    renderer?.render({ time: still() ? Number(config.staticTime) || 3.4 : time, pointer, history });
+    renderer?.render({ time: still() ? Number(config.staticTime) || 3.4 : time, pointer, history, dark: document.documentElement.dataset.theme === 'dark' });
     ink.update(renderer, still());
   }
   function tick(stamp) {
@@ -197,6 +197,7 @@ export function mountAmbientBackground(document = globalThis.document) {
     queueFlow(pointer.x, pointer.y, 0, clamp(delta / height, -.20, .20) * gain);
   }, { passive: true });
   listen(document, 'site-content-ready', () => { seedScroll(); ink.update(renderer, true); });
+  listen(document, 'site-theme-change', () => { ink.update(renderer, true); if (active()) paint(); schedule(); });
   listen(view, 'popstate', seedScroll);
   for (const preference of [motion, transparency, contrast, forcedColors]) listen(preference, 'change', sync);
   listen(coarse, 'change', () => { if (coarse.matches) target.active = pointer.active = 0; sync(); });

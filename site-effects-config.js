@@ -8,6 +8,12 @@ export const siteEffectsConfig = {
       blue: '#4c8ee8',
       ice: '#dcefff',
     },
+    darkPalette: {
+      black: '#080b13',
+      blue: '#183f86',
+      cyan: '#9cd5de',
+      warm: '#e65c21',
+    },
     timeScale: .12,
     rotation: -.55,
     distortion: .68,

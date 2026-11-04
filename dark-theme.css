@@ -1,0 +1,71 @@
+/* Dark glass is intentionally opaque enough for text over a moving, bright field. */
+html:root[data-theme="dark"] {
+  color-scheme: dark;
+  color: #f7fbff;
+  --ink: #f7fbff;
+  --muted: #d2dce8;
+  --line: rgb(224 239 255 / .25);
+  --ambient-page-base: #050c18;
+  --liquid-surface: linear-gradient(135deg, rgb(14 24 39 / .90), rgb(7 14 26 / .87));
+  --liquid-inset: rgb(5 12 24 / .82);
+  --liquid-hover: linear-gradient(135deg, rgb(40 58 80 / .94), rgb(16 29 46 / .92));
+  --liquid-selected: linear-gradient(145deg, rgb(226 240 255 / .28), rgb(177 211 243 / .17));
+  --liquid-selected-ink: #fff;
+  --liquid-edge: rgb(220 239 255 / .22);
+  --liquid-selected-edge: rgb(220 239 255 / .48);
+  --liquid-nav-surface: linear-gradient(135deg, rgb(10 20 36 / .78), rgb(8 16 28 / .73));
+  --liquid-dialog-surface: #101b2bf5;
+  --liquid-action: linear-gradient(145deg, #e9f3ff, #c5def5);
+  --liquid-action-hover: linear-gradient(145deg, #fff, #e6f4ff);
+  --liquid-action-ink: #101b2b;
+  --liquid-shadow: inset 0 1px 0 rgb(255 255 255 / .16), 0 8px 24px rgb(0 0 0 / .16);
+}
+html:root[data-theme="dark"] body:has(.concerns-page.is-empty) {
+  --ink: #f7fbff;
+  --muted: #d2dce8;
+  --liquid-selected-ink: #fff;
+  color: var(--ink);
+}
+html:root[data-theme="dark"] body[data-site-art="shared"] :is(header, nav),
+html:root[data-theme="dark"] body:has(.concerns-page.is-empty) :is(header, nav) {
+  color: var(--ink);
+  background: linear-gradient(135deg, rgb(7 15 28 / .72), rgb(9 18 33 / .64));
+  border-color: rgb(223 238 255 / .23);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .12);
+}
+html:root[data-theme="dark"] :is(.account, .theme-toggle, .text-btn, .badge, .status-badge, .round-arrow, .texture-toggle) {
+  color: var(--ink);
+}
+html:root[data-theme="dark"] .image-caption { background: rgb(9 18 32 / .88); color: var(--muted); }
+html:root[data-theme="dark"] body .ambient-background { background: #050c18; }
+html:root[data-theme="dark"] body .ambient-background[data-renderer="css"] .ambient-wave-fallback {
+  background: radial-gradient(ellipse at 70% 22%, #184379 0%, transparent 48%), radial-gradient(ellipse at 15% 75%, #17647b 0%, transparent 44%), linear-gradient(140deg, #050c18 10%, #122e5c 46%, #050c18 80%);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  html:root[data-theme="dark"] {
+    --liquid-surface: #101c2b; --liquid-inset: #0b1420;
+    --liquid-hover: #243b53; --liquid-selected: #304c6a;
+    --liquid-nav-surface: #101c2b; --liquid-dialog-surface: #101c2b;
+    --liquid-shadow: none;
+  }
+  html:root[data-theme="dark"] body:has(.concerns-page.is-empty) :is(header, nav, footer),
+  html:root[data-theme="dark"] .concerns-page.is-empty :is(.concern-search-bar, .concern-suggestions > button),
+  html:root[data-theme="dark"] .site-hero-bottom > .text-btn { background: #101c2b; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  html:root[data-theme="dark"] {
+    --liquid-surface: #101c2b; --liquid-inset: #0b1420;
+    --liquid-hover: #243b53; --liquid-selected: #304c6a;
+    --liquid-nav-surface: #101c2b; --liquid-dialog-surface: #101c2b;
+  }
+}
+@media (forced-colors: active) {
+  html:root[data-theme="dark"], html:root[data-theme="dark"] body:has(.concerns-page.is-empty) {
+    --ink: CanvasText; --muted: CanvasText; --line: CanvasText; color: CanvasText;
+    --liquid-surface: Canvas; --liquid-inset: Canvas; --liquid-hover: Canvas;
+    --liquid-nav-surface: Canvas; --liquid-dialog-surface: Canvas;
+    --liquid-selected: Highlight; --liquid-selected-ink: HighlightText;
+    --liquid-edge: CanvasText; --liquid-selected-edge: Highlight;
+    --liquid-action: ButtonFace; --liquid-action-hover: ButtonFace; --liquid-action-ink: ButtonText;
+  }
+}

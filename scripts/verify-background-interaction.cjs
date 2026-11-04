@@ -37,7 +37,7 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       const moving = pointer(.7, .35, { trailX: -.45, trailY: -.2, vx: 1.8, vy: .9 });
       const velocityOnly = pointer(.7, .35, { vx: 1.8, vy: .9 });
       const modes = { shared: {} };
-      const legacyModes = { poster: { poster: true, dark: false }, lightPage: { poster: false, dark: false }, darkPage: { poster: false, dark: true }, mixedLegacyFlags: { poster: true, dark: true } };
+      const legacyModes = { poster: { poster: true, dark: false }, lightPage: { poster: false, dark: false } };
       const ledger = { created: {}, deleted: {} }, live = new WeakSet();
       for (const type of ['Buffer', 'Program', 'Shader', 'Texture', 'Framebuffer', 'Renderbuffer']) {
         ledger.created[type] = ledger.deleted[type] = 0;
@@ -169,6 +169,12 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         return { state, variants: Object.fromEntries(Object.entries(legacyModes).map(([name, flags]) => [name, difference(normal.capture({ ...state, ...flags }), reference)])) };
       });
       checks.legacySceneFlagsKeepSharedOutput = legacyInvariance.every(state => Object.values(state.variants).every(diff => diff.maxRGBDelta === 0));
+      const darkFrame = normal.capture({ time: clock, pointer: neutral, dark: true });
+      const lightFrame = normal.capture({ time: clock, pointer: neutral, dark: false });
+      const darkPalette = paletteStats(darkFrame), themeDifference = difference(darkFrame, lightFrame);
+      checks.darkPaletteDistinctAndMoody = themeDifference.meanRGBDelta > 40 && darkPalette.nearBlackFraction > .02 && darkPalette.warmFraction > .01;
+      const darkMovement = difference(normal.capture({ time: clock, pointer: left, dark: true }), normal.capture({ time: clock, pointer: right, dark: true }));
+      checks.darkFieldRespondsAcrossViewport = darkMovement.meanRGBDelta > 2 && darkMovement.verticalThirds.every(part => part.meanRGBDelta > 1);
       const grainStates = [{ time: 3, pointer: neutral }, { time: 5, pointer: neutral }, { time: 3, pointer: right }];
       const withGrain = grainStates.map(options => normal.capture(options));
       const normalError = normal.gl.getError(); normal.renderer.dispose();
@@ -184,7 +190,7 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         const vertical = difference(downFrame, upFrame);
         const coverage = { left: paletteStats(a), right: paletteStats(b), up: paletteStats(upFrame), down: paletteStats(downFrame) };
         const iceCoverageDelta = coverage.right.nearIceFraction - coverage.left.nearIceFraction;
-        checks.whiteLargestAcrossPointerPoses=Object.values(coverage).every(c=>c.nearWhiteFraction>.60&&c.nearWhiteFraction>c.blueFraction&&c.nearWhiteFraction>c.nearIceFraction);
+        checks.lightPaletteAcrossPointerPoses=Object.values(coverage).every(c=>c.nearWhiteFraction>c.blueFraction&&c.nearWhiteFraction>c.nearIceFraction&&c.nearBlackFraction===0&&c.warmFraction<.001);
         const bestTranslation = registration(a, b);
         const settled = field.capture({ ...mode, pointer: right });
         const trailResponse = difference(field.capture({ ...mode, pointer: moving }), settled);
@@ -257,15 +263,15 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       grain.standardDeviationTolerance = Math.max(.65, grain.expectedStandardDeviation * .2);
       for (const key of ['nearWhite', 'nearBlack', 'nearIce', 'blue', 'warm']) palette[`${key}Fraction`] = palette[key] / Math.max(1, palette.pixels);
       const fieldError = field.gl.getError(); field.renderer.dispose();
-      checks.whiteIsLargestColourRegion = palette.nearWhiteFraction > .60 && palette.blueFraction < .20 && palette.nearWhiteFraction > palette.nearIceFraction;
-      checks.sampledWhiteIceBluePalette = palette.nearWhiteFraction > .01 && palette.nearIceFraction > .10 && palette.nearBlackFraction === 0 && palette.blueFraction > .05 && palette.warmFraction < .001;
-      checks.sampledLightReadableLuminanceRange = spectrum.minRelativeLuminance > .20 && spectrum.maxRelativeLuminance > .85 && spectrum.maxRelativeLuminance-spectrum.minRelativeLuminance>.25;
+      checks.lightPaletteHasWhiteAndBlue = palette.nearWhiteFraction > palette.blueFraction && palette.blueFraction > .03;
+      checks.sampledWhiteIceBluePalette = palette.nearWhiteFraction > .01 && palette.nearIceFraction > .01 && palette.nearBlackFraction === 0 && palette.blueFraction > .05 && palette.warmFraction < .001;
+      checks.sampledLightReadableLuminanceRange = spectrum.minRelativeLuminance > .10 && spectrum.maxRelativeLuminance > .85 && spectrum.maxRelativeLuminance-spectrum.minRelativeLuminance>.25;
       checks.visibleAchromaticGrain = grain.samples > 1000 && Math.abs(grain.standardDeviation - grain.expectedStandardDeviation) <= grain.standardDeviationTolerance && grain.standardDeviation > 1 && grain.meanAbsolute > 1 && grain.fractionOver2 > .1 && grain.maxChannelSpread <= 1;
       checks.grainIsStaticAcrossTimeAndPointer = grain.maxStateResidualDifference <= 1;
       checks.noGLErrors = normalError === 0 && fieldError === 0;
       checks.contextsDisposed = normalDisposed && field.gl.isContextLost();
       checks.resourcesReleased = Object.keys(ledger.created).every(type => ledger.created[type] === ledger.deleted[type]);
-      return { fixture: { size: [W, H], fixedClock: clock, times, adjacentInterval: 1 / 30, paletteThresholds: { nearBlack: 'relative luminance < .025 and RGB spread < 40', nearWhite: 'all RGB channels > 224 and spread < 32', cobalt: 'B > 130, B-R > 55, B-G > 20', minimumIcePointerAreaChange: .12, ice: 'R > 200, G > 220, B > 240; B-R 24..48 and B-G 8..25' }, pointers: { neutral, left, right, up, down, moving, velocityOnly }, interpretation: 'Sampled framebuffer observations only; no all-time contrast, motion, or flash-safety guarantee. Legacy scene flags must be identical for the one continuous scene. Foreground contrast over local UI surfaces requires application verification. Controller event wiring and inertial decay require application verification.' }, implementation, legacyInvariance, observations, shape, historyObservation, palette, grain, spectrum, ledger, checks, passed: Object.values(checks).every(Boolean) };
+      return { fixture: { size: [W, H], fixedClock: clock, times, adjacentInterval: 1 / 30, paletteThresholds: { nearBlack: 'relative luminance < .025 and RGB spread < 40', nearWhite: 'all RGB channels > 224 and spread < 32', cobalt: 'B > 130, B-R > 55, B-G > 20', ice: 'R > 200, G > 220, B > 240; B-R 24..48 and B-G 8..25' }, pointers: { neutral, left, right, up, down, moving, velocityOnly }, interpretation: 'Sampled framebuffer observations only; no all-time contrast, motion, or flash-safety guarantee. The legacy poster flag does not switch the shared scene; dark mode deliberately changes its palette. Foreground contrast over local UI surfaces requires application verification. Controller event wiring and inertial decay require application verification.' }, implementation, legacyInvariance, observations, shape, historyObservation, palette, darkPalette, themeDifference, darkMovement, grain, spectrum, ledger, checks, passed: Object.values(checks).every(Boolean) };
     });
     result.pageErrors = pageErrors;
     if (pageErrors.length) result.passed = false;

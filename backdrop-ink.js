@@ -1,4 +1,4 @@
-// Fixed black foreground over the shared moving colour field.
+// Contrast text with the active light or dark moving colour field.
 const selector = [
   'header > .logo', 'nav button:not(.active)',
   '.site-hero-title', '[data-site-source-plane] [data-landing-line]',
@@ -12,7 +12,7 @@ const selector = [
   '.concern-page-intro > h1', '.concern-page-intro > p', '.concern-page-intro > .eyebrow',
   '.concern-search-meta > p', '.concern-search-meta > output', '.concern-scene-caption',
 ].join(',');
-// Black foreground belongs to the light shared artwork. Existing white reading panels and
+// Foreground follows the active theme. Existing reading panels and
 // selected controls keep their own ink so their content remains readable.
 const readingSurface = '.about-banner, .text-btn, .purchase-panel, .info, .product, .product-qr, .empty';
 
@@ -25,11 +25,12 @@ export function createBackdropInk(document) {
     previous = now;
     for (const element of managed) if (!element.isConnected) managed.delete(element);
     let changed = false;
+    const color = document.documentElement.dataset.theme === 'dark' ? '#f7fbff' : '#171717';
     function black(element) {
-      if (!element || managed.has(element)) return;
+      if (!element || (managed.has(element) && element.style.getPropertyValue('--backdrop-ink') === color)) return;
       managed.add(element);
       element.setAttribute('data-backdrop-ink', '');
-      element.style.setProperty('--backdrop-ink', '#171717');
+      element.style.setProperty('--backdrop-ink', color);
       changed = true;
     }
     for (const element of document.querySelectorAll(selector)) {

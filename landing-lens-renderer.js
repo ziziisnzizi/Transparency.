@@ -25,14 +25,16 @@ vec4 at(sampler2D image,vec2 p){
  return texture2D(image,vec2(p.x/viewport.x,1.-p.y/viewport.y));
 }
 vec4 dispersed(sampler2D image,vec2 p,vec2 split){
- vec4 r=at(image,p+split),g=at(image,p),b=at(image,p-split);
- float a=max(max(r.a,g.a),b.a);
- // Keep the sharp carrier intact. Only the separated colours beyond its
- // coverage form translucent wings, rather than an opaque coloured outline.
+ vec4 warmFar=at(image,p+split),warmNear=at(image,p+split*.5);
+ vec4 coolFar=at(image,p-split),coolNear=at(image,p-split*.5),g=at(image,p);
+ float warm=max(warmFar.a,warmNear.a),cool=max(coolFar.a,coolNear.a);
+ float a=max(max(warm,g.a),cool);
+ // Retain the sharp original text. Outward bands progress from red to yellow
+ // on one side and blue to cyan on the other, without mixing into magenta.
  float wing=max(0.,a-g.a)*clamp(fringeOpacity,0.,1.);
- float red=max(r.a-g.a,0.);
- float blue=max(b.a-g.a,0.);
- vec3 hue=vec3(red,0.,blue)/max(red+blue,.0001);
+ float yellow=max(warmFar.a-warmNear.a,0.)/max(warm,.0001);
+ float cyan=max(coolFar.a-coolNear.a,0.)/max(cool,.0001);
+ vec3 hue=warm>=cool?vec3(1.,yellow,0.):vec3(0.,cyan,1.);
  return vec4(g.rgb+hue*wing,g.a+wing);
 }
 void main(){
