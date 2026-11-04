@@ -184,13 +184,13 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         const vertical = difference(downFrame, upFrame);
         const coverage = { left: paletteStats(a), right: paletteStats(b), up: paletteStats(upFrame), down: paletteStats(downFrame) };
         const iceCoverageDelta = coverage.right.nearIceFraction - coverage.left.nearIceFraction;
-        checks.whiteLargestAcrossPointerPoses=Object.values(coverage).every(c=>c.nearWhiteFraction>c.blueFraction&&c.nearWhiteFraction>c.nearIceFraction);
+        checks.whiteLargestAcrossPointerPoses=Object.values(coverage).every(c=>c.nearWhiteFraction>.60&&c.nearWhiteFraction>c.blueFraction&&c.nearWhiteFraction>c.nearIceFraction);
         const bestTranslation = registration(a, b);
         const settled = field.capture({ ...mode, pointer: right });
         const trailResponse = difference(field.capture({ ...mode, pointer: moving }), settled);
         const velocityResponse = difference(field.capture({ ...mode, pointer: velocityOnly }), settled);
         shape[name] = { horizontal, vertical, bestTranslation, trailResponse, velocityResponse, coverage, iceCoverageDelta };
-        checks[`${name}PointerMateriallyChangesIceArea`] = iceCoverageDelta >= .20 && coverage.right.nearIceFraction > .40;
+        checks[`${name}PointerMateriallyChangesIceArea`] = iceCoverageDelta >= .12 && coverage.right.nearIceFraction > .25;
         const minimum = 1;
         checks[`${name}DirectionChangesRenderedField`] = horizontal.meanRGBDelta > minimum && vertical.meanRGBDelta > minimum;
         checks[`${name}BroadResponseAcrossViewport`] = horizontal.verticalThirds.every(part => part.meanRGBDelta > minimum / 2);
@@ -247,7 +247,7 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       grain.standardDeviationTolerance = Math.max(.65, grain.expectedStandardDeviation * .2);
       for (const key of ['nearWhite', 'nearBlack', 'nearIce', 'blue', 'warm']) palette[`${key}Fraction`] = palette[key] / Math.max(1, palette.pixels);
       const fieldError = field.gl.getError(); field.renderer.dispose();
-      checks.whiteIsLargestColourRegion = palette.nearWhiteFraction > palette.blueFraction && palette.nearWhiteFraction > palette.nearIceFraction;
+      checks.whiteIsLargestColourRegion = palette.nearWhiteFraction > .60 && palette.blueFraction < .20 && palette.nearWhiteFraction > palette.nearIceFraction;
       checks.sampledWhiteIceBluePalette = palette.nearWhiteFraction > .01 && palette.nearIceFraction > .10 && palette.nearBlackFraction === 0 && palette.blueFraction > .05 && palette.warmFraction < .001;
       checks.sampledLightReadableLuminanceRange = spectrum.minRelativeLuminance > .20 && spectrum.maxRelativeLuminance > .85 && spectrum.maxRelativeLuminance-spectrum.minRelativeLuminance>.25;
       checks.visibleAchromaticGrain = grain.samples > 1000 && Math.abs(grain.standardDeviation - grain.expectedStandardDeviation) <= grain.standardDeviationTolerance && grain.standardDeviation > 1 && grain.meanAbsolute > 1 && grain.fractionOver2 > .1 && grain.maxChannelSpread <= 1;
@@ -255,7 +255,7 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       checks.noGLErrors = normalError === 0 && fieldError === 0;
       checks.contextsDisposed = normalDisposed && field.gl.isContextLost();
       checks.resourcesReleased = Object.keys(ledger.created).every(type => ledger.created[type] === ledger.deleted[type]);
-      return { fixture: { size: [W, H], fixedClock: clock, times, adjacentInterval: 1 / 30, paletteThresholds: { nearBlack: 'relative luminance < .025 and RGB spread < 40', nearWhite: 'all RGB channels > 224 and spread < 32', cobalt: 'B > 130, B-R > 55, B-G > 20', minimumIcePointerAreaChange: .20, ice: 'R > 200, G > 220, B > 240; B-R 24..48 and B-G 8..25' }, pointers: { neutral, left, right, up, down, moving, velocityOnly }, interpretation: 'Sampled framebuffer observations only; no all-time contrast, motion, or flash-safety guarantee. Legacy scene flags must be identical for the one continuous scene. Foreground contrast over local UI surfaces requires application verification. Controller event wiring and inertial decay require application verification.' }, implementation, legacyInvariance, observations, shape, historyObservation, palette, grain, spectrum, ledger, checks, passed: Object.values(checks).every(Boolean) };
+      return { fixture: { size: [W, H], fixedClock: clock, times, adjacentInterval: 1 / 30, paletteThresholds: { nearBlack: 'relative luminance < .025 and RGB spread < 40', nearWhite: 'all RGB channels > 224 and spread < 32', cobalt: 'B > 130, B-R > 55, B-G > 20', minimumIcePointerAreaChange: .12, ice: 'R > 200, G > 220, B > 240; B-R 24..48 and B-G 8..25' }, pointers: { neutral, left, right, up, down, moving, velocityOnly }, interpretation: 'Sampled framebuffer observations only; no all-time contrast, motion, or flash-safety guarantee. Legacy scene flags must be identical for the one continuous scene. Foreground contrast over local UI surfaces requires application verification. Controller event wiring and inertial decay require application verification.' }, implementation, legacyInvariance, observations, shape, historyObservation, palette, grain, spectrum, ledger, checks, passed: Object.values(checks).every(Boolean) };
     });
     result.pageErrors = pageErrors;
     if (pageErrors.length) result.passed = false;

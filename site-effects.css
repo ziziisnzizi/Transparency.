@@ -38,7 +38,7 @@ body .ambient-background[data-renderer="css"] .ambient-wave-fallback {
   background:
     radial-gradient(ellipse at 74% 20%, #f0f8ff 0%, transparent 63%),
     radial-gradient(ellipse at 0% 2%, var(--site-bg-white, #f8faff) 0%, var(--site-bg-white, #f8faff) 12%, transparent 55%),
-    linear-gradient(135deg, var(--site-bg-white, #f8faff) 0% 28%, var(--site-bg-sky, #acdfff) 45%, var(--site-bg-blue, #4c8ee8) 58%, var(--site-bg-white, #f8faff) 82% 100%);
+    linear-gradient(135deg, var(--site-bg-white, #f8faff) 0% 38%, var(--site-bg-sky, #acdfff) 49%, var(--site-bg-blue, #4c8ee8) 56%, var(--site-bg-white, #f8faff) 70% 100%);
 }
 body .ambient-background[data-renderer="css"] .ambient-wave-fallback::before,
 body .ambient-background[data-renderer="css"] .ambient-wave-fallback::after { content: none; }

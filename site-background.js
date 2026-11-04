@@ -116,8 +116,8 @@ void main(){
  // Broad white and saturated blue streams share one continuous global canvas.
  float secondCurve=bandPoint.y*.90-bandPoint.x*.24+cos(bandPoint.x*1.9-t*.26+drag.x*.42)*.22-.31+(drag.y*.075-drag.x*.10)*gesture;
  secondCurve+=memory.x*.16-circulation*.10+memoryWave*.12;
- float firstStream=exp(-pow((curve-.015)/.13,2.));
- float secondStream=exp(-pow((secondCurve+.11)/.17,2.));
+ float firstStream=exp(-pow((curve-.015)/.085,2.));
+ float secondStream=exp(-pow((secondCurve+.11)/.10,2.));
  vec3 color=mix(white,sky,clamp(firstStream*.60+secondStream*.35,0.,.85));
  color=mix(color,blue,clamp(firstStream*.32+secondStream*.38+firstStream*secondStream*.12,0.,.78));
  color=mix(color,white,crest*.92);
