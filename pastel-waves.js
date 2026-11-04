@@ -15,31 +15,60 @@ float softBand(float distance,float width){
  return exp(-d*d);
 }
 
-// Broad, slowly morphing light pools for the empty concern-search hero.
-// Uneven overlapping clouds keep the scene organic, with a quiet reading centre.
+// Independent lattice value noise with analytic derivatives. The two warp
+// stages alter the field itself; pointer movement is never just a scene pan.
+float concernHash(vec2 cell){
+ vec2 q=fract(cell*vec2(.07173,.10917)+vec2(.413,.173));
+ q+=dot(q,q.yx+vec2(19.19,23.73));
+ return fract(q.x*q.y*(q.x+q.y));
+}
+vec3 concernNoise(vec2 p,float seed){
+ p+=vec2(seed*.73,-seed*1.31);
+ vec2 cell=floor(p);
+ vec2 f=fract(p);
+ vec2 u=f*f*(3.-2.*f);
+ vec2 du=6.*f*(1.-f);
+ float a=concernHash(cell);
+ float b=concernHash(cell+vec2(1.,0.));
+ float c=concernHash(cell+vec2(0.,1.));
+ float d=concernHash(cell+vec2(1.,1.));
+ float ab=mix(a,b,u.x),cd=mix(c,d,u.x);
+ return vec3(mix(ab,cd,u.y),mix(b-a,d-c,u.y)*du.x,(cd-ab)*du.y);
+}
+float concernArea(vec2 p,vec2 centre,vec2 size){
+ return 1.-smoothstep(.08,1.,length((p-centre)/size));
+}
 vec3 concernAtmosphere(vec2 uv,float aspect){
- float t=clock*.10;
  float mobile=1.-smoothstep(.85,1.18,aspect);
- vec2 p=uv-pointer*vec2(.050,.040);
- p+=vec2(sin(uv.y*4.2+t*.73),sin(uv.x*3.6-t*.61))*.038;
- vec2 drift=vec2(sin(t*.78),cos(t*.63))*vec2(.068,.057);
- vec2 upper=(p-(vec2(.98,.98)+drift))/vec2(.76,.64);
- float sky=exp(-dot(upper,upper)*1.8);
- vec2 left=(p-(vec2(-.15,.49)-drift*.6))/vec2(.69,.59);
- float cyan=exp(-dot(left,left)*1.65);
- vec2 lower=(p-(vec2(.66,-.17)+drift*.65))/vec2(.82,.54);
- float daylight=exp(-dot(lower,lower)*1.65);
- vec3 ink=vec3(.012,.025,.040);
- vec3 color=mix(ink,vec3(.32,.68,.91),sky*.94);
- color=mix(color,vec3(.27,.61,.77),cyan*.83);
- color=mix(color,vec3(.84,.95,1.),daylight*.88);
- // A dark mid-right cutout separates the upper sky arc from the icy lower glow.
- vec2 cutout=(p-(vec2(.78,.51)+drift*.34))/vec2(.42,.40);
- float depth=exp(-dot(cutout,cutout)*2.1);
- color=mix(color,vec3(.006,.013,.023),depth*.94);
- vec2 reading=(p-vec2(.43,mix(.61,.65,mobile)))/vec2(.49,.31);
- float readingShade=exp(-dot(reading,reading)*1.8)*.32;
- return mix(color,ink,readingShade);
+ float flow=clock*.035;
+ // The controller flips GPU Y; restore it for a top=-1 / bottom=+1 seed.
+ float seed=-pointer.y+sin(flow*.7)*.16;
+ float displacement=(clamp(pointer.x,-1.,1.)+1.)*2.5;
+ float strength=.12+displacement*.105;
+ vec2 base=(uv-.5)*vec2(max(aspect,.55),1.)*1.62;
+ vec3 nx=concernNoise(base+vec2(flow*.28,-flow*.19),seed);
+ vec3 ny=concernNoise(base+vec2(7.23-flow*.16,3.87+flow*.23),seed+.61);
+ vec2 first=vec2(nx.x,ny.x)*2.-1.;
+ vec3 second=concernNoise(base*1.21+first*1.55+vec2(-2.91,5.67),seed-.43);
+ vec2 bend=first*.56+second.yz*.36;
+ // A screen-anchored quiet centre protects the white headline and input.
+ vec2 reading=(uv-vec2(.47,mix(.61,.65,mobile)))/vec2(.53,.29);
+ float quiet=exp(-dot(reading,reading)*1.75);
+ vec2 field=uv+bend*strength*vec2(1./max(aspect,.82),1.)*(1.-quiet*.68);
+ vec3 ink=vec3(.009,.021,.035);
+ vec3 color=ink;
+ color=mix(color,vec3(.27,.63,.82),concernArea(field,vec2(-.05,.49),vec2(.86,.94))*.91);
+ color=mix(color,vec3(.56,.81,.97),concernArea(field,vec2(.99,.99),vec2(.88,.84))*.94);
+ color=mix(color,vec3(.88,.96,1.),concernArea(field,vec2(.62,-.17),vec2(1.05,.84))*.86);
+ color=mix(color,vec3(.004,.010,.019),concernArea(field,vec2(.76,.48),vec2(.64,.67))*.94);
+ // Bound luminance only near the reading zone, retaining bright outer arcs.
+ float luminance=dot(color,vec3(.2126,.7152,.0722));
+ float ceiling=mix(.68,.105,quiet);
+ color*=min(1.,ceiling/max(luminance,.001));
+ // Static, CSS-pixel-sized screen grain; no clock, pointer or shape seed here.
+ vec2 pixel=floor(gl_FragCoord.xy*viewport/resolution);
+ float grain=(concernHash(pixel+vec2(31.7,19.3))-.5)*.050;
+ return color+vec3(grain);
 }
 
 void main(){
