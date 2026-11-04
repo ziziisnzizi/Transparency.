@@ -14,7 +14,6 @@ export const siteEffectsConfig = {
     distortion: .68,
     grain: .045,
     grainCellSize: 1.3,
-    lightFloor: .52,
     pointerRadius: 1.05,
     pointerPush: .38,
     followRate: 7.5,

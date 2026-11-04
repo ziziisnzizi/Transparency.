@@ -70,6 +70,7 @@ function render() {
   bind();
   if (!disposeAmbientBackground) disposeAmbientBackground = mountAmbientBackground(document);
   disposeTextEffects = mountSiteTextEffects(document, siteEffectsConfig);
+  document.dispatchEvent(new Event('site-content-ready'));
 }
 
 function home() {

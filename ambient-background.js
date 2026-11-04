@@ -1,5 +1,6 @@
 import { createSiteBackground } from './site-background.js';
 import { siteEffectsConfig } from './site-effects-config.js';
+import { createBackdropInk } from './backdrop-ink.js';
 
 const mounted = new WeakMap();
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
@@ -10,6 +11,7 @@ export function mountAmbientBackground(document = globalThis.document) {
   mounted.get(document)?.();
   const view = document.defaultView;
   const config = siteEffectsConfig.background || {};
+  const ink = createBackdropInk(document, config.palette);
   const layer = document.createElement('div');
   layer.className = 'ambient-background';
   layer.setAttribute('data-ambient-background', '');
@@ -68,6 +70,7 @@ export function mountAmbientBackground(document = globalThis.document) {
     layer.style.setProperty('--ambient-shift-x', `${(pointer.x * pointer.active * 24).toFixed(2)}px`);
     layer.style.setProperty('--ambient-shift-y', `${(pointer.y * pointer.active * 18).toFixed(2)}px`);
     renderer?.render({ time: still() ? Number(config.staticTime) || 3.4 : time, pointer });
+    ink.update(renderer, still());
   }
   function tick(stamp) {
     frame = 0;
@@ -133,6 +136,8 @@ export function mountAmbientBackground(document = globalThis.document) {
   listen(view, 'blur', recenter);
   listen(view, 'resize', () => { geometryDirty = true; if (active()) paint(); schedule(); }, { passive: true });
   listen(document, 'visibilitychange', sync);
+  listen(view, 'scroll', () => ink.update(renderer), { passive: true });
+  listen(document, 'site-content-ready', () => ink.update(renderer, true));
   for (const preference of [motion, transparency, contrast, forcedColors]) listen(preference, 'change', sync);
   listen(coarse, 'change', () => { if (coarse.matches) target.active = pointer.active = 0; sync(); });
   const size = new view.ResizeObserver(() => { geometryDirty = true; if (active()) paint(); schedule(); });
@@ -148,7 +153,7 @@ export function mountAmbientBackground(document = globalThis.document) {
     if (disposed) return;
     disposed = true; view.cancelAnimationFrame(frame); frame = 0;
     cleanups.forEach(cleanup => cleanup()); size.disconnect();
-    renderer?.dispose(); renderer = null;
+    ink.dispose(); renderer?.dispose(); renderer = null;
     canvas.width = canvas.height = 1; layer.remove(); delete document.body.dataset.siteArt;
     if (mounted.get(document) === dispose) mounted.delete(document);
   }

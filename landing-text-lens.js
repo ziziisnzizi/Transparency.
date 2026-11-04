@@ -26,6 +26,7 @@ function drawLine(context, line, titleRect) {
   const x = rect.left - titleRect.left + (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.borderLeftWidth) || 0);
   // A zero-size inline baseline probe follows the browser's actual font metrics.
   const probe = document.createElement('span');
+  probe.dataset.textLensProbe = '';
   probe.setAttribute('aria-hidden', 'true');
   probe.style.cssText = 'display:inline-block;width:0;height:0;padding:0;margin:0;border:0;line-height:0;vertical-align:baseline;';
   line.appendChild(probe);
@@ -44,6 +45,17 @@ function drawLine(context, line, titleRect) {
       prefix += letter;
     });
   }
+}
+
+export function rasterizeTextLensPlane(plane, bounds, ratio) {
+  const image = document.createElement('canvas');
+  image.width = Math.max(1, Math.ceil(bounds.width * ratio));
+  image.height = Math.max(1, Math.ceil(bounds.height * ratio));
+  const context = image.getContext('2d');
+  if (!context) return null;
+  context.scale(ratio, ratio);
+  for (const line of plane.querySelectorAll('[data-landing-line]')) drawLine(context, line, bounds);
+  return image;
 }
 
 function backgroundColor(element) {
@@ -157,14 +169,7 @@ export function mountLandingTextLens(hero, lens = {}) {
     revealTarget = opacityTarget && lineRects.some(rect => client.x >= rect.left && client.x <= rect.right && client.y >= rect.top && client.y <= rect.bottom) ? 1 : 0;
   }
   function rasterize(plane, ratio) {
-    const image = document.createElement('canvas');
-    image.width = Math.max(1, Math.ceil(titleRect.width * ratio));
-    image.height = Math.max(1, Math.ceil(titleRect.height * ratio));
-    const context = image.getContext('2d');
-    if (!context) return null;
-    context.scale(ratio, ratio);
-    for (const line of plane.querySelectorAll('[data-landing-line]')) drawLine(context, line, titleRect);
-    return image;
+    return rasterizeTextLensPlane(plane, titleRect, ratio);
   }
   function rebuild() {
     layoutDirty = false;

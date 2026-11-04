@@ -1,4 +1,4 @@
-import { mountLandingTextLens } from './landing-text-lens.js';
+import { mountSiteWideTextLens } from './site-wide-text-lens.js';
 
 const mounted = new WeakMap();
 const normalize = value => String(value ?? '').normalize('NFC').replace(/\s+/g, '');
@@ -50,7 +50,7 @@ export function mountSiteTextEffects(document, config = {}) {
   const main = document?.getElementById('content');
   if (!main) return () => {};
   mounted.get(main)?.();
-  let active = null, disposed = false, queued = false;
+  let active = null, wide = null, disposed = false, queued = false;
   const previousSiteLens = main.getAttribute('data-site-lens');
   const previousSiteSource = main.getAttribute('data-site-lens-source');
   const previousSiteTarget = main.getAttribute('data-site-lens-target');
@@ -92,28 +92,13 @@ export function mountSiteTextEffects(document, config = {}) {
       if (heading.id === 'hero-title' && !lines[index]) line.style.setProperty('--site-line-offset', `${Number(config.hero?.offsets?.[index]) || 0}%`);
       translated.appendChild(line);
     });
-    const canvas = document.createElement('canvas');
-    canvas.dataset.landingTextCanvas = '';
-    canvas.setAttribute('aria-hidden', 'true');
-    const rim = document.createElement('div');
-    rim.dataset.landingLens = '';
-    rim.dataset.siteLensRim = '';
-    rim.setAttribute('aria-hidden', 'true');
-    rim.hidden = true;
     heading.dataset.siteTextRegion = '';
     heading.dataset.landingTitle = '';
     heading.dataset.siteLensEn = englishLines.join('\n');
     heading.classList.add('site-text-title');
-    heading.replaceChildren(source, translated, canvas);
-    main.appendChild(rim);
+    heading.replaceChildren(source, translated);
     const record = { heading, source, signature: signature(heading, document), dispose: null };
 
-    const foreground = getComputedStyle(heading).color;
-    const components = foreground.match(/[\d.]+/g)?.slice(0, 3).map(Number) || [23, 23, 23];
-    const rgb = foreground.startsWith('color(') ? components : components.map(value => value / 255);
-    const lightInk = rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722 > .55;
-    const paperRGB = lightInk ? [.012, .025, .04] : [1, 1, 1];
-    const disposeLens = mountLandingTextLens(main, { ...config.lens, paperRGB });
     main.dataset.siteLensSource = sourceLanguage;
     main.dataset.siteLensTarget = 'en';
     const measurement = document.createElement('canvas').getContext('2d');
@@ -149,13 +134,12 @@ export function mountSiteTextEffects(document, config = {}) {
     document.fonts?.addEventListener('loadingdone', fitEnglishLines);
     document.fonts?.ready.then(fitEnglishLines);
     record.dispose = replacement => {
+      wide?.invalidate();
       fitting.disconnect();
       document.fonts?.removeEventListener('loadingdone', fitEnglishLines);
-      disposeLens();
       // A same-element copy update may have already replaced our source plane.
       // Do not overwrite that external update with the original title.
       if (heading.contains(source)) heading.replaceChildren(...(replacement || nativeNodes));
-      rim.remove();
       if (!originalSiteClass) heading.classList.remove('site-text-title');
       restoreAttributes.forEach(restore => restore());
     };
@@ -191,6 +175,7 @@ export function mountSiteTextEffects(document, config = {}) {
     if (disposed) return;
     disposed = true;
     observer.disconnect(); stateObserver.disconnect(); removal.disconnect();
+    wide?.(); wide = null;
     active?.dispose();
     active = null;
     if (previousSiteLens === null) main.removeAttribute('data-site-lens'); else main.setAttribute('data-site-lens', previousSiteLens);
@@ -200,5 +185,7 @@ export function mountSiteTextEffects(document, config = {}) {
   }
   mounted.set(main, dispose);
   refresh();
+  wide = mountSiteWideTextLens(document, config);
+  mirrorMode();
   return dispose;
 }
