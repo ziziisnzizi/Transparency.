@@ -55,7 +55,7 @@ nav button.active { box-shadow: 0 3px 9px #0000000b, inset 0 1px 1px #ffffffd9, 
 .concerns-page .concern-search-bar input { min-height: 44px; color: var(--ink); caret-color: var(--ink); }
 .concerns-page .concern-search-bar input::placeholder { color: var(--ink); opacity: .84; }
 .concerns-page .concern-search-meta>p,
-.concerns-page .concern-search-meta>output { color: var(--ink); opacity: .8; font-size: 10px; }
+.concerns-page .concern-search-meta>output { color: var(--ink); opacity: .8; }
 .concerns-page .concern-search-bar button {
   position: relative;
   isolation: isolate;
@@ -74,7 +74,7 @@ nav button.active { box-shadow: 0 3px 9px #0000000b, inset 0 1px 1px #ffffffd9, 
 .concerns-page .concern-search-bar button:active { box-shadow: 0 1px 4px #26374612, inset 0 1px 3px #20334129, inset 0 -1px 1px #ffffffb3; }
 
 
-.concerns-page .concern-suggestions>button { position: relative; isolation: isolate; min-height: 44px; border: 1px solid #ffffff6b; background: linear-gradient(145deg, #ffffff26, #ffffff0d); color: var(--ink); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 3px 10px #26374605, inset 0 1px 1px #ffffff99; transition: background .2s, box-shadow .2s; }
+.concerns-page .concern-suggestions>button { position: relative; isolation: isolate; border: 1px solid #ffffff6b; background: linear-gradient(145deg, #ffffff26, #ffffff0d); color: var(--ink); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 3px 10px #26374605, inset 0 1px 1px #ffffff99; transition: background .2s, box-shadow .2s; }
 .concerns-page .concern-suggestions>button:hover { background: #ffffff47; box-shadow: 0 4px 12px #2637460a, inset 0 1px 1px #ffffffe6; }
 .concerns-page :is(.concern-finding, .concern-paper, .concern-news-card, .concern-product) { position: relative; border: 1px solid #ffffff8c; background: var(--concern-card-fill); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 8px 25px #26374605, inset 0 1px 1px #ffffffb3; }
 .concerns-page :is(.concern-suggestions>button, .concern-finding, .concern-paper, .concern-news-card, .concern-product)::before { content: none; }

@@ -19,17 +19,17 @@
 .concerns-page .concern-search-bar:focus-within { box-shadow: 0 10px 35px #171d2417, inset 0 1px 1px #ffffff, 0 0 0 1px #6b6b6b50; }
 .concerns-page .concern-search-icon { position: relative; width: 16px; height: 16px; flex: 0 0 auto; margin-right: 3px; border: 1.5px solid var(--muted); border-radius: 50%; }
 .concerns-page .concern-search-icon:after { content: ''; position: absolute; right: -5px; bottom: -3px; width: 7px; height: 1.5px; transform: rotate(47deg); background: var(--muted); border-radius: 2px; }
-.concerns-page .concern-search-bar input { display: block; min-width: 0; width: 100%; padding: 12px 0; border: 0; border-radius: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; line-height: 1.7; }
+.concerns-page .concern-search-bar input { display: block; min-width: 0; width: 100%; padding: 10px 0; border: 0; border-radius: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 18px; line-height: 1.6; }
 .concerns-page .concern-search-bar input::placeholder { color: var(--muted); opacity: .82; }
 .concerns-page .concern-search-bar input::-webkit-search-cancel-button { cursor: pointer; }
 .concerns-page .concern-search-bar button { display: grid; place-items: center; flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; border: 1px solid #ffffff85; background: #ffffff70; box-shadow: 0 2px 8px #0000000a, inset 0 1px 0 #fff; color: var(--ink); font: 23px/1 Arial, sans-serif; }
 .concerns-page .concern-search-bar button:hover { background: #ffffffd4; }
 .concerns-page .concern-search-meta { display: flex; justify-content: space-between; align-items: start; gap: 18px; margin: 13px 9px 0; color: var(--muted); }
-.concerns-page .concern-search-meta>p { margin: 0; font-size: 10px; line-height: 1.8; }
-.concerns-page .concern-search-meta>output { flex: 0 0 auto; padding-top: 1px; font: 10px/1.8 Arial, sans-serif; }
-.concerns-page .concern-search-error { margin: 12px 10px 0; color: var(--ink); font-size: 11px; }
-.concerns-page .concern-suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; margin: 27px 0 0; }
-.concerns-page .concern-suggestions>button { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; padding: 10px 14px; border: 1px solid #ffffff8c; border-radius: 22px; color: var(--muted); background: #ffffff28; box-shadow: inset 0 1px 0 #ffffff6b; font-size: 10px; line-height: 1.8; text-align: left; }
+.concerns-page .concern-search-meta>p { flex: 1; min-width: 0; margin: 0; font-size: 14px; line-height: 1.65; word-break: keep-all; overflow-wrap: anywhere; }
+.concerns-page .concern-search-meta>output { flex: 0 0 auto; padding-top: 1px; font: 13px/1.65 Arial, sans-serif; }
+.concerns-page .concern-search-error { margin: 12px 10px 0; color: var(--ink); font-size: 14px; line-height: 1.65; }
+.concerns-page .concern-suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 27px 0 0; }
+.concerns-page .concern-suggestions>button { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; max-width: 100%; padding: 12px 18px; border: 1px solid #ffffff8c; border-radius: 26px; color: var(--muted); background: #ffffff28; box-shadow: inset 0 1px 0 #ffffff6b; font-size: 14px; line-height: 1.6; text-align: left; }
 .concerns-page .concern-suggestions>button:hover { color: var(--ink); background: #ffffff75; }
 .concerns-page .concern-results { margin-top: 53px; min-width: 0; }
 .concerns-page .concern-result-heading { max-width: 800px; }
@@ -147,10 +147,8 @@
   .concerns-page .concern-search-bar input { font-size: 16px; padding: 8px 0; }
   .concerns-page .concern-search-bar button { width: 44px; height: 44px; font-size: 21px; }
   .concerns-page .concern-search-meta { gap: 10px; margin-top: 12px; }
-  .concerns-page .concern-search-meta>p { font-size: 9px; }
-  .concerns-page .concern-search-meta>output { font-size: 9px; }
-  .concerns-page .concern-suggestions { flex-direction: column; align-items: center; gap: 8px; margin-top: 23px; }
-  .concerns-page .concern-suggestions>button { min-height: 44px; padding: 10px 15px; font-size: 10px; }
+  .concerns-page .concern-suggestions { flex-direction: column; align-items: center; gap: 10px; margin-top: 23px; }
+  .concerns-page .concern-suggestions>button { padding: 12px 16px; }
   .concerns-page.has-results .concern-page-intro>h1 { margin-top: 16px; font-size: 25px; line-height: 1.5; }
   .concerns-page .concern-results { margin-top: 37px; }
   .concerns-page .concern-result-heading>h2 { font-size: 23px; }
