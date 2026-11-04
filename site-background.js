@@ -75,7 +75,7 @@ void main(){
  vec2 drag=vec2(pointerTrail.x,-pointerTrail.y)*pointerActive;
  vec2 velocity=vec2(pointerVelocity.x,-pointerVelocity.y)*pointerActive;
  float gesture=clamp(pointerPush/.30,0.,2.);
- float seed=sin(t*.23)*.13+drag.y*.42*gesture+memory.y*.65+circulation*.24+memoryWave*.18;
+ float seed=sin(t*.23)*.13+drag.y*.12*gesture+memory.y*.65+circulation*.24+memoryWave*.18;
  float amount=distortion*.52;
  vec2 cursor=vec2(pointer.x*.5+.5,.5-pointer.y*.5);
  vec2 delta=(uv-cursor)*vec2(aspect,1.);
@@ -83,12 +83,15 @@ void main(){
  // Long-range attraction/repulsion bends overlapping streams across the whole
  // viewport. There is no hard influence disc or tiny cursor bubble.
  float distanceToPointer=length(delta);
- float influence=1./(1.+dot(delta,delta)/(radius*radius*1.8));
+ float squaredDistance=dot(delta,delta);
+ float influence=1./(1.+squaredDistance/(radius*radius*.50));
+ float well=exp(-squaredDistance/(radius*radius*.14));
+ float orbit=exp(-pow((distanceToPointer-.34)/.21,2.));
  vec2 radial=delta/max(distanceToPointer+.25,.25);
  vec2 tangent=vec2(-delta.y,delta.x)/max(distanceToPointer+.40,.40);
  float curl=clamp(velocity.x*.22-velocity.y*.16+drag.x*.12,-.7,.7);
- vec2 gravity=(radial*.48+tangent*curl*.24)*influence*pointerPush*pointerActive;
- vec2 pushed=uv-gravity/vec2(max(aspect,.25),1.);
+ vec2 gravity=(radial*(.36*influence+.74*well)+tangent*(.22*influence+.25*orbit+curl*.15))*pointerPush*pointerActive;
+ vec2 pushed=uv+gravity/vec2(max(aspect,.25),1.);
  vec2 centre=uv-.5;
  pushed+=memory*.20*(1.-dot(centre,centre)*.30)+vec2(-centre.y,centre.x)*circulation*.12;
  vec2 base=(pushed-.5)*vec2(clamp(aspect,.65,1.7),1.)*.80;
@@ -105,10 +108,10 @@ void main(){
 
  // A cohesive S-shaped diagonal fold. Whole-field bend and tilt respond to the
  // pointer; the autonomous phase continues when the pointer stops moving.
- float angle=rotation+sin(t*.25)*.20+(drag.x*.30+velocity.x*.025)*gesture+circulation*.34+memoryWave*.10;
+ float angle=rotation+sin(t*.25)*.20+(drag.x*.10+velocity.x*.025)*gesture+circulation*.34+memoryWave*.10;
  vec2 bandPoint=rotatePoint((warped-.5)*vec2(.96,1.04),angle);
- float curve=bandPoint.y+sin(bandPoint.x*2.6+t*.32+drag.y*.50*gesture)*(.17+drag.x*.035*gesture);
- curve+=sin(t*.50)*.22+(drag.x*.18+drag.y*.22+velocity.y*.025)*gesture;
+ float curve=bandPoint.y+sin(bandPoint.x*2.6+t*.32+drag.y*.18*gesture)*(.17+drag.x*.035*gesture);
+ curve+=sin(t*.50)*.22+(drag.x*.08+drag.y*.09+velocity.y*.025)*gesture;
  curve+=memory.y*.18+memoryWave*.16+memoryTurn*.055;
  float band=.5+curve;
  float shoulder=exp(-pow((curve-.04)/.17,2.));
@@ -125,7 +128,7 @@ void main(){
  // Cursor position changes occupied area, not merely the angle of a pale
  // wash. At one end the ice-blue fold retreats; at the other it dominates
  // the centre/right. The shared composition keeps moving between gestures.
- float dominance=clamp(.50+drag.x*.56*gesture+drag.y*.12*gesture+sin(t*.27)*.14+memory.x*.18+circulation*.10+memoryWave*.12,0.,1.);
+ float dominance=clamp(.50+drag.x*.28*gesture+drag.y*.08*gesture+sin(t*.27)*.14+memory.x*.18+circulation*.10+memoryWave*.12,0.,1.);
  vec2 rightCentre=vec2(mix(1.36,.59,dominance)+sin(t*.39)*.045,.52+cos(t*.26)*.07+drag.y*.10);
  vec2 topCentre=vec2(.28+sin(t*.31)*.12+drag.x*.12,mix(1.36,1.10,dominance)+drag.y*.07);
  vec2 rightSize=vec2(mix(.52,.72,dominance),mix(.46,.66,dominance));

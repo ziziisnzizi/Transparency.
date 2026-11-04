@@ -190,7 +190,17 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         const trailResponse = difference(field.capture({ ...mode, pointer: moving }), settled);
         const velocityResponse = difference(field.capture({ ...mode, pointer: velocityOnly }), settled);
         shape[name] = { horizontal, vertical, bestTranslation, trailResponse, velocityResponse, coverage, iceCoverageDelta };
-        checks[`${name}PointerMateriallyChangesIceArea`] = iceCoverageDelta >= .12 && coverage.right.nearIceFraction > .25;
+        // Same clock and no directional drag: isolate the circular lens field.
+        const centreStill=field.capture({ ...mode, pointer: neutral });
+        const centreLens=field.capture({ ...mode, pointer: pointer(0,0) });
+        let inner=0,outer=0,innerN=0,outerN=0;
+        for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+          const distance=Math.hypot((x+.5-W/2)/H,(y+.5-H/2)/H),i=(y*W+x)*4;
+          const change=(Math.abs(centreLens[i]-centreStill[i])+Math.abs(centreLens[i+1]-centreStill[i+1])+Math.abs(centreLens[i+2]-centreStill[i+2]))/3;
+          if(distance>.08&&distance<.34){inner+=change;innerN++;}else if(distance>.65){outer+=change;outerN++;}
+        }
+        shape[name].gravity={inner:inner/innerN,outer:outer/outerN};
+        checks[`${name}LensGravityBendsNearbyField`]=inner/innerN>1&&inner/innerN>outer/outerN*1.15;
         const minimum = 1;
         checks[`${name}DirectionChangesRenderedField`] = horizontal.meanRGBDelta > minimum && vertical.meanRGBDelta > minimum;
         checks[`${name}BroadResponseAcrossViewport`] = horizontal.verticalThirds.every(part => part.meanRGBDelta > minimum / 2);

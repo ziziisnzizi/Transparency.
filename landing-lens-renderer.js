@@ -29,9 +29,10 @@ vec4 dispersed(sampler2D image,vec2 p,vec2 split){
  float a=max(max(r.a,g.a),b.a);
  // Keep the sharp carrier intact. Only the separated colours beyond its
  // coverage form translucent wings, rather than an opaque coloured outline.
- vec3 color=vec3(r.r,g.g,b.b)+paper*(vec3(a)-vec3(r.a,g.a,b.a));
  float wing=max(0.,a-g.a)*clamp(fringeOpacity,0.,1.);
- vec3 hue=clamp(color/max(a,.0001),vec3(0.),vec3(1.));
+ float red=max(r.a-g.a,0.);
+ float blue=max(b.a-g.a,0.);
+ vec3 hue=vec3(red,0.,blue)/max(red+blue,.0001);
  return vec4(g.rgb+hue*wing,g.a+wing);
 }
 void main(){
