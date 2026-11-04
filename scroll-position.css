@@ -2,11 +2,11 @@
   --scroll-position: 0;
   position: fixed;
   z-index: 900;
-  top: 22vh;
+  top: 18vh;
   right: max(12px, env(safe-area-inset-right, 0px));
-  width: 15px;
-  height: 56vh;
-  max-height: 600px;
+  width: 26px;
+  height: 64vh;
+  max-height: 720px;
   color: #fff;
   mix-blend-mode: difference;
   pointer-events: none;
@@ -17,21 +17,21 @@
   position: absolute;
   top: calc(var(--tick-position) * 100%);
   right: 0;
-  width: 1px;
-  height: 1px;
+  width: 3px;
+  height: 2px;
   background: currentColor;
   transform: translateY(-50%);
 }
-.scroll-position-tick.is-major { width: 6px; }
+.scroll-position-tick.is-major { width: 12px; }
 .scroll-position-marker {
   position: absolute;
   top: calc(var(--scroll-position) * 100%);
   left: 0;
   width: 0;
   height: 0;
-  border-top: 3px solid transparent;
-  border-bottom: 3px solid transparent;
-  border-left: 4px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 7px solid currentColor;
   transform: translateY(-50%);
 }
 @media (min-width: 1200px) {
@@ -39,13 +39,14 @@
 }
 @media (max-width: 750px) {
   .scroll-position {
-    top: 26vh;
+    top: 24vh;
     right: max(6px, env(safe-area-inset-right, 0px));
-    width: 10px;
-    height: 40vh;
+    width: 12px;
+    height: 48vh;
   }
-  .scroll-position-tick.is-major { width: 4px; }
-  .scroll-position-marker { border-left-width: 3px; }
+  .scroll-position-tick { width: 2px; height: 1.5px; }
+  .scroll-position-tick.is-major { width: 6px; }
+  .scroll-position-marker { border-top-width: 3px; border-bottom-width: 3px; border-left-width: 4px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .scroll-position-marker { transition: none; }

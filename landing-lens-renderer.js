@@ -15,8 +15,10 @@ uniform float radius;
 uniform float rimWidth;
 uniform float refraction;
 uniform float rgbOffset;
+uniform float fringeOpacity;
 uniform float opacity;
 uniform float reveal;
+uniform float overlayOnly;
 
 vec4 at(sampler2D image,vec2 p){
  if(p.x<0.||p.y<0.||p.x>viewport.x||p.y>viewport.y)return vec4(0.);
@@ -25,16 +27,19 @@ vec4 at(sampler2D image,vec2 p){
 vec4 dispersed(sampler2D image,vec2 p,vec2 split){
  vec4 r=at(image,p+split),g=at(image,p),b=at(image,p-split);
  float a=max(max(r.a,g.a),b.a);
- // Keep premultiplied antialiasing clean, including black ink on a light page.
+ // Keep the sharp carrier intact. Only the separated colours beyond its
+ // coverage form translucent wings, rather than an opaque coloured outline.
  vec3 color=vec3(r.r,g.g,b.b)+paper*(vec3(a)-vec3(r.a,g.a,b.a));
- return vec4(clamp(color,vec3(0.),vec3(a)),a);
+ float wing=max(0.,a-g.a)*clamp(fringeOpacity,0.,1.);
+ vec3 hue=clamp(color/max(a,.0001),vec3(0.),vec3(1.));
+ return vec4(g.rgb+hue*wing,g.a+wing);
 }
 void main(){
  vec2 p=vec2(uv.x,1.-uv.y)*viewport;
  vec4 english=at(englishTexture,p);
  vec2 delta=p-center;
  float distance=length(delta);
- if(opacity<.0001||distance>=radius+.6){gl_FragColor=english;return;}
+ if(opacity<.0001||distance>=radius+.6){gl_FragColor=mix(english,vec4(0.),overlayOnly);return;}
  vec2 normal=delta/max(distance,.001);
  float progress=clamp((distance-(radius-rimWidth))/max(rimWidth,.1),0.,1.);
  float annulus=sin(progress*3.14159265359);
@@ -50,7 +55,8 @@ void main(){
  vec4 ja=dispersed(japaneseTexture,warped,split);
  float circle=1.-smoothstep(radius-.6,radius+.6,distance);
  vec4 inside=mix(en,ja,clamp(reveal,0.,1.));
- gl_FragColor=mix(english,inside,circle*clamp(opacity,0.,1.));
+ float mask=circle*clamp(opacity,0.,1.);
+ gl_FragColor=mix(mix(english,inside,mask),inside*mask,overlayOnly);
 }`;
 
 export function createLandingLensRenderer(original) {
@@ -91,7 +97,7 @@ export function createLandingLensRenderer(original) {
     const position = gl.getAttribLocation(program, 'position');
     gl.enableVertexAttribArray(position);
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-    const names = ['englishTexture','japaneseTexture','viewport','center','paper','radius','rimWidth','refraction','rgbOffset','opacity','reveal'];
+    const names = ['englishTexture','japaneseTexture','viewport','center','paper','radius','rimWidth','refraction','rgbOffset','fringeOpacity','overlayOnly','opacity','reveal'];
     const uniforms = Object.fromEntries(names.map(name => [name, gl.getUniformLocation(program, name)]));
     gl.uniform1i(uniforms.englishTexture, 0);
     gl.uniform1i(uniforms.japaneseTexture, 1);
@@ -131,10 +137,10 @@ export function createLandingLensRenderer(original) {
           return false;
         }
       },
-      render({ x, y, radius, rimWidth, refraction, rgbOffset, opacity, reveal }) {
+      render({ x, y, radius, rimWidth, refraction, rgbOffset, fringeOpacity = .70, overlayOnly = 0, opacity, reveal }) {
         if (disposed || !textures.length || gl.isContextLost()) return;
         gl.uniform2f(uniforms.center, x, y);
-        for (const [name, value] of Object.entries({ radius, rimWidth, refraction, rgbOffset, opacity, reveal })) gl.uniform1f(uniforms[name], value);
+        for (const [name, value] of Object.entries({ radius, rimWidth, refraction, rgbOffset, fringeOpacity, overlayOnly, opacity, reveal })) gl.uniform1f(uniforms[name], value);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

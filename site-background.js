@@ -1,7 +1,7 @@
 // Original procedural artwork. Only the supplied decorative canvas is drawn;
 // this renderer has no events, animation loop, DOM/image capture or I/O.
 const DEFAULTS = {
-  palette: { white: '#f7fbff', sky: '#acdfff', blue: '#3574e8', navy: '#10244f', black: '#030811' },
+  palette: { white: '#f7fbff', ice: '#dcefff', sky: '#acdfff', blue: '#4c8ee8' },
   timeScale: .12, rotation: -.55, distortion: .68, grain: .045, grainCellSize: 1.3, pointerRadius: 1.05, pointerPush: .38,
   maxPixelRatio: 1.5, pixelBudget: 1800000,
   outputMaxPixelRatio: 3, outputPixelBudget: 8400000,
@@ -35,14 +35,13 @@ uniform float clock;
 uniform float timeScale;
 uniform float rotation;
 uniform float distortion;
-uniform vec3 ink;
+uniform vec3 ice;
 uniform vec3 white;
 uniform vec3 sky;
 uniform vec3 blue;
 uniform float pointerActive;
 uniform float pointerRadius;
 uniform float pointerPush;
-uniform vec3 navy;
 
 float latticeHash(vec2 cell){
  vec2 q=fract(cell*vec2(.07173,.10917)+vec2(.413,.173));
@@ -124,7 +123,7 @@ void main(){
  color=mix(color,white,crest*.92);
 
  // Cursor position changes occupied area, not merely the angle of a pale
- // wash. At one end the black retreats offscreen; at the other it dominates
+ // wash. At one end the ice-blue fold retreats; at the other it dominates
  // the centre/right. The shared composition keeps moving between gestures.
  float dominance=clamp(.50+drag.x*.56*gesture+drag.y*.12*gesture+sin(t*.27)*.14+memory.x*.18+circulation*.10+memoryWave*.12,0.,1.);
  vec2 rightCentre=vec2(mix(1.36,.59,dominance)+sin(t*.39)*.045,.52+cos(t*.26)*.07+drag.y*.10);
@@ -137,7 +136,7 @@ void main(){
  float rightLobe=1.-smoothstep(.35,1.10,length(rightShape));
  float topLobe=1.-smoothstep(.35,1.10,length(topShape));
  float pocket=max(rightLobe,topLobe);
- color=mix(color,ink,pocket*.999);
+ color=mix(color,ice,pocket*.999);
  // No exposure lift, whitening veil or page/theme-dependent palette. Native
  // foreground glass and local scrims provide legibility above the artwork.
 
@@ -254,11 +253,11 @@ export function createSiteBackground(canvas, background = {}) {
       return complete;
     }
     if (!allocateField(1, 1)) throw new Error('Background framebuffer unavailable');
-    const names = ['resolution', 'viewport', 'pointer', 'pointerTrail', 'pointerVelocity', 'motionHistory', 'clock', 'timeScale', 'rotation', 'distortion', 'ink', 'white', 'sky', 'blue', 'navy', 'pointerActive', 'pointerRadius', 'pointerPush'];
+    const names = ['resolution', 'viewport', 'pointer', 'pointerTrail', 'pointerVelocity', 'motionHistory', 'clock', 'timeScale', 'rotation', 'distortion', 'ice', 'white', 'sky', 'blue', 'pointerActive', 'pointerRadius', 'pointerPush'];
     const uniforms = Object.fromEntries(names.map(name => [name, gl.getUniformLocation(scene.program, name)]));
     const finalUniforms = Object.fromEntries(['field', 'resolution', 'grainStrength', 'grainCellSize'].map(name => [name, gl.getUniformLocation(composite.program, name)]));
     bindQuad(scene);
-    for (const [uniform, key] of [['ink', 'black'], ['white', 'white'], ['sky', 'sky'], ['blue', 'blue'], ['navy', 'navy']]) gl.uniform3fv(uniforms[uniform], rgb(palette[key], DEFAULTS.palette[key]));
+    for (const [uniform, key] of [['ice', 'ice'], ['white', 'white'], ['sky', 'sky'], ['blue', 'blue']]) gl.uniform3fv(uniforms[uniform], rgb(palette[key], DEFAULTS.palette[key]));
     for (const [uniform, value] of [['timeScale', settings.timeScale], ['rotation', settings.rotation], ['distortion', settings.distortion], ['pointerRadius', settings.pointerRadius], ['pointerPush', settings.pointerPush]]) gl.uniform1f(uniforms[uniform], value);
     bindQuad(composite);
     gl.uniform1i(finalUniforms.field, 0);

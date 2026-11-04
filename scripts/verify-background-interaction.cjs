@@ -122,9 +122,9 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       const linear = value => { const c = value / 255; return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; };
       const luminance = rgb => .2126 * linear(rgb[0]) + .7152 * linear(rgb[1]) + .0722 * linear(rgb[2]);
       const spectrum = { minRelativeLuminance: 1, maxRelativeLuminance: 0, sampledPixels: 0 };
-      const palette = { pixels: 0, nearWhite: 0, nearBlack: 0, blue: 0, warm: 0 };
+      const palette = { pixels: 0, nearWhite: 0, nearBlack: 0, nearIce: 0, blue: 0, warm: 0 };
       function paletteStats(pixels) {
-        const result = { pixels: pixels.length / 4, nearWhite: 0, nearBlack: 0, blue: 0, warm: 0, minRelativeLuminance: 1, maxRelativeLuminance: 0 };
+        const result = { pixels: pixels.length / 4, nearWhite: 0, nearBlack: 0, nearIce: 0, blue: 0, warm: 0, minRelativeLuminance: 1, maxRelativeLuminance: 0 };
         for (let i = 0; i < pixels.length; i += 4) {
           const rgb = [pixels[i], pixels[i + 1], pixels[i + 2]], [r, g, b] = rgb;
           const value = luminance(rgb);
@@ -132,15 +132,16 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
           result.maxRelativeLuminance = Math.max(result.maxRelativeLuminance, value);
           if (Math.min(...rgb) > 224 && Math.max(...rgb) - Math.min(...rgb) < 32) result.nearWhite++;
           if (value < .025 && Math.max(...rgb) - Math.min(...rgb) < 40) result.nearBlack++;
+          if(r>200&&g>220&&b>240&&b-r>24&&b-r<48&&b-g>8&&b-g<25)result.nearIce++;
           if (b > 130 && b - r > 55 && b - g > 20) result.blue++;
           if (r - b > 8) result.warm++;
         }
-        for (const key of ['nearWhite', 'nearBlack', 'blue', 'warm']) result[`${key}Fraction`] = result[key] / Math.max(1, result.pixels);
+        for (const key of ['nearWhite', 'nearBlack', 'nearIce', 'blue', 'warm']) result[`${key}Fraction`] = result[key] / Math.max(1, result.pixels);
         return result;
       }
       function observe(pixels) {
         const stats = paletteStats(pixels);
-        for (const key of ['pixels', 'nearWhite', 'nearBlack', 'blue', 'warm']) palette[key] += stats[key];
+        for (const key of ['pixels', 'nearWhite', 'nearBlack', 'nearIce', 'blue', 'warm']) palette[key] += stats[key];
         spectrum.minRelativeLuminance = Math.min(spectrum.minRelativeLuminance, stats.minRelativeLuminance);
         spectrum.maxRelativeLuminance = Math.max(spectrum.maxRelativeLuminance, stats.maxRelativeLuminance);
         spectrum.sampledPixels += stats.pixels;
@@ -182,13 +183,13 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         const upFrame = field.capture({ ...mode, pointer: up }), downFrame = field.capture({ ...mode, pointer: down });
         const vertical = difference(downFrame, upFrame);
         const coverage = { left: paletteStats(a), right: paletteStats(b), up: paletteStats(upFrame), down: paletteStats(downFrame) };
-        const blackCoverageDelta = coverage.right.nearBlackFraction - coverage.left.nearBlackFraction;
+        const iceCoverageDelta = coverage.right.nearIceFraction - coverage.left.nearIceFraction;
         const bestTranslation = registration(a, b);
         const settled = field.capture({ ...mode, pointer: right });
         const trailResponse = difference(field.capture({ ...mode, pointer: moving }), settled);
         const velocityResponse = difference(field.capture({ ...mode, pointer: velocityOnly }), settled);
-        shape[name] = { horizontal, vertical, bestTranslation, trailResponse, velocityResponse, coverage, blackCoverageDelta };
-        checks[`${name}PointerMateriallyChangesBlackArea`] = blackCoverageDelta >= .25 && coverage.left.nearBlackFraction < .20 && coverage.right.nearBlackFraction > .40;
+        shape[name] = { horizontal, vertical, bestTranslation, trailResponse, velocityResponse, coverage, iceCoverageDelta };
+        checks[`${name}PointerMateriallyChangesIceArea`] = iceCoverageDelta >= .20 && coverage.right.nearIceFraction > .40;
         const minimum = 1;
         checks[`${name}DirectionChangesRenderedField`] = horizontal.meanRGBDelta > minimum && vertical.meanRGBDelta > minimum;
         checks[`${name}BroadResponseAcrossViewport`] = horizontal.verticalThirds.every(part => part.meanRGBDelta > minimum / 2);
@@ -228,11 +229,14 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       const withoutGrain = grainStates.map(options => field.capture(options));
       const grain = { samples: 0, sum: 0, squares: 0, absolute: 0, over2: 0, maxChannelSpread: 0, maxStateResidualDifference: 0 };
       for (let i = 0; i < withGrain[0].length; i += 4) {
-        if (withoutGrain.some(frame => [0, 1, 2].some(c => frame[i + c] < 16 || frame[i + c] > 239))) continue;
-        const residuals = withGrain.map((frame, state) => [0, 1, 2].map(c => frame[i + c] - withoutGrain[state][i + c]));
+        // Ice blue can clip the blue channel. Compare at least two channels
+        // that remain unclamped in every state, preserving the achromatic test.
+        const channels=[0,1,2].filter(c=>withoutGrain.every(frame=>frame[i+c]>=16&&frame[i+c]<=239));
+        if(channels.length<2)continue;
+        const residuals = withGrain.map((frame, state) => channels.map(c => frame[i + c] - withoutGrain[state][i + c]));
         const d = residuals[0][0]; grain.samples++; grain.sum += d; grain.squares += d * d; grain.absolute += Math.abs(d); if (Math.abs(d) > 2) grain.over2++;
         for (const residual of residuals) grain.maxChannelSpread = Math.max(grain.maxChannelSpread, Math.max(...residual) - Math.min(...residual));
-        for (let state = 1; state < residuals.length; state++) for (let c = 0; c < 3; c++) grain.maxStateResidualDifference = Math.max(grain.maxStateResidualDifference, Math.abs(residuals[state][c] - residuals[0][c]));
+        for (let state = 1; state < residuals.length; state++) for (let c = 0; c < channels.length; c++) grain.maxStateResidualDifference = Math.max(grain.maxStateResidualDifference, Math.abs(residuals[state][c] - residuals[0][c]));
       }
       grain.mean = grain.sum / Math.max(1, grain.samples); grain.standardDeviation = Math.sqrt(grain.squares / Math.max(1, grain.samples) - grain.mean ** 2); grain.meanAbsolute = grain.absolute / Math.max(1, grain.samples); grain.fractionOver2 = grain.over2 / Math.max(1, grain.samples);
       grain.configuredAmplitude = settings.grain;
@@ -240,16 +244,16 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       // Difference of two quantized framebuffer values adds a small error to
       // the continuous uniform-noise model. Visibility remains an independent gate.
       grain.standardDeviationTolerance = Math.max(.65, grain.expectedStandardDeviation * .2);
-      for (const key of ['nearWhite', 'nearBlack', 'blue', 'warm']) palette[`${key}Fraction`] = palette[key] / Math.max(1, palette.pixels);
+      for (const key of ['nearWhite', 'nearBlack', 'nearIce', 'blue', 'warm']) palette[`${key}Fraction`] = palette[key] / Math.max(1, palette.pixels);
       const fieldError = field.gl.getError(); field.renderer.dispose();
-      checks.sampledBlackWhiteCobaltPalette = palette.nearWhiteFraction > .01 && palette.nearBlackFraction > .10 && palette.blueFraction > .05 && palette.warmFraction < .001;
-      checks.sampledFullLuminanceRange = spectrum.minRelativeLuminance < .005 && spectrum.maxRelativeLuminance > .85;
+      checks.sampledWhiteIceBluePalette = palette.nearWhiteFraction > .01 && palette.nearIceFraction > .10 && palette.nearBlackFraction === 0 && palette.blueFraction > .05 && palette.warmFraction < .001;
+      checks.sampledLightReadableLuminanceRange = spectrum.minRelativeLuminance > .20 && spectrum.maxRelativeLuminance > .85 && spectrum.maxRelativeLuminance-spectrum.minRelativeLuminance>.25;
       checks.visibleAchromaticGrain = grain.samples > 1000 && Math.abs(grain.standardDeviation - grain.expectedStandardDeviation) <= grain.standardDeviationTolerance && grain.standardDeviation > 1 && grain.meanAbsolute > 1 && grain.fractionOver2 > .1 && grain.maxChannelSpread <= 1;
       checks.grainIsStaticAcrossTimeAndPointer = grain.maxStateResidualDifference <= 1;
       checks.noGLErrors = normalError === 0 && fieldError === 0;
       checks.contextsDisposed = normalDisposed && field.gl.isContextLost();
       checks.resourcesReleased = Object.keys(ledger.created).every(type => ledger.created[type] === ledger.deleted[type]);
-      return { fixture: { size: [W, H], fixedClock: clock, times, adjacentInterval: 1 / 30, paletteThresholds: { nearBlack: 'relative luminance < .025 and RGB spread < 40', nearWhite: 'all RGB channels > 224 and spread < 32', cobalt: 'B > 130, B-R > 55, B-G > 20', minimumBlackPointerAreaChange: .25 }, pointers: { neutral, left, right, up, down, moving, velocityOnly }, interpretation: 'Sampled framebuffer observations only; no all-time contrast, motion, or flash-safety guarantee. Legacy scene flags must be identical for the one continuous scene. Foreground contrast over local UI surfaces requires application verification. Controller event wiring and inertial decay require application verification.' }, implementation, legacyInvariance, observations, shape, historyObservation, palette, grain, spectrum, ledger, checks, passed: Object.values(checks).every(Boolean) };
+      return { fixture: { size: [W, H], fixedClock: clock, times, adjacentInterval: 1 / 30, paletteThresholds: { nearBlack: 'relative luminance < .025 and RGB spread < 40', nearWhite: 'all RGB channels > 224 and spread < 32', cobalt: 'B > 130, B-R > 55, B-G > 20', minimumIcePointerAreaChange: .20, ice: 'R > 200, G > 220, B > 240; B-R 24..48 and B-G 8..25' }, pointers: { neutral, left, right, up, down, moving, velocityOnly }, interpretation: 'Sampled framebuffer observations only; no all-time contrast, motion, or flash-safety guarantee. Legacy scene flags must be identical for the one continuous scene. Foreground contrast over local UI surfaces requires application verification. Controller event wiring and inertial decay require application verification.' }, implementation, legacyInvariance, observations, shape, historyObservation, palette, grain, spectrum, ledger, checks, passed: Object.values(checks).every(Boolean) };
     });
     result.pageErrors = pageErrors;
     if (pageErrors.length) result.passed = false;

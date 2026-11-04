@@ -2,8 +2,8 @@
 main#content { position: relative; }
 html:root {
   color-scheme: light;
-  color: #151d27;
-  --ink: #151d27;
+  color: #171717;
+  --ink: #171717;
   --muted: #34404f;
   --line: rgb(21 29 39 / .20);
   --liquid-surface: linear-gradient(135deg, rgb(255 255 255 / .75), rgb(255 255 255 / .68) 58%, rgb(255 255 255 / .72));
@@ -32,9 +32,9 @@ body .ambient-background {
 body .ambient-background[data-renderer="css"] .ambient-wave-fallback {
   inset: -32px;
   background:
-    radial-gradient(ellipse at 74% 20%, var(--site-bg-black, #030811) 0%, var(--site-bg-black, #030811) 18%, transparent 63%),
+    radial-gradient(ellipse at 74% 20%, var(--site-bg-ice, #dcefff) 0%, var(--site-bg-ice, #dcefff) 18%, transparent 63%),
     radial-gradient(ellipse at 0% 2%, var(--site-bg-white, #f8faff) 0%, var(--site-bg-white, #f8faff) 12%, transparent 55%),
-    linear-gradient(135deg, var(--site-bg-white, #f8faff), var(--site-bg-blue, #3574e8) 34%, var(--site-bg-black, #030811) 62%, var(--site-bg-blue, #3574e8) 88%, var(--site-bg-white, #f8faff));
+    linear-gradient(135deg, var(--site-bg-white, #f8faff), var(--site-bg-blue, #4c8ee8) 34%, var(--site-bg-ice, #dcefff) 62%, var(--site-bg-blue, #4c8ee8) 88%, var(--site-bg-white, #f8faff));
 }
 body .ambient-background[data-renderer="css"] .ambient-wave-fallback::before,
 body .ambient-background[data-renderer="css"] .ambient-wave-fallback::after { content: none; }
@@ -62,7 +62,7 @@ html:root #app [data-backdrop-ink] {
   transition: background .2s, transform .2s;
 }
 html:root body:has(.concerns-page.is-empty) {
-  --ink: #151d27;
+  --ink: #171717;
   --muted: #34404f;
   --liquid-selected-ink: var(--ink);
   color: var(--ink);
@@ -91,9 +91,9 @@ html:root body:has(.concerns-page.is-empty) footer :is(p, small) { color: var(--
 
 .site-hero {
   position: relative;
-  width: 100vw;
+  width: 100%;
   min-height: calc(100svh - 72px);
-  margin-inline: calc(50% - 50vw);
+  margin-inline: 0;
   color: var(--ink);
   background: transparent;
   isolation: isolate;

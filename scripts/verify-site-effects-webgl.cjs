@@ -53,7 +53,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       const { siteEffectsConfig } = await import('/site-effects-config.js');
       const width = 240, height = 160, ratio = 2;
       const pw = width * ratio, ph = height * ratio;
-      const point = { x: 120, y: 80, radius: 50, rimWidth: 6, refraction: 7, rgbOffset: 1.5, opacity: 1, reveal: 1 };
+      const point = { x: 120, y: 80, radius: 50, rimWidth: 6, refraction: 7, rgbOffset: siteEffectsConfig.lens.rgbOffset, fringeOpacity: siteEffectsConfig.lens.fringeOpacity, opacity: 1, reveal: 1 };
       const paper = [1, 1, 1];
       function texture(language) {
         const canvas = document.createElement('canvas');
@@ -120,6 +120,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       const implementation = { vendor: gl.getParameter(gl.VENDOR), renderer: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER), version: gl.getParameter(gl.VERSION) };
       const capture = changes => { renderer.render({ ...point, ...changes }); return read(gl, pw, ph); };
       const lens = capture({});
+      const overlay = capture({overlayOnly:1});
       const unwarped = capture({ refraction: 0, rgbOffset: 0 });
       const noRefraction = capture({ refraction: 0 });
       const noRgb = capture({ rgbOffset: 0 });
@@ -140,6 +141,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       const zero = new Uint8Array(lens.length);
       const metrics = {
         outsideKorean: difference(lens, native.pixels, outside),
+        overlayOutside: difference(overlay,new Uint8Array(overlay.length),outside),
         deepCoreEnglish: difference(lens, englishOptical, core),
         koreanExclusiveRemoved: difference(unwarped, zero, nativeOnly),
         englishExclusivePresent: difference(unwarped, translated.pixels, translatedOnly),
@@ -156,6 +158,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       // Measure actual channel centroids on isolated white strokes at increasing
       // radii. This is an optical measurement, independent of the shader formula.
       const radialDispersion = [];
+      let softFringes={pixels:0,minRatio:1,maxRatio:0}, smallerSpread=0;
       for (const fraction of [0,.4,.72,.92]) {
         const stroke = document.createElement('canvas'); stroke.width=pw;stroke.height=ph;
         const ctx=stroke.getContext('2d');ctx.fillStyle='#fff';
@@ -168,8 +171,19 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
         }
         const centroids=weighted.map((sum,c)=>sum/Math.max(totals[c],1)/ratio);
         radialDispersion.push({fraction,centroids,spread:Math.abs(centroids[2]-centroids[0]),greenWidth:totals[1]/255/ratio});
+        if(fraction===.72){
+          const base=capture({rimWidth:.1,reveal:0,fringeOpacity:0}),opaque=capture({rimWidth:.1,reveal:0,fringeOpacity:1});
+          const noSplit=capture({rimWidth:.1,reveal:0,rgbOffset:0});
+          metrics.fringeOffMatchesSharpCarrier=difference(base,noSplit);
+          for(let i=0;i<pixels.length;i+=4)if(radial(i)<point.radius-2&&base[i+3]===0&&opaque[i+3]>=250){const value=pixels[i+3]/opaque[i+3];softFringes.pixels++;softFringes.minRatio=Math.min(softFringes.minRatio,value);softFringes.maxRatio=Math.max(softFringes.maxRatio,value);}
+        }
+        if(fraction===.92){
+          const smaller=capture({rimWidth:.1,reveal:0,rgbOffset:2}),sum=[0,0,0],weighted=[0,0,0];
+          for(let x=0;x<pw;x++)for(let c=0;c<3;c++){const v=smaller[(row*pw+x)*4+c];sum[c]+=v;weighted[c]+=(x+.5)*v;}
+          smallerSpread=Math.abs(weighted[2]/sum[2]-weighted[0]/sum[0])/ratio;
+        }
       }
-      metrics.radialDispersion=radialDispersion;
+      metrics.radialDispersion=radialDispersion;metrics.softFringes=softFringes;metrics.smallerOffsetSpread=smallerSpread;
       renderer.dispose();
       const lensDisposed = { contextLost: gl.isContextLost(), created: { ...ledger.created }, deleted: { ...ledger.deleted } };
 
@@ -197,6 +211,10 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       const resourcesReleased = kinds.every(kind => ledger.created[kind] === ledger.deleted[kind]);
       const checks = {
         outsideKoreanUnchanged: metrics.outsideKorean.maxRGBA <= 1,
+        overlayTransparentOutsideLens:metrics.overlayOutside.maxRGBA===0,
+        separatedColoursAreTranslucent:softFringes.pixels>5&&softFringes.minRatio>.67&&softFringes.maxRatio<.73,
+        fringeOpacityZeroRestoresCarrier:metrics.fringeOffMatchesSharpCarrier.maxRGBA<=1,
+        coloursExtendFurtherThanTwoPixels:radialDispersion.at(-1).spread>smallerSpread+.10,
         independentReferenceAligned: metrics.independentUnwarpedReference.maxRGBA <= 2,
         sufficientExclusiveStrokes: metrics.koreanExclusiveRemoved.pixels >= 400 && metrics.englishExclusivePresent.pixels >= 400,
         koreanRemovedInCore: metrics.koreanExclusiveRemoved.maxRGBA <= 1,

@@ -1,4 +1,4 @@
-// Fixed white foreground over the shared moving colour field.
+// Fixed black foreground over the shared moving colour field.
 const selector = [
   'header > .logo', 'nav button:not(.active)',
   '.site-hero-title', '[data-site-source-plane] [data-landing-line]',
@@ -12,7 +12,7 @@ const selector = [
   '.concern-page-intro > h1', '.concern-page-intro > p', '.concern-page-intro > .eyebrow',
   '.concern-search-meta > p', '.concern-search-meta > output', '.concern-scene-caption',
 ].join(',');
-// White belongs to the shared artwork. Existing white reading panels and
+// Black foreground belongs to the light shared artwork. Existing white reading panels and
 // selected controls keep their own ink so their content remains readable.
 const readingSurface = '.about-banner, .text-btn, .purchase-panel, .info, .product, .product-qr, .empty';
 
@@ -25,20 +25,20 @@ export function createBackdropInk(document) {
     previous = now;
     for (const element of managed) if (!element.isConnected) managed.delete(element);
     let changed = false;
-    function white(element) {
+    function black(element) {
       if (!element || managed.has(element)) return;
       managed.add(element);
       element.setAttribute('data-backdrop-ink', '');
-      element.style.setProperty('--backdrop-ink', '#ffffff');
+      element.style.setProperty('--backdrop-ink', '#171717');
       changed = true;
     }
     for (const element of document.querySelectorAll(selector)) {
       if (element.closest(readingSurface) || element.closest('[data-language-plane="ja"]')) continue;
-      white(element);
+      black(element);
       const plane = element.closest('[data-site-source-plane]');
       if (plane) {
         const index = [...plane.children].indexOf(element);
-        white(plane.parentElement.querySelector('[data-language-plane="ja"]')?.children[index]);
+        black(plane.parentElement.querySelector('[data-language-plane="ja"]')?.children[index]);
       }
     }
     if (changed) document.dispatchEvent(new view.Event('site-backdrop-ink'));
