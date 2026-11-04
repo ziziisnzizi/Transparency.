@@ -37,7 +37,7 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       const velocityOnly = pointer(.7, .35, { vx: 1.8, vy: .9 });
       const modes = { poster: { poster: true, dark: false }, lightPage: { poster: false, dark: false }, darkPage: { poster: false, dark: true } };
       const ledger = { created: {}, deleted: {} }, live = new WeakSet();
-      for (const type of ['Buffer', 'Program', 'Shader', 'Texture']) {
+      for (const type of ['Buffer', 'Program', 'Shader', 'Texture', 'Framebuffer', 'Renderbuffer']) {
         ledger.created[type] = ledger.deleted[type] = 0;
         for (const prefix of ['create', 'delete']) {
           const native = WebGLRenderingContext.prototype[prefix + type];
@@ -184,11 +184,16 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         for (let state = 1; state < residuals.length; state++) for (let c = 0; c < 3; c++) grain.maxStateResidualDifference = Math.max(grain.maxStateResidualDifference, Math.abs(residuals[state][c] - residuals[0][c]));
       }
       grain.mean = grain.sum / Math.max(1, grain.samples); grain.standardDeviation = Math.sqrt(grain.squares / Math.max(1, grain.samples) - grain.mean ** 2); grain.meanAbsolute = grain.absolute / Math.max(1, grain.samples); grain.fractionOver2 = grain.over2 / Math.max(1, grain.samples);
+      grain.configuredAmplitude = settings.grain;
+      grain.expectedStandardDeviation = grain.configuredAmplitude * 255 / Math.sqrt(12);
+      // Difference of two quantized framebuffer values adds a small error to
+      // the continuous uniform-noise model. Visibility remains an independent gate.
+      grain.standardDeviationTolerance = Math.max(.65, grain.expectedStandardDeviation * .2);
       for (const key of ['nearWhite', 'nearBlack', 'blue', 'warm']) palette[`${key}Fraction`] = palette[key] / Math.max(1, palette.pixels);
       darkReading.foregrounds = Object.fromEntries(Object.entries(foregroundLuminance).map(([key, value]) => [key, { rgb: foreground[key], relativeLuminance: value, requiredContrast: 4.5, derivedBackgroundCeiling: (value + .05) / 4.5 - .05, minimumSampledContrast: (value + .05) / (darkReading.maxRelativeLuminance + .05) }]));
       const fieldError = field.gl.getError(); field.renderer.dispose();
       checks.sampledWhiteBlackBluePalette = palette.nearWhiteFraction > .005 && palette.nearBlackFraction > .02 && palette.blueFraction > .02 && palette.warmFraction < .001;
-      checks.visibleAchromaticGrain = grain.samples > 1000 && grain.standardDeviation > 4 && grain.meanAbsolute > 3 && grain.fractionOver2 > .6 && grain.maxChannelSpread <= 1;
+      checks.visibleAchromaticGrain = grain.samples > 1000 && Math.abs(grain.standardDeviation - grain.expectedStandardDeviation) <= grain.standardDeviationTolerance && grain.standardDeviation > 1 && grain.meanAbsolute > 1 && grain.fractionOver2 > .1 && grain.maxChannelSpread <= 1;
       checks.grainIsStaticAcrossTimeAndPointer = grain.maxStateResidualDifference <= 1;
       checks.sampledDarkReadingContrast = Object.values(darkReading.foregrounds).every(item => item.minimumSampledContrast >= 4.5);
       checks.noGLErrors = normalError === 0 && fieldError === 0;

@@ -34,7 +34,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
     result = await page.evaluate(async () => {
       const ledger = { created: {}, deleted: {} };
       const live = new WeakSet();
-      const kinds = ['Texture', 'Buffer', 'Program', 'Shader'];
+      const kinds = ['Texture', 'Buffer', 'Program', 'Shader', 'Framebuffer', 'Renderbuffer'];
       for (const kind of kinds) {
         ledger.created[kind] = ledger.deleted[kind] = 0;
         for (const prefix of ['create', 'delete']) {

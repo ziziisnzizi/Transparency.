@@ -26,6 +26,7 @@ export function mountAmbientBackground(document = globalThis.document) {
   let frame = 0, previous = 0, time = 0, geometryDirty = true;
   let width = 1, height = 1, poster = false;
   const pointer = { x: 0, y: 0, active: 0, trailX: 0, trailY: 0, vx: 0, vy: 0 }, target = { x: 0, y: 0, active: 0 };
+  const inertia = { x: 0, y: 0 };
   const posters = new Map(), cleanups = [];
   const hidden = () => transparency.matches || contrast.matches || forcedColors.matches;
   const still = () => motion.matches || hidden();
@@ -42,10 +43,12 @@ export function mountAmbientBackground(document = globalThis.document) {
   function measure() {
     width = Math.max(1, document.documentElement.clientWidth);
     height = Math.max(1, view.innerHeight);
-    const maxRatio = Math.max(.5, Number(config.maxPixelRatio) || 1.5);
-    const budget = Math.max(100000, Number(config.pixelBudget) || 1800000);
-    const scale = Math.min(view.devicePixelRatio || 1, coarse.matches ? Math.min(1.25, maxRatio) : maxRatio, Math.sqrt(budget / (width * height)));
-    renderer?.resize(width, height, scale);
+    // The renderer budgets its fluid field separately from the native-pixel
+    // grain output. Passing an already capped ratio would enlarge the grain.
+    if (renderer?.resize(width, height, view.devicePixelRatio || 1) === false) {
+      renderer.dispose(); renderer = null; failed = true;
+      layer.dataset.renderer = 'css';
+    }
     geometryDirty = false;
   }
   function paint() {
@@ -75,27 +78,39 @@ export function mountAmbientBackground(document = globalThis.document) {
       const elapsed = previous ? Math.min((stamp - previous) / 1000, .15) : 1 / 30;
       previous = stamp;
       time += Math.min(elapsed, .1);
-      const response = 1 - Math.exp(-elapsed * (Number(config.followRate) || 4.8));
-      const trailResponse = 1 - Math.exp(-elapsed * (Number(config.trailRate) || 2.2));
-      const velocityResponse = 1 - Math.exp(-elapsed * (Number(config.velocityRate) || 4.2));
+      const followRate = clamp(Number(config.followRate) || 7.5, 1, 30);
+      const response = 1 - Math.exp(-elapsed * followRate);
+      const trailResponse = 1 - Math.exp(-elapsed * clamp(Number(config.trailRate) || 2.6, 1, 20));
+      const velocityResponse = 1 - Math.exp(-elapsed * clamp(Number(config.velocityRate) || 5.5, 1, 25));
+      const activityResponse = 1 - Math.exp(-elapsed * Math.max(followRate, target.active ? 10 : 6));
       const oldX = pointer.x, oldY = pointer.y;
       pointer.x += (target.x - pointer.x) * response;
       pointer.y += (target.y - pointer.y) * response;
-      pointer.active += (target.active - pointer.active) * response;
-      pointer.trailX += (pointer.x - pointer.trailX) * trailResponse;
-      pointer.trailY += (pointer.y - pointer.trailY) * trailResponse;
-      pointer.vx += (clamp((pointer.x - oldX) / Math.max(elapsed, .001), -2.5, 2.5) - pointer.vx) * velocityResponse;
-      pointer.vy += (clamp((pointer.y - oldY) / Math.max(elapsed, .001), -2.5, 2.5) - pointer.vy) * velocityResponse;
+      pointer.active += (target.active - pointer.active) * activityResponse;
+      inertia.x += (pointer.x - inertia.x) * trailResponse;
+      inertia.y += (pointer.y - inertia.y) * trailResponse;
+      // Most of the field leads with the cursor; a smaller slow tail supplies
+      // follow-through without delaying the entire composition or oscillating.
+      pointer.trailX = pointer.x * .70 + inertia.x * .30;
+      pointer.trailY = pointer.y * .70 + inertia.y * .30;
+      const settledX = Math.abs(target.x - pointer.x) * width * .5 < .20;
+      const settledY = Math.abs(target.y - pointer.y) * height * .5 < .20;
+      const vx = settledX ? 0 : clamp((pointer.x - oldX) / Math.max(elapsed, .001), -1.8, 1.8);
+      const vy = settledY ? 0 : clamp((pointer.y - oldY) / Math.max(elapsed, .001), -1.8, 1.8);
+      pointer.vx += (vx - pointer.vx) * velocityResponse;
+      pointer.vy += (vy - pointer.vy) * velocityResponse;
+      if (settledX && Math.abs(pointer.vx) < .002) pointer.vx = 0;
+      if (settledY && Math.abs(pointer.vy) < .002) pointer.vy = 0;
       paint();
     }
-    const settling = Math.abs(target.x - pointer.x) + Math.abs(target.y - pointer.y) + Math.abs(target.active - pointer.active) + Math.abs(pointer.x - pointer.trailX) + Math.abs(pointer.y - pointer.trailY) + Math.abs(pointer.vx) + Math.abs(pointer.vy) > .002;
+    const settling = Math.abs(target.x - pointer.x) + Math.abs(target.y - pointer.y) + Math.abs(target.active - pointer.active) + Math.abs(pointer.x - inertia.x) + Math.abs(pointer.y - inertia.y) + Math.abs(pointer.vx) + Math.abs(pointer.vy) > .002;
     if (!still() && (renderer || settling)) frame = view.requestAnimationFrame(tick);
   }
   function schedule() { if (!frame && active() && !still()) frame = view.requestAnimationFrame(tick); }
   function sync() {
     view.cancelAnimationFrame(frame); frame = 0; previous = 0;
     layer.dataset.paused = String(!active() || still());
-    if (still()) { target.x = target.y = target.active = pointer.x = pointer.y = pointer.active = pointer.trailX = pointer.trailY = pointer.vx = pointer.vy = 0; }
+    if (still()) { target.x = target.y = target.active = pointer.x = pointer.y = pointer.active = pointer.trailX = pointer.trailY = pointer.vx = pointer.vy = inertia.x = inertia.y = 0; }
     if (active()) { paint(); schedule(); }
   }
   function updatePoster() {
@@ -122,8 +137,12 @@ export function mountAmbientBackground(document = globalThis.document) {
   }
   const point = event => {
     if (!active() || still() || coarse.matches || event.pointerType === 'touch') return;
-    target.x = clamp(event.clientX / width * 2 - 1, -1, 1);
-    target.y = clamp(event.clientY / height * 2 - 1, -1, 1);
+    const x = clamp(event.clientX / width * 2 - 1, -1, 1);
+    const y = clamp(event.clientY / height * 2 - 1, -1, 1);
+    // Ignore subpixel device chatter so a resting mouse does not twitch the field.
+    if (target.active && Math.hypot((x - target.x) * width * .5, (y - target.y) * height * .5) < .45) return;
+    target.x = x;
+    target.y = y;
     target.active = 1;
     schedule();
   };
