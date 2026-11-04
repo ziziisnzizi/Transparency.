@@ -87,6 +87,65 @@ html:root body::after { content: none; }
 .ambient-background[data-paused="true"] .ambient-wave-fallback::before,
 .ambient-background[data-paused="true"] .ambient-wave-fallback::after { animation-play-state: paused; }
 
+/* This immersive scene belongs only to the empty concern-search page. */
+.ambient-background[data-scene="concerns"] {
+  background: #040a11;
+}
+.ambient-background[data-scene="concerns"] .ambient-wave-fallback {
+  background:
+    radial-gradient(ellipse at 78% 49%, #02080df2, #07121bc9 20%, transparent 48%),
+    radial-gradient(ellipse at -15% 51%, #459ec7, #2f6b8780 35%, transparent 66%),
+    radial-gradient(ellipse at 98% 2%, #78c2ed, #3984b594 37%, transparent 72%),
+    radial-gradient(ellipse at 66% 117%, #e4f8ff, #8fceef 29%, transparent 69%),
+    #07111b;
+}
+.ambient-background[data-scene="concerns"] .ambient-wave-fallback::before {
+  inset: -19%;
+  background:
+    radial-gradient(ellipse at 92% 12%, #71bce98c, transparent 48%),
+    radial-gradient(ellipse at -8% 56%, #69c6e87a, transparent 43%),
+    radial-gradient(ellipse at 63% 112%, #e3f6ffa3, transparent 43%);
+  filter: blur(48px);
+  opacity: .85;
+  animation: concern-sky-drift 34s ease-in-out infinite alternate;
+}
+.ambient-background[data-scene="concerns"] .ambient-wave-fallback::after {
+  inset: 0;
+  background: radial-gradient(ellipse at 43% 39%, #040a1152, transparent 58%);
+  filter: none;
+  opacity: 1;
+  animation: none;
+}
+.ambient-background[data-scene="concerns"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .065;
+  mix-blend-mode: normal;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.91' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Cpath filter='url(%23n)' d='M0 0h160v160H0z'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+.ambient-background[data-scene="concerns"][data-paused="true"] .ambient-wave-fallback::before { animation-play-state: paused; }
+
+@keyframes concern-sky-drift {
+  from { transform: translate3d(-3%, 2%, 0) scale(1.02); }
+  to { transform: translate3d(4%, -3%, 0) scale(1.08); }
+}
+@media (max-width: 750px) {
+  .ambient-background[data-scene="concerns"] .ambient-wave-fallback {
+    background:
+      radial-gradient(ellipse at 79% 50%, #02080deb, #07121bb3 20%, transparent 49%),
+      radial-gradient(ellipse at -25% 54%, #459ec7, #2f6b8773 35%, transparent 67%),
+      radial-gradient(ellipse at 98% 4%, #78c2ed, #3984b580 37%, transparent 73%),
+      radial-gradient(ellipse at 60% 117%, #e4f8ff, #8fceef 29%, transparent 70%),
+      #07111b;
+  }
+  .ambient-background[data-scene="concerns"] .ambient-wave-fallback::after {
+    background: radial-gradient(ellipse at 43% 35%, #040a1159, transparent 60%);
+  }
+}
+
 @keyframes ambient-blue-flow {
   from { transform: translate3d(-2%, -2%, 0) rotate(-3deg); }
   to { transform: translate3d(2%, 3%, 0) rotate(3deg); }
@@ -96,12 +155,16 @@ html:root body::after { content: none; }
   .ambient-wave-fallback { transform: none; }
   .ambient-wave-fallback::before,
   .ambient-wave-fallback::after { animation: none; }
+  .ambient-background[data-scene="concerns"] .ambient-wave-fallback::before,
+  .ambient-background[data-scene="concerns"] .ambient-wave-fallback::after { animation: none; }
 }
 
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .ambient-background { background: var(--ambient-page-base); }
   .ambient-wave-canvas,
   .ambient-wave-fallback { display: none; }
+  .ambient-background[data-scene="concerns"] { background: #071521; }
+  .ambient-background[data-scene="concerns"]::after { display: none; }
 }
 
 @media (forced-colors: active) {

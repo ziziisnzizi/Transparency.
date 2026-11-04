@@ -14,8 +14,11 @@ export function mountAmbientBackground(document = globalThis.document) {
   layer.setAttribute('aria-hidden', 'true');
   layer.innerHTML = '<div class="ambient-wave-fallback"></div><canvas class="ambient-wave-canvas" data-ambient-wave-canvas></canvas>';
   document.body.append(layer);
+  const currentScene = () => document.querySelector('.concerns-page.is-empty') ? 'concerns' : 'default';
+  let scene = currentScene();
+  layer.dataset.scene = scene;
   let canvas = layer.querySelector('canvas');
-  let renderer = createPastelWaveRenderer(canvas, { dark: document.documentElement.dataset.theme === 'dark' });
+  let renderer = createPastelWaveRenderer(canvas, { dark: document.documentElement.dataset.theme === 'dark', scene });
   if (renderer) canvas = renderer.canvas;
   layer.dataset.renderer = renderer ? 'webgl' : 'css';
   const motion = view.matchMedia('(prefers-reduced-motion: reduce)');
@@ -48,7 +51,7 @@ export function mountAmbientBackground(document = globalThis.document) {
     layer.style.setProperty('--ambient-shift-x', `${(pointer.x * 22).toFixed(2)}px`);
     layer.style.setProperty('--ambient-shift-y', `${(pointer.y * 16).toFixed(2)}px`);
     renderer?.render({ time: still() ? 3.4 : time, pointer, ripples,
-      dark: document.documentElement.dataset.theme === 'dark', hidden: hidden() });
+      dark: document.documentElement.dataset.theme === 'dark', scene, hidden: hidden() });
   }
   function tick(stamp) {
     frame = 0;
@@ -95,6 +98,16 @@ export function mountAmbientBackground(document = globalThis.document) {
   for (const preference of [motion, transparency, contrast, forcedColors]) listen(preference, 'change', sync);
   const theme = new view.MutationObserver(sync);
   theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  const scenes = new view.MutationObserver(() => {
+    const next = currentScene();
+    if (next === scene) return;
+    scene = next;
+    layer.dataset.scene = scene;
+    target.x = target.y = pointer.x = pointer.y = 0;
+    ripples.length = 0;
+    sync();
+  });
+  scenes.observe(document.getElementById('app') || document.body, { childList: true, subtree: true });
   const size = new view.ResizeObserver(() => { geometryDirty = true;if(active())paint();schedule(); });
   size.observe(document.documentElement);
   listen(canvas, 'webglcontextlost', event => {
@@ -105,7 +118,7 @@ export function mountAmbientBackground(document = globalThis.document) {
   function dispose() {
     if (disposed) return;
     disposed = true;view.cancelAnimationFrame(frame);frame = 0;
-    cleanups.forEach(cleanup => cleanup());theme.disconnect();size.disconnect();
+    cleanups.forEach(cleanup => cleanup());theme.disconnect();scenes.disconnect();size.disconnect();
     renderer?.dispose();renderer = null;ripples.length = 0;
     canvas.width = canvas.height = 1;layer.remove();
     if (mounted.get(document) === dispose) mounted.delete(document);
