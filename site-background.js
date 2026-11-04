@@ -2,7 +2,7 @@
 // this renderer has no events, animation loop, textures, DOM capture or I/O.
 const DEFAULTS = {
   palette: { white: '#f7fbff', sky: '#acdfff', blue: '#3574e8', navy: '#10244f', black: '#030811' },
-  timeScale: .07, rotation: -.55, distortion: .65, grain: .10, pointerRadius: .32, pointerPush: .20,
+  timeScale: .16, rotation: -.55, distortion: .65, grain: .10, pointerRadius: .46, pointerPush: .30,
   maxPixelRatio: 1.5, pixelBudget: 1800000,
 };
 const finite = (value, fallback) => typeof value === 'number' && Number.isFinite(value) ? value : fallback;
@@ -68,8 +68,8 @@ void main(){
  float t=clock*timeScale;
  // Autonomous field evolution remains independent of the pointer. Cursor
  // movement affects only its bounded local repulsion footprint below.
- float seed=sin(t*.37)*.21;
- float amount=distortion*.72;
+ float seed=sin(t*.52)*.32;
+ float amount=distortion*.90;
  // Local repulsion acts only on the decorative colour field, never the DOM.
  vec2 cursor=vec2(pointer.x*.5+.5,.5-pointer.y*.5);
  vec2 delta=(uv-cursor)*vec2(aspect,1.);
@@ -81,26 +81,26 @@ void main(){
  vec2 base=(pushed-.5)*vec2(max(aspect,.55),1.)*1.37;
  base+=vec2(seed*.73,-seed*1.31);
  vec2 first=vec2(
-  latticeNoise(base+vec2(t*.21,-t*.16)),
-  latticeNoise(base+vec2(4.93-t*.13,7.17+t*.19))
+  latticeNoise(base+vec2(t*.36,-t*.27)),
+  latticeNoise(base+vec2(4.93-t*.23,7.17+t*.31))
  )*2.-1.;
  vec2 second=vec2(
-  latticeNoise(base*1.14+first*1.67+vec2(9.21+t*.12,2.73)),
-  latticeNoise(base*1.14+first*1.67+vec2(-3.67,11.83-t*.15))
+  latticeNoise(base*1.14+first*1.67+vec2(9.21+t*.22,2.73)),
+  latticeNoise(base*1.14+first*1.67+vec2(-3.67,11.83-t*.25))
  )*2.-1.;
- vec2 warped=pushed+(first*.42+second*.58)*amount*.54;
+ vec2 warped=pushed+(first*.42+second*.58)*amount*.64;
 
  // A moving, bending diagonal colour field creates broad atmospheric bands.
- float angle=rotation+sin(t*.46)*.34+sin(t*.91)*.08;
+ float angle=rotation+sin(t*.46)*.46+sin(t*.91)*.10;
  vec2 bandPoint=rotatePoint((warped-.5)*vec2(.95,1.05),angle);
- float band=.5+bandPoint.x*.94+sin(t*.58)*.15;
+ float band=.5+bandPoint.x*.94+sin(t*.78)*.30;
  vec3 color=mix(white,sky,smoothstep(.10,.51,band));
  color=mix(color,blue,smoothstep(.53,.88,band));
  color=mix(color,navy,smoothstep(.87,1.12,band));
 
  // This deep negative space travels from the centre towards either edge even
  // with a stationary pointer. Noise bends its boundary into an uneven cloud.
- vec2 pocketCentre=vec2(.50+sin(t*.82)*.53,.48+sin(t*.61+.15)*.28);
+ vec2 pocketCentre=vec2(.50+sin(t*.96)*.58,.48+sin(t*.73+.15)*.30);
  vec2 pocketSize=vec2(.60+sin(t*.47)*.10,.45+cos(t*.53)*.055);
  vec2 pocketPoint=pushed+first*.075+second*.055-pocketCentre;
  pocketPoint=rotatePoint(pocketPoint,rotation*.45+t*.13);
@@ -108,13 +108,23 @@ void main(){
  float pocket=1.-smoothstep(.20,1.12,distanceToPocket);
  pocket=smoothstep(.025,.98,pocket);
  color=mix(color,ink,pocket*.985);
- // Reading pages keep their native foreground colours. They receive the same
- // moving field at a restrained luminance appropriate to the current theme.
- vec3 lightPage=mix(white,mix(sky,blue,smoothstep(.45,.98,band)),.14+smoothstep(.28,.92,band)*.11);
- lightPage=mix(lightPage,navy,pocket*.055);
- vec3 darkPage=mix(ink,mix(navy,blue,.52),.27+smoothstep(.18,.85,band)*.19);
- darkPage=mix(darkPage,white,(1.-smoothstep(.12,.47,band))*.035);
- darkPage=mix(darkPage,ink,pocket*.55);
+ // Larger moving blue/white folds remain visible on reading pages. A light
+ // floor and dark ceiling protect native text while retaining hue variation.
+ float crest=1.-smoothstep(.045,.24,abs(band-.46));
+ vec3 lightPage=mix(white,mix(sky,blue,smoothstep(.32,.94,band)),.12+smoothstep(.12,.86,band)*.46);
+ lightPage=mix(lightPage,white,crest*.48);
+ lightPage=mix(lightPage,navy,pocket*.11);
+ vec3 lightLinear=pow(max(lightPage,vec3(0.)),vec3(2.2));
+ vec3 whiteLinear=pow(white,vec3(2.2));
+ float lightLuma=dot(lightLinear,vec3(.2126,.7152,.0722));
+ float whiteLuma=dot(whiteLinear,vec3(.2126,.7152,.0722));
+ float lift=clamp((.78-lightLuma)/max(whiteLuma-lightLuma,.001),0.,1.);
+ lightPage=pow(mix(lightLinear,whiteLinear,lift),vec3(1./2.2));
+ vec3 darkPage=mix(ink,mix(navy,blue,.70),.38+smoothstep(.10,.88,band)*.34);
+ darkPage=mix(darkPage,sky,crest*.085);
+ darkPage=mix(darkPage,ink,pocket*.64);
+ float darkLuma=dot(pow(max(darkPage,vec3(0.)),vec3(2.2)),vec3(.2126,.7152,.0722));
+ darkPage*=pow(min(1.,.095/max(darkLuma,.001)),1./2.2);
  color=mix(mix(lightPage,darkPage,dark),color,poster);
 
  // Static one-output-pixel grain stays visible behind native glass panels.

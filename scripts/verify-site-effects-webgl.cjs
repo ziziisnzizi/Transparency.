@@ -1,4 +1,4 @@
-// Opt-in real-WebGL verification against independent raw pixel references.
+// Opt-in Korean-source / English-lens WebGL verification against raw references.
 // All requests are fulfilled in memory; no dev server or external site is used.
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -62,10 +62,10 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
         ctx.scale(ratio, ratio);
         ctx.fillStyle = 'rgba(30, 40, 55, 0.92)';
         ctx.font = '700 23px sans-serif';
-        ctx.fillText(language === 'en' ? 'ENGLISH' : '日本語', language === 'en' ? 52 : 76, language === 'en' ? 60 : 105);
+        ctx.fillText(language === 'ko' ? '한국어' : 'ENGLISH', language === 'ko' ? 52 : 76, language === 'ko' ? 60 : 105);
         // Language-exclusive, pixel-aligned strokes cross both center and rim.
-        ctx.fillRect(language === 'en' ? 103 : 132, 26, 3, 108);
-        ctx.fillRect(58, language === 'en' ? 72 : 88, 124, 2);
+        ctx.fillRect(language === 'ko' ? 103 : 132, 26, 3, 108);
+        ctx.fillRect(58, language === 'ko' ? 72 : 88, 124, 2);
         const raw = ctx.getImageData(0, 0, pw, ph).data;
         const premultiplied = new Uint8Array(raw.length);
         for (let i = 0; i < raw.length; i += 4) {
@@ -110,11 +110,11 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
         }
         return { significantPixels: significant, outsideSignificantPixels: outsideSignificant, maxSignal, confinedEnergyFraction: total ? confined / total : 0, energy: total };
       }
-      const en = texture('en'), ja = texture('ja');
+      const native = texture('ko'), translated = texture('en');
       const original = document.createElement('canvas'); document.body.append(original);
       const renderer = createLandingLensRenderer(original);
       if (!renderer) throw new Error('Actual lens WebGL renderer unavailable');
-      if (!renderer.upload([en.canvas, ja.canvas], width, height, ratio, paper)) throw new Error('Actual lens upload failed');
+      if (!renderer.upload([native.canvas, translated.canvas], width, height, ratio, paper)) throw new Error('Actual lens upload failed');
       const gl = renderer.canvas.getContext('webgl');
       const debug = gl.getExtension('WEBGL_debug_renderer_info');
       const implementation = { vendor: gl.getParameter(gl.VENDOR), renderer: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER), version: gl.getParameter(gl.VERSION) };
@@ -124,22 +124,22 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       const noRgb = capture({ rgbOffset: 0 });
       const revealZero = capture({ reveal: 0 });
       const opacityZero = capture({ opacity: 0 });
-      const ideal = new Uint8Array(en.pixels.length);
+      const ideal = new Uint8Array(native.pixels.length);
       const smooth = value => { const x = Math.min(1, Math.max(0, value)); return x * x * (3 - 2 * x); };
       for (let i = 0; i < ideal.length; i += 4) {
         const mask = 1 - smooth((radial(i) - (point.radius - .6)) / 1.2);
-        for (let c = 0; c < 4; c++) ideal[i + c] = Math.round(en.pixels[i + c] * (1 - mask) + ja.pixels[i + c] * mask);
+        for (let c = 0; c < 4; c++) ideal[i + c] = Math.round(native.pixels[i + c] * (1 - mask) + translated.pixels[i + c] * mask);
       }
-      const enOnly = i => core(i) && en.pixels[i + 3] > 220 && ja.pixels[i + 3] === 0;
-      const jaOnly = i => core(i) && ja.pixels[i + 3] > 220 && en.pixels[i + 3] === 0;
+      const nativeOnly = i => core(i) && native.pixels[i + 3] > 220 && translated.pixels[i + 3] === 0;
+      const translatedOnly = i => core(i) && translated.pixels[i + 3] > 220 && native.pixels[i + 3] === 0;
       const zero = new Uint8Array(lens.length);
       const metrics = {
-        outsideEnglish: difference(lens, en.pixels, outside),
-        deepCoreJapanese: difference(lens, ja.pixels, core),
-        englishExclusiveRemoved: difference(lens, zero, enOnly),
-        japaneseExclusivePresent: difference(lens, ja.pixels, jaOnly),
-        revealZeroEnglish: difference(revealZero, en.pixels, core),
-        opacityZeroEnglish: difference(opacityZero, en.pixels),
+        outsideKorean: difference(lens, native.pixels, outside),
+        deepCoreEnglish: difference(lens, translated.pixels, core),
+        koreanExclusiveRemoved: difference(lens, zero, nativeOnly),
+        englishExclusivePresent: difference(lens, translated.pixels, translatedOnly),
+        revealZeroKorean: difference(revealZero, native.pixels, core),
+        opacityZeroKorean: difference(opacityZero, native.pixels),
         independentUnwarpedReference: difference(unwarped, ideal),
         distortionAgainstIndependentIdeal: energy(lens, ideal),
         warpOnly: energy(noRgb, unwarped),
@@ -173,15 +173,15 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       background.dispose();
       const resourcesReleased = kinds.every(kind => ledger.created[kind] === ledger.deleted[kind]);
       const checks = {
-        outsideEnglishUnchanged: metrics.outsideEnglish.maxRGBA <= 1,
+        outsideKoreanUnchanged: metrics.outsideKorean.maxRGBA <= 1,
         independentReferenceAligned: metrics.independentUnwarpedReference.maxRGBA <= 2,
-        sufficientExclusiveStrokes: metrics.englishExclusiveRemoved.pixels >= 400 && metrics.japaneseExclusivePresent.pixels >= 400,
-        englishRemovedInCore: metrics.englishExclusiveRemoved.maxRGBA <= 1,
-        japanesePresentInCore: metrics.japaneseExclusivePresent.maxRGBA <= 1,
-        crispCoreMatchesRawTexture: metrics.deepCoreJapanese.maxRGBA <= 1,
+        sufficientExclusiveStrokes: metrics.koreanExclusiveRemoved.pixels >= 400 && metrics.englishExclusivePresent.pixels >= 400,
+        koreanRemovedInCore: metrics.koreanExclusiveRemoved.maxRGBA <= 1,
+        englishPresentInCore: metrics.englishExclusivePresent.maxRGBA <= 1,
+        crispCoreMatchesRawTexture: metrics.deepCoreEnglish.maxRGBA <= 1,
         noCoreRgbSplit: metrics.coreRgbDifference.maxRGBA === 0,
-        revealZeroRestoresEnglish: metrics.revealZeroEnglish.maxRGBA <= 1,
-        opacityZeroRestoresEnglish: metrics.opacityZeroEnglish.maxRGBA <= 1,
+        revealZeroRestoresKorean: metrics.revealZeroKorean.maxRGBA <= 1,
+        opacityZeroRestoresKorean: metrics.opacityZeroKorean.maxRGBA <= 1,
         distortedRingPresent: metrics.distortionAgainstIndependentIdeal.significantPixels > 100,
         warpedRingPresent: metrics.warpOnly.significantPixels > 100,
         rgbRingPresent: metrics.rgbOnly.significantPixels > 50 && metrics.rgbOnly.maxSignal > 10,
@@ -194,7 +194,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
         resourcesReleased,
         contextsDisposed: lensDisposed.contextLost && backgroundGl.isContextLost(),
       };
-      return { fixture: { cssSize: [width, height], pixelRatio: ratio, parameters: point, ringAllowance: [point.radius - point.rimWidth - .75, point.radius + 1], reference: 'Raw independent Canvas2D pixels, explicitly premultiplied; no shader-derived oracle', backgroundSize: [360, 240], backgroundPointer: [0, 0], backgroundTimes: times }, implementation, metrics, backgroundMovement, backgroundRepeat, disposal: { lens: lensDisposed, allCreated: ledger.created, allDeleted: ledger.deleted, backgroundContextLost: backgroundGl.isContextLost() }, checks, passed: Object.values(checks).every(Boolean) };
+      return { fixture: { cssSize: [width, height], pixelRatio: ratio, nativeLanguage: 'ko', lensLanguage: 'en', nativeText: '한국어', lensText: 'ENGLISH', parameters: point, ringAllowance: [point.radius - point.rimWidth - .75, point.radius + 1], reference: 'Raw independent Canvas2D pixels, explicitly premultiplied; no shader-derived oracle', backgroundSize: [360, 240], backgroundPointer: [0, 0], backgroundTimes: times }, implementation, metrics, backgroundMovement, backgroundRepeat, disposal: { lens: lensDisposed, allCreated: ledger.created, allDeleted: ledger.deleted, backgroundContextLost: backgroundGl.isContextLost() }, checks, passed: Object.values(checks).every(Boolean) };
     });
     result.pageErrors = errors;
     if (errors.length) result.passed = false;

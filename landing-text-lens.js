@@ -93,10 +93,16 @@ export function mountLandingTextLens(hero, lens = {}) {
   const originalButtonDisplay = button?.style.display || '';
   const originalButtonLabel = button?.getAttribute('aria-label');
   const buttonLabel = button?.querySelector('[data-language-label]') || button;
-  const pairedLanguageLabel = Boolean(buttonLabel?.querySelector('[lang="en"]') && buttonLabel?.querySelector('[lang="ja"]'));
+  const sourceLanguage = english.lang || 'ko';
+  const targetLanguage = japanese.lang || 'en';
+  const languageLabels = { ko: '한국어', en: 'English' };
+  const languageAria = { ko: '한국어 제목 보기', en: 'Show English title' };
+  const pairedLabels = [...(buttonLabel?.querySelectorAll('[lang]') || [])];
+  const pairedLanguageLabel = pairedLabels.some(label => label.lang === sourceLanguage) && pairedLabels.some(label => label.lang === targetLanguage);
   const originalButtonText = buttonLabel?.textContent;
+  const originalButtonLanguage = button?.getAttribute('lang');
   let renderer = null, removeContextListener = null, disposed = false, failed = false;
-  let ready = false, fontsReady = false, inViewport = true, insideHero = false, manualJapanese = false;
+  let ready = false, fontsReady = false, inViewport = true, insideHero = false, manualTarget = false;
   let frame = 0, previous = 0, layoutDirty = true, geometryDirty = true;
   let heroRect, titleRect, lineRects = [];
   let client = { x: 0, y: 0 }, target = { x: 0, y: 0 }, current = { x: 0, y: 0 };
@@ -106,8 +112,9 @@ export function mountLandingTextLens(hero, lens = {}) {
     object.addEventListener(type, handler, options);
     cleanups.push(() => object.removeEventListener(type, handler, options));
   };
-  english.lang ||= 'en';
-  japanese.lang ||= 'ja';
+  // Plane IDs are retained for renderer/CSS compatibility; language is explicit.
+  english.lang = sourceLanguage;
+  japanese.lang = targetLanguage;
   canvas.setAttribute('aria-hidden', 'true');
   rim.setAttribute('aria-hidden', 'true');
   rim.style.position = 'absolute';
@@ -117,14 +124,16 @@ export function mountLandingTextLens(hero, lens = {}) {
   rim.style.opacity = '0';
 
   function nativeLanguage() {
-    english.style.opacity = manualJapanese ? '0' : '1';
-    japanese.style.opacity = manualJapanese ? '1' : '0';
-    english.setAttribute('aria-hidden', String(manualJapanese));
-    japanese.setAttribute('aria-hidden', String(!manualJapanese));
+    english.style.opacity = manualTarget ? '0' : '1';
+    japanese.style.opacity = manualTarget ? '1' : '0';
+    english.setAttribute('aria-hidden', String(manualTarget));
+    japanese.setAttribute('aria-hidden', String(!manualTarget));
     if (button) {
-      button.setAttribute('aria-pressed', String(manualJapanese));
-      button.setAttribute('aria-label', manualJapanese ? 'Show English title' : '日本語のタイトルを表示');
-      if (!pairedLanguageLabel) buttonLabel.textContent = manualJapanese ? 'English' : '日本語';
+      const actionLanguage = manualTarget ? sourceLanguage : targetLanguage;
+      button.setAttribute('aria-pressed', String(manualTarget));
+      button.setAttribute('aria-label', languageAria[actionLanguage] || `Show ${actionLanguage} title`);
+      button.lang = actionLanguage;
+      if (!pairedLanguageLabel) buttonLabel.textContent = languageLabels[actionLanguage] || actionLanguage.toUpperCase();
     }
   }
   function releaseRenderer() {
@@ -199,7 +208,7 @@ export function mountLandingTextLens(hero, lens = {}) {
       removeContextListener = () => canvas.removeEventListener('webglcontextlost', lost);
     }
     ready = true;
-    manualJapanese = false;
+    manualTarget = false;
     nativeLanguage();
     english.style.opacity = japanese.style.opacity = '0';
     hero.dataset.landingTextMode = 'webgl';
@@ -250,7 +259,7 @@ export function mountLandingTextLens(hero, lens = {}) {
   listen(hero, 'pointermove', pointer, { passive: true });
   listen(hero, 'pointerleave', () => { insideHero = false; opacityTarget = revealTarget = 0; schedule(); }, { passive: true });
   listen(hero, 'pointercancel', () => { insideHero = false; opacityTarget = revealTarget = 0; schedule(); }, { passive: true });
-  if (button) listen(button, 'click', () => { if (!ready) { manualJapanese = !manualJapanese; nativeLanguage(); } });
+  if (button) listen(button, 'click', () => { if (!ready) { manualTarget = !manualTarget; nativeLanguage(); } });
   listen(window, 'scroll', () => { geometryDirty = true; if (ready) schedule(); }, { passive: true });
   listen(window, 'resize', invalidate, { passive: true });
   listen(document, 'visibilitychange', () => {
@@ -295,6 +304,7 @@ export function mountLandingTextLens(hero, lens = {}) {
       button.style.display = originalButtonDisplay;
       button.setAttribute('aria-pressed', 'false');
       if (originalButtonLabel === null) button.removeAttribute('aria-label'); else button.setAttribute('aria-label', originalButtonLabel);
+      if (originalButtonLanguage === null) button.removeAttribute('lang'); else button.setAttribute('lang', originalButtonLanguage);
       if (!pairedLanguageLabel) buttonLabel.textContent = originalButtonText;
     }
     delete hero.dataset.landingTextMode;

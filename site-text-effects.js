@@ -25,7 +25,7 @@ function signature(heading, document) {
 }
 
 function translations(heading, lines, config) {
-  const explicit = heading.getAttribute('data-lens-ja');
+  const explicit = heading.getAttribute('data-lens-en');
   if (explicit) {
     try {
       const parsed = JSON.parse(explicit);
@@ -34,7 +34,7 @@ function translations(heading, lines, config) {
     } catch { /* Ordinary text and literal newlines are also supported. */ }
     return explicit.split(/\r?\n/);
   }
-  if (heading.id === 'hero-title' && heading.querySelector('[data-site-hero-line]') && Array.isArray(config.hero?.ja)) return config.hero.ja;
+  if (heading.id === 'hero-title' && heading.querySelector('[data-site-hero-line]') && Array.isArray(config.hero?.en)) return config.hero.en;
   const key = normalize(lines.map(line => line.textContent).join(''));
   const found = Object.entries(config.translations || {}).find(([source]) => normalize(source) === key)?.[1];
   if (Array.isArray(found)) return found.every(line => typeof line === 'string') ? found : null;
@@ -53,22 +53,23 @@ export function mountSiteTextEffects(document, config = {}) {
   let active = null, disposed = false, queued = false;
   const previousSiteLens = main.getAttribute('data-site-lens');
   const previousSiteSource = main.getAttribute('data-site-lens-source');
+  const previousSiteTarget = main.getAttribute('data-site-lens-target');
 
   function mirrorMode() {
     main.dataset.siteLens = active && main.dataset.landingTextMode === 'webgl' ? 'active' : 'native';
-    if (!active) delete main.dataset.siteLensSource;
+    if (!active) { delete main.dataset.siteLensSource; delete main.dataset.siteLensTarget; }
   }
 
   function decorate(heading) {
     const lines = lineNodes(heading, document);
-    const japaneseLines = translations(heading, lines, config);
-    if (!japaneseLines?.length || !lines.some(line => normalize(line.textContent))) return null;
+    const englishLines = translations(heading, lines, config);
+    if (!englishLines?.length || !lines.some(line => normalize(line.textContent))) return null;
     const content = lines.map(line => line.textContent).join(' ');
     const sourceLanguage = heading.id === 'hero-title' && heading.querySelector('[data-site-hero-line]')
-      ? 'en' : heading.lang || (/[\uac00-\ud7af]/.test(content) ? 'ko' : 'en');
+      ? 'ko' : heading.lang || (/[\uac00-\ud7af]/.test(content) ? 'ko' : 'en');
     const nativeNodes = [...heading.childNodes];
     const originalSiteClass = heading.classList.contains('site-text-title');
-    const restoreAttributes = ['data-site-text-region', 'data-landing-title', 'data-site-lens-ja'].map(name => preserveAttribute(heading, name));
+    const restoreAttributes = ['data-site-text-region', 'data-landing-title', 'data-site-lens-en'].map(name => preserveAttribute(heading, name));
     const source = document.createElement('span');
     source.dataset.languagePlane = 'en';
     source.dataset.siteSourcePlane = '';
@@ -76,14 +77,15 @@ export function mountSiteTextEffects(document, config = {}) {
     source.setAttribute('aria-hidden', 'false');
     const translated = document.createElement('span');
     translated.dataset.languagePlane = 'ja';
-    translated.lang = 'ja';
+    // Legacy role ID "ja" remains only as a CSS/texture hook, never a language.
+    translated.lang = 'en';
     translated.setAttribute('aria-hidden', 'true');
     translated.style.opacity = '0';
     lines.forEach(line => {
       line.dataset.landingLine = '';
       source.appendChild(line);
     });
-    japaneseLines.forEach((copy, index) => {
+    englishLines.forEach((copy, index) => {
       const line = lines[index] ? lines[index].cloneNode(false) : document.createElement('span');
       line.dataset.landingLine = '';
       line.textContent = copy;
@@ -106,26 +108,25 @@ export function mountSiteTextEffects(document, config = {}) {
     button.setAttribute('aria-pressed', 'false');
     const label = document.createElement('span');
     label.dataset.languageLabel = '';
-    label.textContent = '日本語';
+    label.textContent = 'English';
     button.appendChild(label);
     heading.dataset.siteTextRegion = '';
     heading.dataset.landingTitle = '';
-    heading.dataset.siteLensJa = japaneseLines.join('\n');
+    heading.dataset.siteLensEn = englishLines.join('\n');
     heading.classList.add('site-text-title');
     heading.replaceChildren(source, translated, canvas);
     heading.after(button);
     main.appendChild(rim);
     const record = { heading, source, signature: signature(heading, document), dispose: null };
 
-    // The shared renderer calls its default language English. Keep the service's
-    // original Korean wording and native fallback action labels accurate.
+    // Source Korean stays unchanged; the target is English in every service view.
     function syncLanguageButton() {
-      const inJapanese = button.getAttribute('aria-pressed') === 'true';
-      const targetLabel = inJapanese ? sourceLanguage === 'ko' ? '한국어' : 'English' : '日本語';
-      const targetAria = inJapanese ? sourceLanguage === 'ko' ? '한국어 제목 보기' : 'Show English title' : '日本語のタイトルを表示';
+      const inEnglish = button.getAttribute('aria-pressed') === 'true';
+      const targetLabel = inEnglish ? sourceLanguage === 'ko' ? '한국어' : 'Original' : 'English';
+      const targetAria = inEnglish ? sourceLanguage === 'ko' ? '한국어 제목 보기' : 'Show original title' : 'Show English title';
       if (label.textContent !== targetLabel) label.textContent = targetLabel;
       if (button.getAttribute('aria-label') !== targetAria) button.setAttribute('aria-label', targetAria);
-      button.lang = inJapanese ? sourceLanguage : 'ja';
+      button.lang = inEnglish ? sourceLanguage : 'en';
     }
     const buttonObserver = new MutationObserver(syncLanguageButton);
     buttonObserver.observe(button, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-pressed', 'aria-label'] });
@@ -137,7 +138,42 @@ export function mountSiteTextEffects(document, config = {}) {
     const disposeLens = mountLandingTextLens(main, { ...config.lens, paperRGB });
     syncLanguageButton();
     main.dataset.siteLensSource = sourceLanguage;
+    main.dataset.siteLensTarget = 'en';
+    const measurement = document.createElement('canvas').getContext('2d');
+    const targetStyles = [...translated.children].map(line => ({ line, size: line.style.fontSize, spacing: line.style.letterSpacing, height: line.style.lineHeight }));
+    function fitEnglishLines() {
+      if (!measurement || !heading.isConnected) return;
+      const parentStyle = getComputedStyle(heading);
+      const width = heading.getBoundingClientRect().width - (parseFloat(parentStyle.paddingLeft) || 0) - (parseFloat(parentStyle.paddingRight) || 0);
+      for (const original of targetStyles) {
+        const line = original.line;
+        line.style.fontSize = original.size;
+        line.style.letterSpacing = original.spacing;
+        line.style.lineHeight = original.height;
+        line.style.whiteSpace = 'nowrap';
+        const style = getComputedStyle(line);
+        measurement.font = `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        const spacing = parseFloat(style.letterSpacing) || 0;
+        if ('letterSpacing' in measurement) measurement.letterSpacing = `${spacing}px`;
+        const copy = line.textContent;
+        const textWidth = measurement.measureText(copy).width + ('letterSpacing' in measurement ? 0 : Math.max(0, [...copy].length - 1) * spacing);
+        const available = Math.max(1, width - (parseFloat(style.marginLeft) || 0) - (parseFloat(style.marginRight) || 0));
+        if (textWidth > available) {
+          const scale = Math.max(.4, available / textWidth);
+          line.style.fontSize = `${parseFloat(style.fontSize) * scale}px`;
+          line.style.letterSpacing = `${spacing * scale}px`;
+          line.style.lineHeight = style.lineHeight;
+        }
+      }
+    }
+    fitEnglishLines();
+    const fitting = new ResizeObserver(fitEnglishLines);
+    fitting.observe(heading);
+    document.fonts?.addEventListener('loadingdone', fitEnglishLines);
+    document.fonts?.ready.then(fitEnglishLines);
     record.dispose = replacement => {
+      fitting.disconnect();
+      document.fonts?.removeEventListener('loadingdone', fitEnglishLines);
       buttonObserver.disconnect();
       disposeLens();
       // A same-element copy update may have already replaced our source plane.
@@ -184,6 +220,7 @@ export function mountSiteTextEffects(document, config = {}) {
     active = null;
     if (previousSiteLens === null) main.removeAttribute('data-site-lens'); else main.setAttribute('data-site-lens', previousSiteLens);
     if (previousSiteSource === null) main.removeAttribute('data-site-lens-source'); else main.setAttribute('data-site-lens-source', previousSiteSource);
+    if (previousSiteTarget === null) main.removeAttribute('data-site-lens-target'); else main.setAttribute('data-site-lens-target', previousSiteTarget);
     if (mounted.get(main) === dispose) mounted.delete(main);
   }
   mounted.set(main, dispose);
