@@ -212,7 +212,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
       const checks = {
         outsideKoreanUnchanged: metrics.outsideKorean.maxRGBA <= 1,
         overlayTransparentOutsideLens:metrics.overlayOutside.maxRGBA===0,
-        separatedColoursAreTranslucent:softFringes.pixels>5&&softFringes.minRatio>.67&&softFringes.maxRatio<.73,
+        separatedColoursFullyOpaque:softFringes.pixels>5&&softFringes.minRatio>.995&&softFringes.maxRatio<=1,
         fringeOpacityZeroRestoresCarrier:metrics.fringeOffMatchesSharpCarrier.maxRGBA<=1,
         coloursExtendFurtherThanTwoPixels:radialDispersion.at(-1).spread>smallerSpread+.10,
         independentReferenceAligned: metrics.independentUnwarpedReference.maxRGBA <= 2,

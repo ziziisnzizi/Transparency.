@@ -1,5 +1,9 @@
 /* One light reading system over the shared moving field on every route. */
 main#content { position: relative; }
+html:root main#content .page-title,
+html:root .concerns-page:is(.is-empty, .has-results) .concern-page-intro > h1 {
+  font-weight: 600;
+}
 html:root {
   color-scheme: light;
   color: #171717;
@@ -32,9 +36,9 @@ body .ambient-background {
 body .ambient-background[data-renderer="css"] .ambient-wave-fallback {
   inset: -32px;
   background:
-    radial-gradient(ellipse at 74% 20%, var(--site-bg-ice, #dcefff) 0%, var(--site-bg-ice, #dcefff) 18%, transparent 63%),
+    radial-gradient(ellipse at 74% 20%, #f0f8ff 0%, transparent 63%),
     radial-gradient(ellipse at 0% 2%, var(--site-bg-white, #f8faff) 0%, var(--site-bg-white, #f8faff) 12%, transparent 55%),
-    linear-gradient(135deg, var(--site-bg-white, #f8faff), var(--site-bg-blue, #4c8ee8) 34%, var(--site-bg-ice, #dcefff) 62%, var(--site-bg-blue, #4c8ee8) 88%, var(--site-bg-white, #f8faff));
+    linear-gradient(135deg, var(--site-bg-white, #f8faff) 0% 28%, var(--site-bg-sky, #acdfff) 45%, var(--site-bg-blue, #4c8ee8) 58%, var(--site-bg-white, #f8faff) 82% 100%);
 }
 body .ambient-background[data-renderer="css"] .ambient-wave-fallback::before,
 body .ambient-background[data-renderer="css"] .ambient-wave-fallback::after { content: none; }

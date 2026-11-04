@@ -89,8 +89,11 @@ const artifact = process.env.SITE_GRAIN_QA_OUTPUT || path.join(require('node:os'
         let samples = 0, sum = 0, squares = 0, absolute = 0, maxChannelSpread = 0;
         for (let p = 0; p < count; p++) {
           const i = p * 4;
-          if ([0, 1, 2].some(c => off.pixels[i + c] < 12 || off.pixels[i + c] > 243)) continue;
-          const d = [0, 1, 2].map(c => on.pixels[i + c] - off.pixels[i + c]);
+          // White-dominant fields often clip blue; retain a stable red-channel
+          // sample and compare any other channels that remain unclamped.
+          if (off.pixels[i] < 12 || off.pixels[i] > 243) continue;
+          const channels = [0, 1, 2].filter(c => off.pixels[i+c] >= 12 && off.pixels[i+c] <= 243);
+          const d = channels.map(c => on.pixels[i + c] - off.pixels[i + c]);
           valid[p] = 1; values[p] = d[0]; samples++; sum += d[0]; squares += d[0] ** 2; absolute += Math.abs(d[0]); maxChannelSpread = Math.max(maxChannelSpread, Math.max(...d) - Math.min(...d));
         }
         const mean = sum / Math.max(1, samples);
@@ -154,7 +157,7 @@ const artifact = process.env.SITE_GRAIN_QA_OUTPUT || path.join(require('node:os'
       checks.noGLErrors = runs.every(run => run.on.glError === 0 && run.off.glError === 0);
       checks.allContextsDisposed = runs.every(run => run.on.contextDisposed && run.off.contextDisposed);
       checks.allGLResourcesDeleted = types.every(type => ledger.created[type] === ledger.deleted[type]);
-      return { fixture: { cssSize: [W, H], requestedDpr: [1, 2], sceneBudgets: [100000, 1800000], sceneMaxPixelRatio: 1.5, outputMaxPixelRatio: 3, outputPixelBudget: 8400000, state, grain: config.grain ?? .045, grainCellSize: config.grainCellSize, expectedPhysicalCellSize: expectedCellSize, expectedStandardDeviation: expectedStd, crop: { physicalSize: [W, H], origin: 'Full common physical extent at bottom-left raw readPixels, matching native gl_FragCoord hash coordinates without resampling or alignment search' }, exclusions: 'One continuous field with no legacy scene flags; all baseline RGB channels must be 12..243 to exclude final grain clamping' }, implementation, runs, comparisons, ledger, checks, passed: Object.values(checks).every(Boolean) };
+      return { fixture: { cssSize: [W, H], requestedDpr: [1, 2], sceneBudgets: [100000, 1800000], sceneMaxPixelRatio: 1.5, outputMaxPixelRatio: 3, outputPixelBudget: 8400000, state, grain: config.grain ?? .045, grainCellSize: config.grainCellSize, expectedPhysicalCellSize: expectedCellSize, expectedStandardDeviation: expectedStd, crop: { physicalSize: [W, H], origin: 'Full common physical extent at bottom-left raw readPixels, matching native gl_FragCoord hash coordinates without resampling or alignment search' }, exclusions: 'One continuous field with no legacy scene flags; red must be 12..243; other channels contribute only when unclamped' }, implementation, runs, comparisons, ledger, checks, passed: Object.values(checks).every(Boolean) };
     });
     result.pageErrors = pageErrors; if (pageErrors.length) result.passed = false;
     await context.close();

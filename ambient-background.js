@@ -32,7 +32,7 @@ export function mountAmbientBackground(document = globalThis.document) {
   const inertia = { x: 0, y: 0 };
   let history = createBackgroundMotion();
   const pendingFlows = [];
-  let lastTouch = null, scrollY = view.scrollY || 0, scrollIgnoreUntil = 0;
+  let lastTouch = null, scrollY = view.scrollY || 0, scrollIgnoreUntil = 0, lastScrollGesture = -Infinity;
   const cleanups = [];
   const hidden = () => transparency.matches || contrast.matches || forcedColors.matches;
   const still = () => motion.matches || hidden();
@@ -162,6 +162,7 @@ export function mountAmbientBackground(document = globalThis.document) {
     schedule();
   }
   listen(view, 'touchstart', event => {
+    lastScrollGesture = view.performance.now();
     lastTouch = event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null;
   }, { passive: true });
   listen(view, 'touchmove', event => {
@@ -178,18 +179,22 @@ export function mountAmbientBackground(document = globalThis.document) {
   listen(view, 'touchend', () => { lastTouch = null; }, { passive: true });
   listen(view, 'touchcancel', () => { lastTouch = null; }, { passive: true });
   function seedScroll() {
-    scrollY = view.scrollY || 0;
+    scrollY = view.scrollY || 0; lastScrollGesture = -Infinity;
     scrollIgnoreUntil = view.performance.now() + 220;
   }
+  listen(view, 'wheel', () => { lastScrollGesture = view.performance.now(); }, { passive: true });
+  listen(view, 'keydown', event => {
+    if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) lastScrollGesture = view.performance.now();
+  }, { passive: true });
   listen(view, 'scroll', () => {
     ink.update(renderer);
     const next = view.scrollY || 0, delta = next - scrollY;
     scrollY = next;
     // A route's first scroll position is seeded, not injected as a gesture.
     // A later first physical wheel tick still responds instead of being lost.
-    if (view.performance.now() < scrollIgnoreUntil || Math.abs(delta) > Math.max(height * .85, 480)) return;
-    const gain = clamp(Number(config.scrollFlowGain) || .60, 0, 2);
-    queueFlow(pointer.x, pointer.y, 0, clamp(delta / height, -.12, .12) * gain);
+    if (view.performance.now() < scrollIgnoreUntil && view.performance.now() - lastScrollGesture > 800) return;
+    const gain = clamp(Number(config.scrollFlowGain) || .95, 0, 2);
+    queueFlow(pointer.x, pointer.y, 0, clamp(delta / height, -.20, .20) * gain);
   }, { passive: true });
   listen(document, 'site-content-ready', () => { seedScroll(); ink.update(renderer, true); });
   listen(view, 'popstate', seedScroll);

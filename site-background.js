@@ -116,10 +116,10 @@ void main(){
  // Broad white and saturated blue streams share one continuous global canvas.
  float secondCurve=bandPoint.y*.90-bandPoint.x*.24+cos(bandPoint.x*1.9-t*.26+drag.x*.42)*.22-.31+(drag.y*.075-drag.x*.10)*gesture;
  secondCurve+=memory.x*.16-circulation*.10+memoryWave*.12;
- float firstStream=exp(-pow((curve-.015)/.27,2.));
- float secondStream=exp(-pow((secondCurve+.11)/.37,2.));
- vec3 color=mix(white,sky,clamp(firstStream*.68+secondStream*.42,0.,.94));
- color=mix(color,blue,clamp(firstStream*.38+secondStream*.55+firstStream*secondStream*.15,0.,.94));
+ float firstStream=exp(-pow((curve-.015)/.13,2.));
+ float secondStream=exp(-pow((secondCurve+.11)/.17,2.));
+ vec3 color=mix(white,sky,clamp(firstStream*.60+secondStream*.35,0.,.85));
+ color=mix(color,blue,clamp(firstStream*.32+secondStream*.38+firstStream*secondStream*.12,0.,.78));
  color=mix(color,white,crest*.92);
 
  // Cursor position changes occupied area, not merely the angle of a pale
@@ -136,7 +136,7 @@ void main(){
  float rightLobe=1.-smoothstep(.35,1.10,length(rightShape));
  float topLobe=1.-smoothstep(.35,1.10,length(topShape));
  float pocket=max(rightLobe,topLobe);
- color=mix(color,ice,pocket*.999);
+ color=mix(color,ice,pocket*.42);
  // No exposure lift, whitening veil or page/theme-dependent palette. Native
  // foreground glass and local scrims provide legibility above the artwork.
 

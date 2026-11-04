@@ -184,6 +184,7 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         const vertical = difference(downFrame, upFrame);
         const coverage = { left: paletteStats(a), right: paletteStats(b), up: paletteStats(upFrame), down: paletteStats(downFrame) };
         const iceCoverageDelta = coverage.right.nearIceFraction - coverage.left.nearIceFraction;
+        checks.whiteLargestAcrossPointerPoses=Object.values(coverage).every(c=>c.nearWhiteFraction>c.blueFraction&&c.nearWhiteFraction>c.nearIceFraction);
         const bestTranslation = registration(a, b);
         const settled = field.capture({ ...mode, pointer: right });
         const trailResponse = difference(field.capture({ ...mode, pointer: moving }), settled);
@@ -246,6 +247,7 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       grain.standardDeviationTolerance = Math.max(.65, grain.expectedStandardDeviation * .2);
       for (const key of ['nearWhite', 'nearBlack', 'nearIce', 'blue', 'warm']) palette[`${key}Fraction`] = palette[key] / Math.max(1, palette.pixels);
       const fieldError = field.gl.getError(); field.renderer.dispose();
+      checks.whiteIsLargestColourRegion = palette.nearWhiteFraction > palette.blueFraction && palette.nearWhiteFraction > palette.nearIceFraction;
       checks.sampledWhiteIceBluePalette = palette.nearWhiteFraction > .01 && palette.nearIceFraction > .10 && palette.nearBlackFraction === 0 && palette.blueFraction > .05 && palette.warmFraction < .001;
       checks.sampledLightReadableLuminanceRange = spectrum.minRelativeLuminance > .20 && spectrum.maxRelativeLuminance > .85 && spectrum.maxRelativeLuminance-spectrum.minRelativeLuminance>.25;
       checks.visibleAchromaticGrain = grain.samples > 1000 && Math.abs(grain.standardDeviation - grain.expectedStandardDeviation) <= grain.standardDeviationTolerance && grain.standardDeviation > 1 && grain.meanAbsolute > 1 && grain.fractionOver2 > .1 && grain.maxChannelSpread <= 1;
