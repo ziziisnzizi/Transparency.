@@ -1,0 +1,209 @@
+// Opt-in real-WebGL verification against independent raw pixel references.
+// All requests are fulfilled in memory; no dev server or external site is used.
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const crypto = require('node:crypto');
+let chromium;
+try { ({ chromium } = require('playwright')); }
+catch {
+  console.error('Optional browser verification requires: npm install --no-save playwright && npx playwright install chromium');
+  process.exit(1);
+}
+
+const root = path.resolve(__dirname, '..');
+const output = process.env.LANDING_QA_OUTPUT || path.join(require('node:os').tmpdir(), 'transparency-landing-webgl.json');
+const names = ['landing-lens-renderer.js', 'landing-background.js', 'landing-config.js'];
+
+(async () => {
+  const sources = Object.fromEntries(await Promise.all(names.map(async name => [name, await fs.readFile(path.join(root, name), 'utf8')])));
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage', '--enable-webgl', '--enable-unsafe-swiftshader'] });
+  let result;
+  try {
+    const context = await browser.newContext({ viewport: { width: 400, height: 280 }, deviceScaleFactor: 1 });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.route('**/*', async route => {
+      const url = new URL(route.request().url());
+      if (url.pathname === '/qa-empty') return route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8"><style>body{margin:0;background:#fff}canvas{display:block}</style><body></body>' });
+      const source = sources[url.pathname.slice(1)];
+      if (source) return route.fulfill({ contentType: 'application/javascript', body: source });
+      return route.abort();
+    });
+    await page.goto('http://127.0.0.1:4199/qa-empty');
+    result = await page.evaluate(async () => {
+      const ledger = { created: {}, deleted: {} };
+      const live = new WeakSet();
+      const kinds = ['Texture', 'Buffer', 'Program', 'Shader'];
+      for (const kind of kinds) {
+        ledger.created[kind] = ledger.deleted[kind] = 0;
+        for (const prefix of ['create', 'delete']) {
+          const name = prefix + kind;
+          const original = WebGLRenderingContext.prototype[name];
+          WebGLRenderingContext.prototype[name] = function (...args) {
+            const value = original.apply(this, args);
+            if (prefix === 'create' && value) { ledger.created[kind]++; live.add(value); }
+            if (prefix === 'delete' && args[0] && live.has(args[0])) { ledger.deleted[kind]++; live.delete(args[0]); }
+            return value;
+          };
+        }
+      }
+      const { createLandingLensRenderer } = await import('/landing-lens-renderer.js');
+      const { createLandingBackground } = await import('/landing-background.js');
+      const { landingConfig } = await import('/landing-config.js');
+      const width = 240, height = 160, ratio = 2;
+      const pw = width * ratio, ph = height * ratio;
+      const point = { x: 120, y: 80, radius: 50, rimWidth: 6, refraction: 7, rgbOffset: 1.5, opacity: 1, reveal: 1 };
+      const paper = [1, 1, 1];
+      function texture(language) {
+        const canvas = document.createElement('canvas');
+        canvas.width = pw; canvas.height = ph;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.scale(ratio, ratio);
+        ctx.fillStyle = 'rgba(30, 40, 55, 0.92)';
+        ctx.font = '700 23px sans-serif';
+        ctx.fillText(language === 'en' ? 'ENGLISH' : '日本語', language === 'en' ? 52 : 76, language === 'en' ? 60 : 105);
+        // Language-exclusive, pixel-aligned strokes cross both center and rim.
+        ctx.fillRect(language === 'en' ? 103 : 132, 26, 3, 108);
+        ctx.fillRect(58, language === 'en' ? 72 : 88, 124, 2);
+        const raw = ctx.getImageData(0, 0, pw, ph).data;
+        const premultiplied = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i += 4) {
+          for (let c = 0; c < 3; c++) premultiplied[i + c] = Math.round(raw[i + c] * raw[i + 3] / 255);
+          premultiplied[i + 3] = raw[i + 3];
+        }
+        return { canvas, pixels: premultiplied };
+      }
+      function read(gl, w, h) {
+        const raw = new Uint8Array(w * h * 4), out = new Uint8Array(raw.length);
+        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, raw);
+        for (let y = 0; y < h; y++) out.set(raw.subarray((h - y - 1) * w * 4, (h - y) * w * 4), y * w * 4);
+        return out;
+      }
+      const radial = i => Math.hypot(((i / 4) % pw + .5) / ratio - point.x, (Math.floor(i / 4 / pw) + .5) / ratio - point.y);
+      const core = i => radial(i) <= point.radius - point.rimWidth - .75;
+      const outside = i => radial(i) >= point.radius + 1;
+      const band = i => radial(i) >= point.radius - point.rimWidth - .75 && radial(i) <= point.radius + 1;
+      function difference(a, b, select = () => true) {
+        let count = 0, sum = 0, max = 0;
+        const errors = [];
+        for (let i = 0; i < a.length; i += 4) if (select(i)) {
+          let peak = 0;
+          for (let c = 0; c < 4; c++) { const d = Math.abs(a[i + c] - b[i + c]); peak = Math.max(peak, d); sum += d; }
+          errors.push(peak); max = Math.max(max, peak); count++;
+        }
+        errors.sort((a, b) => a - b);
+        return { pixels: count, maxRGBA: max, meanChannel: sum / Math.max(1, count * 4), p99RGBA: errors[Math.floor((errors.length - 1) * .99)] || 0 };
+      }
+      function energy(a, b, chromatic = false) {
+        let total = 0, confined = 0, significant = 0, outsideSignificant = 0, maxSignal = 0;
+        for (let i = 0; i < a.length; i += 4) {
+          const delta = [];
+          // Composite independently over white so alpha changes do not masquerade as RGB separation.
+          for (let c = 0; c < 3; c++) delta.push(a[i + c] - a[i + 3] - b[i + c] + b[i + 3]);
+          const signal = chromatic ? Math.max(...delta) - Math.min(...delta) : Math.max(...delta.map(Math.abs));
+          const e = Math.max(0, signal - 2) ** 2;
+          total += e;
+          if (band(i)) confined += e;
+          if (signal > 3) { significant++; if (!band(i)) outsideSignificant++; }
+          maxSignal = Math.max(maxSignal, signal);
+        }
+        return { significantPixels: significant, outsideSignificantPixels: outsideSignificant, maxSignal, confinedEnergyFraction: total ? confined / total : 0, energy: total };
+      }
+      const en = texture('en'), ja = texture('ja');
+      const original = document.createElement('canvas'); document.body.append(original);
+      const renderer = createLandingLensRenderer(original);
+      if (!renderer) throw new Error('Actual lens WebGL renderer unavailable');
+      if (!renderer.upload([en.canvas, ja.canvas], width, height, ratio, paper)) throw new Error('Actual lens upload failed');
+      const gl = renderer.canvas.getContext('webgl');
+      const debug = gl.getExtension('WEBGL_debug_renderer_info');
+      const implementation = { vendor: gl.getParameter(gl.VENDOR), renderer: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER), version: gl.getParameter(gl.VERSION) };
+      const capture = changes => { renderer.render({ ...point, ...changes }); return read(gl, pw, ph); };
+      const lens = capture({});
+      const unwarped = capture({ refraction: 0, rgbOffset: 0 });
+      const noRgb = capture({ rgbOffset: 0 });
+      const revealZero = capture({ reveal: 0 });
+      const opacityZero = capture({ opacity: 0 });
+      const ideal = new Uint8Array(en.pixels.length);
+      const smooth = value => { const x = Math.min(1, Math.max(0, value)); return x * x * (3 - 2 * x); };
+      for (let i = 0; i < ideal.length; i += 4) {
+        const mask = 1 - smooth((radial(i) - (point.radius - .6)) / 1.2);
+        for (let c = 0; c < 4; c++) ideal[i + c] = Math.round(en.pixels[i + c] * (1 - mask) + ja.pixels[i + c] * mask);
+      }
+      const enOnly = i => core(i) && en.pixels[i + 3] > 220 && ja.pixels[i + 3] === 0;
+      const jaOnly = i => core(i) && ja.pixels[i + 3] > 220 && en.pixels[i + 3] === 0;
+      const zero = new Uint8Array(lens.length);
+      const metrics = {
+        outsideEnglish: difference(lens, en.pixels, outside),
+        deepCoreJapanese: difference(lens, ja.pixels, core),
+        englishExclusiveRemoved: difference(lens, zero, enOnly),
+        japaneseExclusivePresent: difference(lens, ja.pixels, jaOnly),
+        revealZeroEnglish: difference(revealZero, en.pixels, core),
+        opacityZeroEnglish: difference(opacityZero, en.pixels),
+        independentUnwarpedReference: difference(unwarped, ideal),
+        distortionAgainstIndependentIdeal: energy(lens, ideal),
+        warpOnly: energy(noRgb, unwarped),
+        rgbOnly: energy(lens, noRgb, true),
+        coreRgbDifference: difference(lens, noRgb, core),
+        glError: gl.getError(),
+      };
+      renderer.dispose();
+      const lensDisposed = { contextLost: gl.isContextLost(), created: { ...ledger.created }, deleted: { ...ledger.deleted } };
+
+      const backgroundCanvas = document.createElement('canvas'); document.body.append(backgroundCanvas);
+      const background = createLandingBackground(backgroundCanvas, landingConfig.background);
+      if (!background) throw new Error('Actual background WebGL renderer unavailable');
+      background.resize(360, 240, 1);
+      const backgroundGl = backgroundCanvas.getContext('webgl');
+      const times = [0, 5, 20, 45];
+      const frames = times.map(time => { background.render({ time, pointer: { x: 0, y: 0 } }); return read(backgroundGl, 360, 240); });
+      const backgroundMovement = times.slice(1).map((time, index) => {
+        const frame = frames[index + 1];
+        let sum = 0, changed = 0;
+        for (let i = 0; i < frame.length; i += 4) {
+          let peak = 0;
+          for (let c = 0; c < 3; c++) { const delta = Math.abs(frame[i + c] - frames[0][i + c]); sum += delta; peak = Math.max(peak, delta); }
+          if (peak > 12) changed++;
+        }
+        return { from: 0, to: time, meanRGBDelta: sum / (360 * 240 * 3), fractionChangingOver12: changed / (360 * 240) };
+      });
+      background.render({ time: 20, pointer: { x: 0, y: 0 } });
+      const backgroundRepeat = difference(read(backgroundGl, 360, 240), frames[2]);
+      const backgroundError = backgroundGl.getError();
+      background.dispose();
+      const resourcesReleased = kinds.every(kind => ledger.created[kind] === ledger.deleted[kind]);
+      const checks = {
+        outsideEnglishUnchanged: metrics.outsideEnglish.maxRGBA <= 1,
+        independentReferenceAligned: metrics.independentUnwarpedReference.maxRGBA <= 2,
+        sufficientExclusiveStrokes: metrics.englishExclusiveRemoved.pixels >= 400 && metrics.japaneseExclusivePresent.pixels >= 400,
+        englishRemovedInCore: metrics.englishExclusiveRemoved.maxRGBA <= 1,
+        japanesePresentInCore: metrics.japaneseExclusivePresent.maxRGBA <= 1,
+        crispCoreMatchesRawTexture: metrics.deepCoreJapanese.maxRGBA <= 1,
+        noCoreRgbSplit: metrics.coreRgbDifference.maxRGBA === 0,
+        revealZeroRestoresEnglish: metrics.revealZeroEnglish.maxRGBA <= 1,
+        opacityZeroRestoresEnglish: metrics.opacityZeroEnglish.maxRGBA <= 1,
+        distortedRingPresent: metrics.distortionAgainstIndependentIdeal.significantPixels > 100,
+        warpedRingPresent: metrics.warpOnly.significantPixels > 100,
+        rgbRingPresent: metrics.rgbOnly.significantPixels > 50 && metrics.rgbOnly.maxSignal > 10,
+        distortionConfinedToRimAndAA: metrics.distortionAgainstIndependentIdeal.confinedEnergyFraction >= .999 && metrics.distortionAgainstIndependentIdeal.outsideSignificantPixels === 0,
+        warpConfinedToRimAndAA: metrics.warpOnly.confinedEnergyFraction >= .999 && metrics.warpOnly.outsideSignificantPixels === 0,
+        rgbConfinedToRimAndAA: metrics.rgbOnly.confinedEnergyFraction >= .999 && metrics.rgbOnly.outsideSignificantPixels === 0,
+        autonomousBackgroundMovement: backgroundMovement.every(item => item.meanRGBDelta > 3 && item.fractionChangingOver12 > .05) && backgroundMovement[2].fractionChangingOver12 > .25,
+        deterministicBackground: backgroundRepeat.maxRGBA === 0,
+        noGlErrors: metrics.glError === 0 && backgroundError === 0,
+        resourcesReleased,
+        contextsDisposed: lensDisposed.contextLost && backgroundGl.isContextLost(),
+      };
+      return { fixture: { cssSize: [width, height], pixelRatio: ratio, parameters: point, ringAllowance: [point.radius - point.rimWidth - .75, point.radius + 1], reference: 'Raw independent Canvas2D pixels, explicitly premultiplied; no shader-derived oracle', backgroundSize: [360, 240], backgroundPointer: [0, 0], backgroundTimes: times }, implementation, metrics, backgroundMovement, backgroundRepeat, disposal: { lens: lensDisposed, allCreated: ledger.created, allDeleted: ledger.deleted, backgroundContextLost: backgroundGl.isContextLost() }, checks, passed: Object.values(checks).every(Boolean) };
+    });
+    result.pageErrors = errors;
+    if (errors.length) result.passed = false;
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+  result.sources = Object.fromEntries(names.map(name => [name, crypto.createHash('sha256').update(sources[name]).digest('hex')]));
+  await fs.writeFile(output, JSON.stringify(result, null, 2) + '\n');
+  console.log(JSON.stringify({ passed: result.passed, artifact: output, checks: result.checks, implementation: result.implementation, backgroundMovement: result.backgroundMovement }));
+  if (!result.passed) process.exitCode = 1;
+})().catch(error => { console.error(error.stack); process.exitCode = 1; });

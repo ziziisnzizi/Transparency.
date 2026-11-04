@@ -6,17 +6,25 @@ import { getReviewSummary, renderProductReviews, bindProductReviews, REVIEW_STOR
 import { renderPurchase, bindPurchase, formatPurchasePrice } from './purchase.js';
 import { renderConcerns, bindConcerns, seedConcernSearch } from './concerns.js';
 import { mountAmbientBackground } from './ambient-background.js';
+import { landingConfig } from './landing-config.js';
+import { renderLanding } from './landing-page.js';
+import { mountLanding } from './landing-runtime.js';
 
 
 
 const navPages = ['홈', '제품 탐색', '내 고민', '내 제품', '더보기'];
 const initialView = new URLSearchParams(window.location.search).get('view');
+let isLanding = initialView === 'landing';
+let disposeLanding = null, disposeAmbientBackground = null;
+const serviceTitle = document.title;
+const themeColor = document.querySelector('meta[name="theme-color"]');
+const serviceThemeColor = themeColor?.content;
 let page = initialView === 'concerns' ? '내 고민' : '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
 let isPurchase = initialView === 'buy';
 let theme = localStorage.getItem('transparency-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 document.documentElement.dataset.theme = theme;
 const requestedProduct = new URLSearchParams(window.location.search).get('product');
-selected = initialView === 'concerns' ? null : products.find(product => product.slug === requestedProduct) || null;
+selected = initialView === 'concerns' || isLanding ? null : products.find(product => product.slug === requestedProduct) || null;
 if (isPurchase && !selected) selected = orderProductsByRoutine(products)[0];
 if (selected) page = '제품 탐색';
 let saved = JSON.parse(localStorage.getItem('transparency-products') || '[]');
@@ -47,6 +55,17 @@ const navIcons = {
 };
 
 function render() {
+  disposeLanding?.(); disposeLanding = null;
+  if (isLanding) {
+    disposeAmbientBackground?.(); disposeAmbientBackground = null;
+    document.title = landingConfig.meta?.title || `${landingConfig.brand.name} — Nothing to hide.`;
+    if (themeColor) themeColor.content = landingConfig.background.palette.black;
+    document.querySelector('#app').innerHTML = renderLanding(landingConfig);
+    disposeLanding = mountLanding(document.querySelector('[data-landing]'), landingConfig);
+    return;
+  }
+  document.title = serviceTitle;
+  if (themeColor) themeColor.content = serviceThemeColor;
   document.querySelector('#app').innerHTML = `
     <a class="skip-link" href="#content">본문으로 이동</a>
     <header><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button>
@@ -57,6 +76,7 @@ function render() {
     <main id="content" tabindex="-1">${isPurchase ? renderPurchase(orderProductsByRoutine(products), selected?.slug, purchasePricing) : selected ? detail() : page === '홈' ? home() : page === '제품 탐색' ? explore() : page === '내 고민' ? renderConcerns() : page === '내 제품' ? my() : more()}</main>
     <footer><div><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button><p>성분에 장난 없이.</p></div><div class="footer-links"><button data-buy="toner-t1">제품 구매 ${arrow}</button><button data-page="더보기">브랜드 소개 ${arrow}</button><a href="mailto:ztheng@inha.edu">ztheng@inha.edu</a></div><small>© 2026 Transparency. All rights reserved.<br>성분부터 사용법까지, 투명하게.</small></footer>`;
   bind();
+  if (!disposeAmbientBackground) disposeAmbientBackground = mountAmbientBackground(document);
 }
 
 function home() {
@@ -67,7 +87,7 @@ function home() {
   </section>
   <section class="principles" aria-label="정보 공개 원칙"><div class="principle-title">성분에<br>장난 없이.</div><div><span class="number">01 / INGREDIENTS</span><h2>무엇을 담았는지.</h2><p>성분과 함량을 확인하세요.</p></div><div><span class="number">02 / EVIDENCE</span><h2>어디까지 확인됐는지.</h2><p>근거와 그 한계까지 살펴보세요.</p></div><div><span class="number">03 / YOUR ROUTINE</span><h2>어떻게 사용하는지.</h2><p>첫 사용부터 마지막 한 방울까지.</p></div></section>
   <section class="section"><div class="section-head"><div><div class="eyebrow">THE FORMULAS</div><h2>궁금했던 성분부터.</h2></div><button data-page="제품 탐색" class="text-btn">모든 제품 보기 ${arrow}</button></div><div class="cards">${orderProductsByRoutine(products).map(card).join('')}</div></section>
-  <section class="brand-statement"><span class="eyebrow">THE TRANSPARENCY STANDARD</span><h2>보이는 것, 그 너머까지.<br>투명하게.</h2><p>성분, 함량, 근거, 그리고 사용법.<br>제품을 이해하는 데 필요한 정보를 한곳에서.</p><button data-page="더보기" class="text-btn">우리의 정보 공개 원칙 ${arrow}</button><div class="glass-orb" aria-hidden="true"></div></section>
+  <section class="brand-statement"><span class="eyebrow">THE TRANSPARENCY STANDARD</span><h2>보이는 것, 그 너머까지.<br>투명하게.</h2><p>성분, 함량, 근거, 그리고 사용법.<br>제품을 이해하는 데 필요한 정보를 한곳에서.</p><button data-page="더보기" class="text-btn">우리의 정보 공개 원칙 ${arrow}</button> <button data-landing-open class="text-btn">브랜드 경험 ${arrow}</button><div class="glass-orb" aria-hidden="true"></div></section>
   <section class="bottom-grid"><div><span class="eyebrow">KNOW YOUR PRODUCT</span><h2>손안에서 확인하는<br>제품의 모든 것.</h2><p>제품명과 성분명으로 궁금한 정보를 찾아보세요.</p><button data-page="제품 탐색" class="text-btn">제품 검색하기 ${arrow}</button><span class="panel-number" aria-hidden="true">01</span></div><div><span class="eyebrow">MY PRODUCTS</span><h2>나의 제품.<br>나에게 맞는 사용법.</h2><p>개봉일과 사용 상태를 기록하고 확인하세요.</p><button data-page="내 제품" class="text-btn">내 제품 관리하기 ${arrow}</button><span class="panel-number" aria-hidden="true">02</span></div></section>`;
 }
 
@@ -205,6 +225,11 @@ function refreshSearchResults(value) {
   bindSearchReset();
 }
 function bind() {
+  document.querySelector('[data-landing-open]')?.addEventListener('click', () => {
+    selected = null; isPurchase = false; isLanding = true;
+    window.history.pushState({ page: 'landing' }, '', '/?view=landing');
+    render(); window.scrollTo(0, 0);
+  });
   if (!isPurchase && !selected && page === '내 고민') bindConcerns({
     onProduct: slug => openProduct(slug),
     onReview: slug => openProduct(slug, false, '사용자 리뷰'),
@@ -304,16 +329,18 @@ document.addEventListener('click', event => {
   });
 });
 window.addEventListener('storage', event => {
-  if (event.key === REVIEW_STORAGE_KEY || event.key === null) render();
+  if (!isLanding && (event.key === REVIEW_STORAGE_KEY || event.key === null)) render();
 });
 window.addEventListener('popstate', event => {
   const params = new URLSearchParams(window.location.search);
+  const nextLanding = params.get('view') === 'landing';
+  if (isLanding && nextLanding) return;
+  isLanding = nextLanding;
   isPurchase = params.get('view') === 'buy';
-  selected = params.get('view') === 'concerns' ? null : products.find(product => product.slug === params.get('product')) || null;
+  selected = params.get('view') === 'concerns' || isLanding ? null : products.find(product => product.slug === params.get('product')) || null;
   if (isPurchase && !selected) selected = orderProductsByRoutine(products)[0];
   page = selected ? '제품 탐색' : params.get('view') === 'concerns' ? '내 고민' : navPages.includes(event.state?.page) ? event.state.page : '홈';
   render();
 });
 render();
-const disposeAmbientBackground = mountAmbientBackground(document);
-if (import.meta.hot) import.meta.hot.dispose(disposeAmbientBackground);
+if (import.meta.hot) import.meta.hot.dispose(() => { disposeLanding?.(); disposeAmbientBackground?.(); });
