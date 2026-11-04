@@ -35,7 +35,8 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       const up = pointer(0, -.7), down = pointer(0, .7);
       const moving = pointer(.7, .35, { trailX: -.45, trailY: -.2, vx: 1.8, vy: .9 });
       const velocityOnly = pointer(.7, .35, { vx: 1.8, vy: .9 });
-      const modes = { poster: { poster: true, dark: false }, lightPage: { poster: false, dark: false }, darkPage: { poster: false, dark: true } };
+      const modes = { shared: {} };
+      const legacyModes = { poster: { poster: true, dark: false }, lightPage: { poster: false, dark: false }, darkPage: { poster: false, dark: true }, mixedLegacyFlags: { poster: true, dark: true } };
       const ledger = { created: {}, deleted: {} }, live = new WeakSet();
       for (const type of ['Buffer', 'Program', 'Shader', 'Texture', 'Framebuffer', 'Renderbuffer']) {
         ledger.created[type] = ledger.deleted[type] = 0;
@@ -119,15 +120,18 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       }
       const linear = value => { const c = value / 255; return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; };
       const luminance = rgb => .2126 * linear(rgb[0]) + .7152 * linear(rgb[1]) + .0722 * linear(rgb[2]);
-      const foreground = { ink: [248, 250, 252], muted: [210, 219, 234] };
+      // These are the shared black/charcoal UI tokens, rather than obsolete
+      // white text on a dark-reading scene. Application QA checks their wiring.
+      const foreground = { ink: [21, 29, 39], muted: [52, 64, 79] };
       const foregroundLuminance = Object.fromEntries(Object.entries(foreground).map(([key, rgb]) => [key, luminance(rgb)]));
-      const darkReading = { maxRelativeLuminance: 0, sampledPixels: 0 };
+      const lightReading = { minRelativeLuminance: 1, maxRelativeLuminance: 0, sampledPixels: 0 };
       const palette = { pixels: 0, nearWhite: 0, nearBlack: 0, blue: 0, warm: 0 };
-      function observe(pixels, mode) {
+      function observe(pixels) {
         for (let i = 0; i < pixels.length; i += 4) {
           const rgb = [pixels[i], pixels[i + 1], pixels[i + 2]], [r, g, b] = rgb;
-          if (mode.dark && !mode.poster) { darkReading.maxRelativeLuminance = Math.max(darkReading.maxRelativeLuminance, luminance(rgb)); darkReading.sampledPixels++; }
-          if (!mode.poster) continue;
+          const value = luminance(rgb);
+          lightReading.minRelativeLuminance = Math.min(lightReading.minRelativeLuminance, value);
+          lightReading.maxRelativeLuminance = Math.max(lightReading.maxRelativeLuminance, value); lightReading.sampledPixels++;
           palette.pixels++;
           if (r > 180 && g > 195 && b > 210 && Math.max(...rgb) - Math.min(...rgb) < 70) palette.nearWhite++;
           if (luminance(rgb) < .025 && Math.max(...rgb) - Math.min(...rgb) < 40) palette.nearBlack++;
@@ -139,19 +143,26 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       const extension = normal.gl.getExtension('WEBGL_debug_renderer_info');
       const implementation = { renderer: normal.gl.getParameter(extension ? extension.UNMASKED_RENDERER_WEBGL : normal.gl.RENDERER), version: normal.gl.getParameter(normal.gl.VERSION) };
       for (const [name, mode] of Object.entries(modes)) {
-        const frames = times.map(time => { const frame = normal.capture({ ...mode, time }); observe(frame, mode); return frame; });
+        const frames = times.map(time => { const frame = normal.capture({ ...mode, time }); observe(frame); return frame; });
         const autonomous = times.slice(1).map((time, index) => ({ time, ...difference(frames[index + 1], frames[0]) }));
         const fixed = normal.capture(mode), parked = normal.capture({ ...mode, pointer: pointer(.7, -.4, { active: 0, trailX: -.5, trailY: .5, vx: 2, vy: -2 }) });
         const repeats = difference(normal.capture(mode), fixed), inactiveCoordinates = difference(parked, fixed);
         const adjacent = times.map(time => ({ time, ...difference(normal.capture({ ...mode, time: time + 1 / 30 }), frames[times.indexOf(time)]) }));
-        for (const pose of [left, right, moving]) observe(normal.capture({ ...mode, pointer: pose }), mode);
+        for (const pose of [left, right, moving]) observe(normal.capture({ ...mode, pointer: pose }));
         observations[name] = { autonomous, repeats, inactiveCoordinates, adjacent };
         checks[`${name}StationaryAutoFlowAtSampledTimes`] = autonomous.every(frame => frame.meanRGBDelta > .1 && frame.fractionOver2 > .01);
         checks[`${name}ExactRepeat`] = repeats.maxRGBDelta === 0;
         checks[`${name}InactiveCoordinatesNeutral`] = inactiveCoordinates.maxRGBDelta === 0;
         checks[`${name}BoundedSampledAdjacentFrames`] = adjacent.every(frame => frame.meanRGBDelta < 4 && frame.p99PixelDelta < 24);
       }
-      const grainStates = [{ time: 3, pointer: neutral, poster: true }, { time: 5, pointer: neutral, poster: true }, { time: 3, pointer: right, poster: true }];
+      const legacyInvariance = [
+        { time: 0, pointer: neutral }, { time: clock, pointer: right }, { time: 5, pointer: moving },
+      ].map(state => {
+        const reference = normal.capture(state);
+        return { state, variants: Object.fromEntries(Object.entries(legacyModes).map(([name, flags]) => [name, difference(normal.capture({ ...state, ...flags }), reference)])) };
+      });
+      checks.legacySceneFlagsKeepSharedOutput = legacyInvariance.every(state => Object.values(state.variants).every(diff => diff.maxRGBDelta === 0));
+      const grainStates = [{ time: 3, pointer: neutral }, { time: 5, pointer: neutral }, { time: 3, pointer: right }];
       const withGrain = grainStates.map(options => normal.capture(options));
       const normalError = normal.gl.getError(); normal.renderer.dispose();
       const normalDisposed = normal.gl.isContextLost();
@@ -168,7 +179,7 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         const trailResponse = difference(field.capture({ ...mode, pointer: moving }), settled);
         const velocityResponse = difference(field.capture({ ...mode, pointer: velocityOnly }), settled);
         shape[name] = { horizontal, vertical, bestTranslation, trailResponse, velocityResponse };
-        const minimum = name === 'poster' ? 2 : .2;
+        const minimum = 1;
         checks[`${name}DirectionChangesRenderedField`] = horizontal.meanRGBDelta > minimum && vertical.meanRGBDelta > minimum;
         checks[`${name}BroadResponseAcrossViewport`] = horizontal.verticalThirds.every(part => part.meanRGBDelta > minimum / 2);
         checks[`${name}ShapeChangesBeyondBestTranslation`] = bestTranslation.best.meanRGBDelta > minimum / 2 && bestTranslation.residualFraction > .15;
@@ -190,16 +201,16 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       // the continuous uniform-noise model. Visibility remains an independent gate.
       grain.standardDeviationTolerance = Math.max(.65, grain.expectedStandardDeviation * .2);
       for (const key of ['nearWhite', 'nearBlack', 'blue', 'warm']) palette[`${key}Fraction`] = palette[key] / Math.max(1, palette.pixels);
-      darkReading.foregrounds = Object.fromEntries(Object.entries(foregroundLuminance).map(([key, value]) => [key, { rgb: foreground[key], relativeLuminance: value, requiredContrast: 4.5, derivedBackgroundCeiling: (value + .05) / 4.5 - .05, minimumSampledContrast: (value + .05) / (darkReading.maxRelativeLuminance + .05) }]));
+      lightReading.foregrounds = Object.fromEntries(Object.entries(foregroundLuminance).map(([key, value]) => [key, { rgb: foreground[key], relativeLuminance: value, requiredContrast: 4.5, derivedBackgroundFloor: (value + .05) * 4.5 - .05, minimumSampledContrast: (lightReading.minRelativeLuminance + .05) / (value + .05) }]));
       const fieldError = field.gl.getError(); field.renderer.dispose();
-      checks.sampledWhiteBlackBluePalette = palette.nearWhiteFraction > .005 && palette.nearBlackFraction > .02 && palette.blueFraction > .02 && palette.warmFraction < .001;
+      checks.sampledLightBluePalette = palette.nearWhiteFraction > .005 && palette.nearBlackFraction === 0 && palette.blueFraction > .02 && palette.warmFraction < .001;
       checks.visibleAchromaticGrain = grain.samples > 1000 && Math.abs(grain.standardDeviation - grain.expectedStandardDeviation) <= grain.standardDeviationTolerance && grain.standardDeviation > 1 && grain.meanAbsolute > 1 && grain.fractionOver2 > .1 && grain.maxChannelSpread <= 1;
       checks.grainIsStaticAcrossTimeAndPointer = grain.maxStateResidualDifference <= 1;
-      checks.sampledDarkReadingContrast = Object.values(darkReading.foregrounds).every(item => item.minimumSampledContrast >= 4.5);
+      checks.sampledLightReadingContrast = lightReading.sampledPixels > 0 && Object.values(lightReading.foregrounds).every(item => item.minimumSampledContrast >= 4.5);
       checks.noGLErrors = normalError === 0 && fieldError === 0;
       checks.contextsDisposed = normalDisposed && field.gl.isContextLost();
       checks.resourcesReleased = Object.keys(ledger.created).every(type => ledger.created[type] === ledger.deleted[type]);
-      return { fixture: { size: [W, H], fixedClock: clock, times, adjacentInterval: 1 / 30, pointers: { neutral, left, right, up, down, moving, velocityOnly }, interpretation: 'Sampled framebuffer observations only; no all-time contrast, motion, or flash-safety guarantee. Controller event wiring and inertial decay require application verification.' }, implementation, observations, shape, palette, grain, darkReading, ledger, checks, passed: Object.values(checks).every(Boolean) };
+      return { fixture: { size: [W, H], fixedClock: clock, times, adjacentInterval: 1 / 30, pointers: { neutral, left, right, up, down, moving, velocityOnly }, interpretation: 'Sampled framebuffer observations only; no all-time contrast, motion, or flash-safety guarantee. Legacy scene flags must be identical for the shared light field. Controller event wiring and inertial decay require application verification.' }, implementation, legacyInvariance, observations, shape, palette, grain, lightReading, ledger, checks, passed: Object.values(checks).every(Boolean) };
     });
     result.pageErrors = pageErrors;
     if (pageErrors.length) result.passed = false;

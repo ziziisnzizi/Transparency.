@@ -22,15 +22,9 @@ const initialView = initialUrl.searchParams.get('view');
 let disposeTextEffects = null, disposeAmbientBackground = null;
 let page = initialView === 'concerns' ? '내 고민' : '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
 let isPurchase = initialView === 'buy';
-// The head bootstrap applies the saved choice or dark before styles can paint.
-let theme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
-function applyTheme() {
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.style.colorScheme = theme;
-  const themeColor = document.querySelector('meta[name="theme-color"]');
-  if (themeColor) themeColor.content = theme === 'dark' ? '#030811' : '#f7fbff';
-}
-applyTheme();
+// One light presentation; former saved theme preferences no longer alter it.
+document.documentElement.dataset.theme = 'light';
+document.documentElement.style.colorScheme = 'light';
 const requestedProduct = new URLSearchParams(window.location.search).get('product');
 selected = initialView === 'concerns' ? null : products.find(product => product.slug === requestedProduct) || null;
 if (isPurchase && !selected) selected = orderProductsByRoutine(products)[0];
@@ -68,7 +62,7 @@ function render() {
     <a class="skip-link" href="#content">본문으로 이동</a>
     <header><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button>
 
-      <div class="header-actions"><button class="theme-toggle" id="theme-toggle" type="button" aria-label="${theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}" aria-pressed="${theme === 'dark'}"><span aria-hidden="true">${theme === 'dark' ? '☀' : '☾'}</span></button><button class="account" data-page="내 제품">MY PRODUCTS ${arrow}</button></div>
+      <div class="header-actions"><button class="account" data-page="내 제품">MY PRODUCTS ${arrow}</button></div>
     </header>
       <nav aria-label="주요 메뉴">${navPages.map(x => `<button ${!selected && page === x ? 'aria-current="page"' : ''} class="${page === x ? 'active' : ''}" data-page="${x}"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${navIcons[x]}</svg><span>${x}</span></button>`).join('')}</nav>
     <main id="content" tabindex="-1">${isPurchase ? renderPurchase(orderProductsByRoutine(products), selected?.slug, purchasePricing) : selected ? detail() : page === '홈' ? home() : page === '제품 탐색' ? explore() : page === '내 고민' ? renderConcerns() : page === '내 제품' ? my() : more()}</main>
@@ -79,7 +73,7 @@ function render() {
 }
 
 function home() {
-  return `<section class="site-hero" data-site-poster aria-labelledby="hero-title">
+  return `<section class="site-hero" aria-labelledby="hero-title">
     <div class="site-hero-content"><span class="site-hero-eyebrow">NOTHING TO HIDE.</span><h1 id="hero-title" class="site-hero-title" lang="ko">${siteEffectsConfig.hero.ko.map((line, index) => `<span data-site-hero-line style="--site-line-offset:${siteEffectsConfig.hero.offsets[index]}%">${escape(line)}</span>`).join('')}</h1><div class="site-hero-bottom"><p>가릴 것이 없으니까.<br>궁금했던 성분부터, 나에게 맞는 사용법까지.</p><button class="text-btn" data-page="제품 탐색">제품 살펴보기 ${arrow}</button></div></div>
   </section>
   <section class="principles" aria-label="정보 공개 원칙"><div class="principle-title">성분에<br>장난 없이.</div><div><span class="number">01 / INGREDIENTS</span><h2>무엇을 담았는지.</h2><p>성분과 함량을 확인하세요.</p></div><div><span class="number">02 / EVIDENCE</span><h2>어디까지 확인됐는지.</h2><p>근거와 그 한계까지 살펴보세요.</p></div><div><span class="number">03 / YOUR ROUTINE</span><h2>어떻게 사용하는지.</h2><p>첫 사용부터 마지막 한 방울까지.</p></div></section>
@@ -256,13 +250,6 @@ function bind() {
     tab = '사용자 리뷰';
     render();
     document.querySelector('[data-tab="사용자 리뷰"]')?.focus();
-  });
-  document.querySelector('#theme-toggle')?.addEventListener('click', () => {
-    theme = theme === 'dark' ? 'light' : 'dark';
-    applyTheme();
-    localStorage.setItem('transparency-theme', theme);
-    render();
-    document.querySelector('#theme-toggle')?.focus();
   });
   document.querySelectorAll('[data-page]').forEach(e => e.onclick = () => { page = e.dataset.page; selected = null; isPurchase = false; writeLocation(); render(); window.scrollTo(0, 0); });
   bindProductLinks();

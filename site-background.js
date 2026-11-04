@@ -2,7 +2,7 @@
 // this renderer has no events, animation loop, DOM/image capture or I/O.
 const DEFAULTS = {
   palette: { white: '#f7fbff', sky: '#acdfff', blue: '#3574e8', navy: '#10244f', black: '#030811' },
-  timeScale: .12, rotation: -.55, distortion: .56, grain: .045, pointerRadius: .72, pointerPush: .30,
+  timeScale: .12, rotation: -.55, distortion: .68, grain: .045, grainCellSize: 1.3, lightFloor: .52, pointerRadius: 1.05, pointerPush: .38,
   maxPixelRatio: 1.5, pixelBudget: 1800000,
   outputMaxPixelRatio: 3, outputPixelBudget: 8400000,
 };
@@ -38,12 +38,11 @@ uniform vec3 ink;
 uniform vec3 white;
 uniform vec3 sky;
 uniform vec3 blue;
-uniform float dark;
-uniform float poster;
 uniform float pointerActive;
 uniform float pointerRadius;
 uniform float pointerPush;
 uniform vec3 navy;
+uniform float lightFloor;
 
 float latticeHash(vec2 cell){
  vec2 q=fract(cell*vec2(.07173,.10917)+vec2(.413,.173));
@@ -78,10 +77,15 @@ void main(){
  vec2 cursor=vec2(pointer.x*.5+.5,.5-pointer.y*.5);
  vec2 delta=(uv-cursor)*vec2(aspect,1.);
  float radius=max(pointerRadius,.025);
- float influence=1.-smoothstep(0.,radius,length(delta));
- vec2 radial=delta/max(length(delta)+.065,.065);
- // A wide, weak outward pull supports the main sweep without drawing a ring.
- vec2 pushed=uv-radial/vec2(max(aspect,.25),1.)*influence*pointerPush*.22*pointerActive;
+ // Long-range attraction/repulsion bends overlapping streams across the whole
+ // viewport. There is no hard influence disc or tiny cursor bubble.
+ float distanceToPointer=length(delta);
+ float influence=1./(1.+dot(delta,delta)/(radius*radius*1.8));
+ vec2 radial=delta/max(distanceToPointer+.25,.25);
+ vec2 tangent=vec2(-delta.y,delta.x)/max(distanceToPointer+.40,.40);
+ float curl=clamp(velocity.x*.22-velocity.y*.16+drag.x*.12,-.7,.7);
+ vec2 gravity=(radial*.48+tangent*curl*.24)*influence*pointerPush*pointerActive;
+ vec2 pushed=uv-gravity/vec2(max(aspect,.25),1.);
  vec2 base=(pushed-.5)*vec2(clamp(aspect,.65,1.7),1.)*.80;
  base+=vec2(seed*.73,-seed*1.31);
  vec2 first=vec2(
@@ -99,13 +103,17 @@ void main(){
  float angle=rotation+sin(t*.25)*.20+(drag.x*.30+velocity.x*.025)*gesture;
  vec2 bandPoint=rotatePoint((warped-.5)*vec2(.96,1.04),angle);
  float curve=bandPoint.y+sin(bandPoint.x*2.6+t*.32+drag.y*.50*gesture)*(.17+drag.x*.035*gesture);
- curve+=sin(t*.50)*.22+(drag.y*.22+velocity.y*.025)*gesture;
+ curve+=sin(t*.50)*.22+(drag.x*.18+drag.y*.22+velocity.y*.025)*gesture;
  float band=.5+curve;
  float shoulder=exp(-pow((curve-.04)/.17,2.));
  float crest=exp(-pow((curve-.075)/.060,2.));
- vec3 color=mix(blue,navy,smoothstep(-.12,.25,curve)*.66);
- color=mix(color,sky,shoulder*.90);
- color=mix(color,white,crest*.30);
+ // Two broad interleaving colour streams share one permanent light canvas.
+ float secondCurve=bandPoint.y*.90-bandPoint.x*.24+cos(bandPoint.x*1.9-t*.26+drag.x*.42)*.22-.31+(drag.y*.075-drag.x*.10)*gesture;
+ float firstStream=exp(-pow((curve-.015)/.27,2.));
+ float secondStream=exp(-pow((secondCurve+.11)/.37,2.));
+ vec3 color=mix(white,sky,clamp(firstStream*.68+secondStream*.42,0.,.94));
+ color=mix(color,blue,clamp(firstStream*.30+secondStream*.24+firstStream*secondStream*.20,0.,.72));
+ color=mix(color,white,crest*.52);
 
  // Top and right negative spaces enter and retreat from the centre as a single
  // large-scale composition. Their broad edges follow the same quiet warp.
@@ -117,24 +125,16 @@ void main(){
  float rightLobe=1.-smoothstep(.28,1.08,length(rightShape));
  float topLobe=1.-smoothstep(.22,1.10,length(topShape));
  float pocket=max(rightLobe,topLobe);
- color=mix(color,ink,pocket*.985);
- // Larger moving blue/white folds remain visible on reading pages. A light
- // floor and dark ceiling protect native text while retaining hue variation.
- vec3 lightPage=mix(white,mix(sky,blue,smoothstep(.32,.94,band)),.12+smoothstep(.12,.86,band)*.46);
- lightPage=mix(lightPage,white,crest*.48);
- lightPage=mix(lightPage,navy,pocket*.11);
- vec3 lightLinear=pow(max(lightPage,vec3(0.)),vec3(2.2));
+ color=mix(color,mix(ink,navy,.40),pocket*.56);
+ color=mix(color,white,.08);
+ // One scene and one reading floor are used everywhere: scrolling, routes and
+ // legacy poster/dark flags cannot change its palette or exposure.
+ vec3 linear=pow(max(color,vec3(0.)),vec3(2.2));
  vec3 whiteLinear=pow(white,vec3(2.2));
- float lightLuma=dot(lightLinear,vec3(.2126,.7152,.0722));
+ float luminance=dot(linear,vec3(.2126,.7152,.0722));
  float whiteLuma=dot(whiteLinear,vec3(.2126,.7152,.0722));
- float lift=clamp((.78-lightLuma)/max(whiteLuma-lightLuma,.001),0.,1.);
- lightPage=pow(mix(lightLinear,whiteLinear,lift),vec3(1./2.2));
- vec3 darkPage=mix(ink,mix(navy,blue,.70),.38+smoothstep(.10,.88,band)*.34);
- darkPage=mix(darkPage,sky,crest*.085);
- darkPage=mix(darkPage,ink,pocket*.64);
- float darkLuma=dot(pow(max(darkPage,vec3(0.)),vec3(2.2)),vec3(.2126,.7152,.0722));
- darkPage*=pow(min(1.,.074/max(darkLuma,.001)),1./2.2);
- color=mix(mix(lightPage,darkPage,dark),color,poster);
+ float lift=clamp((lightFloor-luminance)/max(whiteLuma-luminance,.001),0.,1.);
+ color=pow(mix(linear,whiteLinear,lift),vec3(1./2.2));
 
  // Render only the smooth colour field here. Grain belongs to the final,
  // high-resolution pass, so a lower scene budget never enlarges its pixels.
@@ -150,8 +150,7 @@ precision mediump float;
 uniform sampler2D field;
 uniform vec2 resolution;
 uniform float grainStrength;
-uniform float dark;
-uniform float poster;
+uniform float grainCellSize;
 float filmHash(vec2 cell){
  vec2 q=fract(cell*vec2(.07173,.10917)+vec2(.413,.173));
  q+=dot(q,q.yx+vec2(19.19,23.73));
@@ -159,21 +158,11 @@ float filmHash(vec2 cell){
 }
 void main(){
  vec3 color=texture2D(field,gl_FragCoord.xy/resolution).rgb;
- // One final-output pixel per grain cell, independent of scene resolution.
+ // Slightly enlarged final-output grain cells, independent of scene resolution.
  // The hash is static: no time or pointer input can make the texture shimmer.
- vec2 pixel=floor(gl_FragCoord.xy);
+ vec2 pixel=floor(gl_FragCoord.xy/max(grainCellSize,.5));
  float grain=(filmHash(pixel+vec2(31.7,19.3))-.5)*grainStrength;
  vec3 finalColor=clamp(color+vec3(grain),0.,1.);
- // The grain-inclusive reading surface stays below the small-copy contrast
- // ceiling. This final guard uses the actual sRGB transfer curve.
- if(dark>.5&&poster<.5){
-  vec3 linear=mix(finalColor/12.92,pow((finalColor+.055)/1.055,vec3(2.4)),step(vec3(.04045),finalColor));
-  float finalLuma=dot(linear,vec3(.2126,.7152,.0722));
-  if(finalLuma>.112){
-   linear*=.112/finalLuma;
-   finalColor=mix(linear*12.92,1.055*pow(linear,vec3(1./2.4))-.055,step(vec3(.0031308),linear));
-  }
- }
  gl_FragColor=vec4(finalColor,1.);
 }`;
 
@@ -185,7 +174,9 @@ export function createSiteBackground(canvas, background = {}) {
     rotation: finite(source.rotation, DEFAULTS.rotation),
     distortion: clamp(finite(source.distortion, DEFAULTS.distortion), 0, 2),
     grain: clamp(finite(source.grain, DEFAULTS.grain), 0, .20),
-    pointerRadius: clamp(finite(source.pointerRadius, DEFAULTS.pointerRadius), .04, 1),
+    grainCellSize: clamp(finite(source.grainCellSize, DEFAULTS.grainCellSize), .5, 4),
+    lightFloor: clamp(finite(source.lightFloor, DEFAULTS.lightFloor), .15, .90),
+    pointerRadius: clamp(finite(source.pointerRadius, DEFAULTS.pointerRadius), .04, 1.5),
     pointerPush: clamp(finite(source.pointerPush, DEFAULTS.pointerPush), 0, .6),
     maxPixelRatio: clamp(finite(source.maxPixelRatio, DEFAULTS.maxPixelRatio), .5, 3),
     pixelBudget: clamp(finite(source.pixelBudget, DEFAULTS.pixelBudget), 100000, 8000000),
@@ -259,15 +250,16 @@ export function createSiteBackground(canvas, background = {}) {
       return complete;
     }
     if (!allocateField(1, 1)) throw new Error('Background framebuffer unavailable');
-    const names = ['resolution', 'viewport', 'pointer', 'pointerTrail', 'pointerVelocity', 'clock', 'timeScale', 'rotation', 'distortion', 'ink', 'white', 'sky', 'blue', 'navy', 'dark', 'poster', 'pointerActive', 'pointerRadius', 'pointerPush'];
+    const names = ['resolution', 'viewport', 'pointer', 'pointerTrail', 'pointerVelocity', 'clock', 'timeScale', 'rotation', 'distortion', 'ink', 'white', 'sky', 'blue', 'navy', 'lightFloor', 'pointerActive', 'pointerRadius', 'pointerPush'];
     const uniforms = Object.fromEntries(names.map(name => [name, gl.getUniformLocation(scene.program, name)]));
-    const finalUniforms = Object.fromEntries(['field', 'resolution', 'grainStrength', 'dark', 'poster'].map(name => [name, gl.getUniformLocation(composite.program, name)]));
+    const finalUniforms = Object.fromEntries(['field', 'resolution', 'grainStrength', 'grainCellSize'].map(name => [name, gl.getUniformLocation(composite.program, name)]));
     bindQuad(scene);
     for (const [uniform, key] of [['ink', 'black'], ['white', 'white'], ['sky', 'sky'], ['blue', 'blue'], ['navy', 'navy']]) gl.uniform3fv(uniforms[uniform], rgb(palette[key], DEFAULTS.palette[key]));
-    for (const [uniform, value] of [['timeScale', settings.timeScale], ['rotation', settings.rotation], ['distortion', settings.distortion], ['pointerRadius', settings.pointerRadius], ['pointerPush', settings.pointerPush]]) gl.uniform1f(uniforms[uniform], value);
+    for (const [uniform, value] of [['timeScale', settings.timeScale], ['rotation', settings.rotation], ['distortion', settings.distortion], ['pointerRadius', settings.pointerRadius], ['pointerPush', settings.pointerPush], ['lightFloor', settings.lightFloor]]) gl.uniform1f(uniforms[uniform], value);
     bindQuad(composite);
     gl.uniform1i(finalUniforms.field, 0);
     gl.uniform1f(finalUniforms.grainStrength, settings.grain);
+    gl.uniform1f(finalUniforms.grainCellSize, settings.grainCellSize);
     const viewportLimit = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
     const maxWidth = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE), gl.getParameter(gl.MAX_RENDERBUFFER_SIZE), viewportLimit[0]);
     const maxHeight = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE), gl.getParameter(gl.MAX_RENDERBUFFER_SIZE), viewportLimit[1]);
@@ -300,8 +292,6 @@ export function createSiteBackground(canvas, background = {}) {
         gl.uniform2f(uniforms.pointerTrail, clamp(finite(pointer?.trailX, finite(pointer?.x, 0)), -1, 1), clamp(finite(pointer?.trailY, finite(pointer?.y, 0)), -1, 1));
         gl.uniform2f(uniforms.pointerVelocity, clamp(finite(pointer?.vx, 0), -2.5, 2.5), clamp(finite(pointer?.vy, 0), -2.5, 2.5));
         gl.uniform1f(uniforms.clock, Math.max(0, finite(time, 0)));
-        gl.uniform1f(uniforms.dark, Number(Boolean(dark)));
-        gl.uniform1f(uniforms.poster, Number(Boolean(poster)));
         gl.uniform1f(uniforms.pointerActive, clamp(finite(pointer?.active, 0), 0, 1));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -309,8 +299,6 @@ export function createSiteBackground(canvas, background = {}) {
         gl.bindTexture(gl.TEXTURE_2D, texture);
         bindQuad(composite);
         gl.uniform2f(finalUniforms.resolution, canvas.width, canvas.height);
-        gl.uniform1f(finalUniforms.dark, Number(Boolean(dark)));
-        gl.uniform1f(finalUniforms.poster, Number(Boolean(poster)));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       },
       dispose,

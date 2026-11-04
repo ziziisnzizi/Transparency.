@@ -27,7 +27,8 @@ const artifact = process.env.SITE_GRAIN_QA_OUTPUT || path.join(require('node:os'
       const { createSiteBackground } = await import('/site-background.js');
       const { siteEffectsConfig } = await import('/site-effects-config.js');
       const config = siteEffectsConfig.background || {}, W = 640, H = 400;
-      const state = { time: 3, pointer: { x: 0, y: 0, active: 0 }, dark: false, poster: true };
+      const state = { time: 3, pointer: { x: 0, y: 0, active: 0 } };
+      const expectedCellSize = 1.3;
       const types = ['Shader', 'Program', 'Buffer', 'Texture', 'Framebuffer', 'Renderbuffer'];
       const ledger = { created: {}, deleted: {} }, live = new WeakSet();
       const contexts = new WeakMap();
@@ -124,7 +125,10 @@ const artifact = process.env.SITE_GRAIN_QA_OUTPUT || path.join(require('node:os'
         checks[`${id}NativeOutput`] = on.facts.output[0] === W * dpr && on.facts.output[1] === H * dpr && off.facts.output.join() === on.facts.output.join();
         checks[`${id}RealFieldFBO`] = field?.[0] > 1 && field?.[1] > 1 && fieldDraws.at(-1).viewport.slice(2).join() === field.join();
         checks[`${id}CalibratedVisibleGrain`] = image.stats.samples > 10000 && image.stats.standardDeviation >= Math.max(1, expectedStd * .7) && image.stats.standardDeviation <= expectedStd * 1.3 + .5 && image.stats.meanAbsolute > .75 && image.stats.maxChannelSpread <= 1;
-        checks[`${id}FinePhysicalGrain`] = Math.abs(image.autocorrelation[1].x) < .35 && Math.abs(image.autocorrelation[1].y) < .35;
+        // floor(gl_FragCoord / 1.3) repeats some adjacent physical pixels.
+        // That intended cell size gives ~23% lag-1 correlation, while pairs
+        // separated by two or more output pixels should be independent.
+        checks[`${id}FinePhysicalGrain`] = ['x', 'y'].every(axis => image.autocorrelation[1][axis] > .10 && image.autocorrelation[1][axis] < .35 && [2, 4, 8].every(lag => Math.abs(image.autocorrelation[lag][axis]) < .06));
       }
       const comparisons = {};
       for (const dpr of [1, 2]) {
@@ -140,13 +144,17 @@ const artifact = process.env.SITE_GRAIN_QA_OUTPUT || path.join(require('node:os'
       }
       for (const budget of ['low', 'high']) {
         const key = `${budget}BudgetAcrossDprPhysicalCrop`;
-        comparisons[key] = paired(entries[`dpr1_${budget}`], entries[`dpr2_${budget}`], 0, 0, [256, 256]);
+        // Use the full common physical extent at the same GL origin. A small
+        // bottom-left crop can be entirely white in the universal light field,
+        // leaving no unclamped pairs; no alignment search or resampling is used.
+        comparisons[key] = paired(entries[`dpr1_${budget}`], entries[`dpr2_${budget}`], 0, 0, [W, H]);
         checks[key] = comparisons[key].samples > 4096 && comparisons[key].p99Error <= 1 && comparisons[key].maxError <= 2 && comparisons[key].correlation > .9;
       }
+      checks.configuredPhysicalGrainSize = Math.abs(config.grainCellSize - expectedCellSize) < .001;
       checks.noGLErrors = runs.every(run => run.on.glError === 0 && run.off.glError === 0);
       checks.allContextsDisposed = runs.every(run => run.on.contextDisposed && run.off.contextDisposed);
       checks.allGLResourcesDeleted = types.every(type => ledger.created[type] === ledger.deleted[type]);
-      return { fixture: { cssSize: [W, H], requestedDpr: [1, 2], sceneBudgets: [100000, 1800000], sceneMaxPixelRatio: 1.5, outputMaxPixelRatio: 3, outputPixelBudget: 8400000, state, grain: config.grain ?? .045, expectedStandardDeviation: expectedStd, crop: { physicalSize: [256, 256], origin: 'bottom-left raw readPixels, matching native gl_FragCoord hash coordinates' }, exclusions: 'Poster mode avoids reading luma guard; all baseline RGB channels must be 12..243 to exclude clamping' }, implementation, runs, comparisons, ledger, checks, passed: Object.values(checks).every(Boolean) };
+      return { fixture: { cssSize: [W, H], requestedDpr: [1, 2], sceneBudgets: [100000, 1800000], sceneMaxPixelRatio: 1.5, outputMaxPixelRatio: 3, outputPixelBudget: 8400000, state, grain: config.grain ?? .045, grainCellSize: config.grainCellSize, expectedPhysicalCellSize: expectedCellSize, expectedStandardDeviation: expectedStd, crop: { physicalSize: [W, H], origin: 'Full common physical extent at bottom-left raw readPixels, matching native gl_FragCoord hash coordinates without resampling or alignment search' }, exclusions: 'Shared light field with no legacy scene flags; all baseline RGB channels must be 12..243 to exclude final grain clamping' }, implementation, runs, comparisons, ledger, checks, passed: Object.values(checks).every(Boolean) };
     });
     result.pageErrors = pageErrors; if (pageErrors.length) result.passed = false;
     await context.close();

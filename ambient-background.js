@@ -24,10 +24,10 @@ export function mountAmbientBackground(document = globalThis.document) {
   const coarse = view.matchMedia('(pointer: coarse)');
   let renderer = null, failed = false, disposed = false;
   let frame = 0, previous = 0, time = 0, geometryDirty = true;
-  let width = 1, height = 1, poster = false;
+  let width = 1, height = 1;
   const pointer = { x: 0, y: 0, active: 0, trailX: 0, trailY: 0, vx: 0, vy: 0 }, target = { x: 0, y: 0, active: 0 };
   const inertia = { x: 0, y: 0 };
-  const posters = new Map(), cleanups = [];
+  const cleanups = [];
   const hidden = () => transparency.matches || contrast.matches || forcedColors.matches;
   const still = () => motion.matches || hidden();
   const active = () => !disposed && layer.isConnected && !document.hidden;
@@ -36,6 +36,8 @@ export function mountAmbientBackground(document = globalThis.document) {
     cleanups.push(() => element.removeEventListener(name, callback, options));
   };
   layer.dataset.renderer = 'css';
+  layer.dataset.scene = 'shared';
+  document.body.dataset.siteArt = 'shared';
   for (const [name, color] of Object.entries(config.palette || {})) {
     if (typeof color === 'string' && /^#[a-f\d]{3}(?:[a-f\d]{3})?$/i.test(color)) layer.style.setProperty(`--site-bg-${name}`, color);
   }
@@ -65,8 +67,7 @@ export function mountAmbientBackground(document = globalThis.document) {
     if (geometryDirty) measure();
     layer.style.setProperty('--ambient-shift-x', `${(pointer.x * pointer.active * 24).toFixed(2)}px`);
     layer.style.setProperty('--ambient-shift-y', `${(pointer.y * pointer.active * 18).toFixed(2)}px`);
-    renderer?.render({ time: still() ? Number(config.staticTime) || 3.4 : time, pointer,
-      dark: document.documentElement.dataset.theme === 'dark', poster });
+    renderer?.render({ time: still() ? Number(config.staticTime) || 3.4 : time, pointer });
   }
   function tick(stamp) {
     frame = 0;
@@ -113,28 +114,6 @@ export function mountAmbientBackground(document = globalThis.document) {
     if (still()) { target.x = target.y = target.active = pointer.x = pointer.y = pointer.active = pointer.trailX = pointer.trailY = pointer.vx = pointer.vy = inertia.x = inertia.y = 0; }
     if (active()) { paint(); schedule(); }
   }
-  function updatePoster() {
-    const next = Boolean(document.querySelector('.concerns-page.is-empty')) || [...posters.values()].some(Boolean);
-    const changed = next !== poster;
-    poster = next;
-    layer.dataset.scene = poster ? 'poster' : 'page';
-    document.body.dataset.siteArt = poster ? 'poster' : 'page';
-    if (changed) sync();
-  }
-  const intersection = new view.IntersectionObserver(entries => {
-    for (const entry of entries) if (posters.has(entry.target)) posters.set(entry.target, entry.isIntersecting && entry.intersectionRatio > 0);
-    updatePoster();
-  }, { threshold: [0, .01] });
-  function scanPosters() {
-    const current = new Set(document.querySelectorAll('[data-site-poster]'));
-    for (const element of posters.keys()) if (!current.has(element)) { intersection.unobserve(element); posters.delete(element); }
-    for (const element of current) if (!posters.has(element)) {
-      const bounds = element.getBoundingClientRect();
-      posters.set(element, bounds.bottom > 0 && bounds.top < view.innerHeight && bounds.width > 0 && bounds.height > 0);
-      intersection.observe(element);
-    }
-    updatePoster();
-  }
   const point = event => {
     if (!active() || still() || coarse.matches || event.pointerType === 'touch') return;
     const x = clamp(event.clientX / width * 2 - 1, -1, 1);
@@ -156,10 +135,6 @@ export function mountAmbientBackground(document = globalThis.document) {
   listen(document, 'visibilitychange', sync);
   for (const preference of [motion, transparency, contrast, forcedColors]) listen(preference, 'change', sync);
   listen(coarse, 'change', () => { if (coarse.matches) target.active = pointer.active = 0; sync(); });
-  const theme = new view.MutationObserver(sync);
-  theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-  const scenes = new view.MutationObserver(scanPosters);
-  scenes.observe(document.getElementById('app') || document.body, { childList: true, subtree: true });
   const size = new view.ResizeObserver(() => { geometryDirty = true; if (active()) paint(); schedule(); });
   size.observe(document.documentElement);
   listen(canvas, 'webglcontextlost', event => {
@@ -172,11 +147,11 @@ export function mountAmbientBackground(document = globalThis.document) {
   function dispose() {
     if (disposed) return;
     disposed = true; view.cancelAnimationFrame(frame); frame = 0;
-    cleanups.forEach(cleanup => cleanup()); theme.disconnect(); scenes.disconnect(); size.disconnect(); intersection.disconnect();
-    renderer?.dispose(); renderer = null; posters.clear();
+    cleanups.forEach(cleanup => cleanup()); size.disconnect();
+    renderer?.dispose(); renderer = null;
     canvas.width = canvas.height = 1; layer.remove(); delete document.body.dataset.siteArt;
     if (mounted.get(document) === dispose) mounted.delete(document);
   }
-  mounted.set(document, dispose); scanPosters(); sync();
+  mounted.set(document, dispose); sync();
   return dispose;
 }

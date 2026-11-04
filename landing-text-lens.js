@@ -81,7 +81,7 @@ export function mountLandingTextLens(hero, lens = {}) {
   const fadeRate = clamp(finite(options.fadeRate, 10), 1, 80);
   const maxPixelRatio = clamp(finite(options.maxPixelRatio, 2.5), 1, 3);
   const pixelBudget = Math.max(250000, finite(options.pixelBudget, 4000000));
-  const coarse = matchMedia('(pointer: coarse)');
+  const coarse = matchMedia('(pointer: coarse), (hover: none), (max-width: 750px)');
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const cleanups = [];
   const originalOpacity = [english.style.opacity, japanese.style.opacity];
@@ -91,18 +91,11 @@ export function mountLandingTextLens(hero, lens = {}) {
   const originalCanvasStyle = canvas.getAttribute('style');
   const originalButtonHidden = button?.hidden;
   const originalButtonDisplay = button?.style.display || '';
-  const originalButtonLabel = button?.getAttribute('aria-label');
-  const buttonLabel = button?.querySelector('[data-language-label]') || button;
+  const originalButtonPressed = button?.getAttribute('aria-pressed');
   const sourceLanguage = english.lang || 'ko';
   const targetLanguage = japanese.lang || 'en';
-  const languageLabels = { ko: '한국어', en: 'English' };
-  const languageAria = { ko: '한국어 제목 보기', en: 'Show English title' };
-  const pairedLabels = [...(buttonLabel?.querySelectorAll('[lang]') || [])];
-  const pairedLanguageLabel = pairedLabels.some(label => label.lang === sourceLanguage) && pairedLabels.some(label => label.lang === targetLanguage);
-  const originalButtonText = buttonLabel?.textContent;
-  const originalButtonLanguage = button?.getAttribute('lang');
   let renderer = null, removeContextListener = null, disposed = false, failed = false;
-  let ready = false, fontsReady = false, inViewport = true, insideHero = false, manualTarget = false;
+  let ready = false, fontsReady = false, inViewport = true, insideHero = false;
   let frame = 0, previous = 0, layoutDirty = true, geometryDirty = true;
   let heroRect, titleRect, lineRects = [];
   let client = { x: 0, y: 0 }, target = { x: 0, y: 0 }, current = { x: 0, y: 0 };
@@ -124,16 +117,14 @@ export function mountLandingTextLens(hero, lens = {}) {
   rim.style.opacity = '0';
 
   function nativeLanguage() {
-    english.style.opacity = manualTarget ? '0' : '1';
-    japanese.style.opacity = manualTarget ? '1' : '0';
-    english.setAttribute('aria-hidden', String(manualTarget));
-    japanese.setAttribute('aria-hidden', String(!manualTarget));
+    english.style.opacity = '1';
+    japanese.style.opacity = '0';
+    english.setAttribute('aria-hidden', 'false');
+    japanese.setAttribute('aria-hidden', 'true');
     if (button) {
-      const actionLanguage = manualTarget ? sourceLanguage : targetLanguage;
-      button.setAttribute('aria-pressed', String(manualTarget));
-      button.setAttribute('aria-label', languageAria[actionLanguage] || `Show ${actionLanguage} title`);
-      button.lang = actionLanguage;
-      if (!pairedLanguageLabel) buttonLabel.textContent = languageLabels[actionLanguage] || actionLanguage.toUpperCase();
+      button.hidden = true;
+      button.style.display = 'none';
+      button.setAttribute('aria-pressed', 'false');
     }
   }
   function releaseRenderer() {
@@ -149,7 +140,6 @@ export function mountLandingTextLens(hero, lens = {}) {
     rim.hidden = true;
     rim.style.opacity = '0';
     hero.dataset.landingTextMode = 'native';
-    if (button) { button.hidden = false; button.style.display = originalButtonDisplay; }
     nativeLanguage();
   }
   function geometry() {
@@ -208,7 +198,6 @@ export function mountLandingTextLens(hero, lens = {}) {
       removeContextListener = () => canvas.removeEventListener('webglcontextlost', lost);
     }
     ready = true;
-    manualTarget = false;
     nativeLanguage();
     english.style.opacity = japanese.style.opacity = '0';
     hero.dataset.landingTextMode = 'webgl';
@@ -259,7 +248,6 @@ export function mountLandingTextLens(hero, lens = {}) {
   listen(hero, 'pointermove', pointer, { passive: true });
   listen(hero, 'pointerleave', () => { insideHero = false; opacityTarget = revealTarget = 0; schedule(); }, { passive: true });
   listen(hero, 'pointercancel', () => { insideHero = false; opacityTarget = revealTarget = 0; schedule(); }, { passive: true });
-  if (button) listen(button, 'click', () => { if (!ready) { manualTarget = !manualTarget; nativeLanguage(); } });
   listen(window, 'scroll', () => { geometryDirty = true; if (ready) schedule(); }, { passive: true });
   listen(window, 'resize', invalidate, { passive: true });
   listen(document, 'visibilitychange', () => {
@@ -302,10 +290,7 @@ export function mountLandingTextLens(hero, lens = {}) {
     if (button) {
       button.hidden = originalButtonHidden;
       button.style.display = originalButtonDisplay;
-      button.setAttribute('aria-pressed', 'false');
-      if (originalButtonLabel === null) button.removeAttribute('aria-label'); else button.setAttribute('aria-label', originalButtonLabel);
-      if (originalButtonLanguage === null) button.removeAttribute('lang'); else button.setAttribute('lang', originalButtonLanguage);
-      if (!pairedLanguageLabel) buttonLabel.textContent = originalButtonText;
+      if (originalButtonPressed === null) button.removeAttribute('aria-pressed'); else button.setAttribute('aria-pressed', originalButtonPressed);
     }
     delete hero.dataset.landingTextMode;
     if (mounted.get(hero) === dispose) mounted.delete(hero);

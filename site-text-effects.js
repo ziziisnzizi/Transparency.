@@ -100,43 +100,20 @@ export function mountSiteTextEffects(document, config = {}) {
     rim.dataset.siteLensRim = '';
     rim.setAttribute('aria-hidden', 'true');
     rim.hidden = true;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.dataset.landingLanguage = '';
-    button.dataset.siteLanguage = '';
-    button.className = 'site-language-toggle';
-    button.setAttribute('aria-pressed', 'false');
-    const label = document.createElement('span');
-    label.dataset.languageLabel = '';
-    label.textContent = 'English';
-    button.appendChild(label);
     heading.dataset.siteTextRegion = '';
     heading.dataset.landingTitle = '';
     heading.dataset.siteLensEn = englishLines.join('\n');
     heading.classList.add('site-text-title');
     heading.replaceChildren(source, translated, canvas);
-    heading.after(button);
     main.appendChild(rim);
     const record = { heading, source, signature: signature(heading, document), dispose: null };
 
-    // Source Korean stays unchanged; the target is English in every service view.
-    function syncLanguageButton() {
-      const inEnglish = button.getAttribute('aria-pressed') === 'true';
-      const targetLabel = inEnglish ? sourceLanguage === 'ko' ? '한국어' : 'Original' : 'English';
-      const targetAria = inEnglish ? sourceLanguage === 'ko' ? '한국어 제목 보기' : 'Show original title' : 'Show English title';
-      if (label.textContent !== targetLabel) label.textContent = targetLabel;
-      if (button.getAttribute('aria-label') !== targetAria) button.setAttribute('aria-label', targetAria);
-      button.lang = inEnglish ? sourceLanguage : 'en';
-    }
-    const buttonObserver = new MutationObserver(syncLanguageButton);
-    buttonObserver.observe(button, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-pressed', 'aria-label'] });
     const foreground = getComputedStyle(heading).color;
     const components = foreground.match(/[\d.]+/g)?.slice(0, 3).map(Number) || [23, 23, 23];
     const rgb = foreground.startsWith('color(') ? components : components.map(value => value / 255);
     const lightInk = rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722 > .55;
     const paperRGB = lightInk ? [.012, .025, .04] : [1, 1, 1];
     const disposeLens = mountLandingTextLens(main, { ...config.lens, paperRGB });
-    syncLanguageButton();
     main.dataset.siteLensSource = sourceLanguage;
     main.dataset.siteLensTarget = 'en';
     const measurement = document.createElement('canvas').getContext('2d');
@@ -174,12 +151,10 @@ export function mountSiteTextEffects(document, config = {}) {
     record.dispose = replacement => {
       fitting.disconnect();
       document.fonts?.removeEventListener('loadingdone', fitEnglishLines);
-      buttonObserver.disconnect();
       disposeLens();
       // A same-element copy update may have already replaced our source plane.
       // Do not overwrite that external update with the original title.
       if (heading.contains(source)) heading.replaceChildren(...(replacement || nativeNodes));
-      button.remove();
       rim.remove();
       if (!originalSiteClass) heading.classList.remove('site-text-title');
       restoreAttributes.forEach(restore => restore());
