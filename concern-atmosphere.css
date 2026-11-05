@@ -9,9 +9,12 @@ body:has(.concerns-page.is-empty) {
 body:has(.concerns-page.is-empty) main { max-width: none; }
 
 html:root .concerns-page.is-empty {
+  --concern-header-offset: 72px;
+  --concern-top-padding: clamp(42px, 6vh, 72px);
+  --concern-search-half: 31px;
   max-width: none;
   min-height: calc(100svh - 72px);
-  padding: clamp(42px, 6vh, 72px) 5% 30px;
+  padding: var(--concern-top-padding) 5% 30px;
   color: #fff;
 }
 
@@ -25,13 +28,14 @@ html:root .concerns-page.is-empty::before {
 }
 
 html:root .concerns-page.is-empty .concern-visual-stage {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: grid;
+  grid-template-rows: minmax(max-content, calc(50svh - var(--concern-header-offset) - var(--concern-top-padding) - var(--concern-search-half))) auto minmax(max-content, 1fr);
   width: min(100%, 1280px);
   min-height: max(680px, calc(100svh - 170px));
   margin: 0 auto;
 }
+
+html:root .concerns-page.is-empty .concern-page-intro { align-self: end; padding-bottom: clamp(24px, 4vh, 36px); }
 
 html:root .concerns-page.is-empty .concern-page-intro > .eyebrow {
   color: #e5f2ff;
@@ -42,7 +46,7 @@ html:root .concerns-page.is-empty .concern-page-intro > .eyebrow {
 html:root .concerns-page.is-empty .concern-page-intro > h1 {
   margin: 28px 0 25px;
   color: #fff;
-  font-size: clamp(42px, 5vw, 82px);
+  font-size: clamp(36px, 4.2vw, 68px);
   font-weight: 400;
   line-height: 1.16;
   letter-spacing: -.065em;
@@ -60,7 +64,7 @@ html:root .concerns-page.is-empty .concern-page-intro > p {
 
 html:root .concerns-page.is-empty .concern-search-area {
   width: min(100%, 680px);
-  margin-top: 36px;
+  margin-top: 0;
 }
 
 html:root .concerns-page.is-empty .concern-search-bar {
@@ -160,12 +164,12 @@ html:root body:has(.concerns-page.is-empty) footer :is(p, small) { color: #d3e2e
 body:has(.concerns-page.is-empty) :is(button, input, a):focus-visible { outline-color: #c3e8ff; }
 
 @media (max-width: 750px) {
-  html:root .concerns-page.is-empty { min-height: calc(100svh - 60px); padding: 45px 6% 28px; }
+  html:root .concerns-page.is-empty { --concern-header-offset: 60px; --concern-top-padding: 45px; --concern-search-half: 29px; min-height: calc(100svh - 60px); padding: var(--concern-top-padding) 6% 28px; }
   html:root .concerns-page.is-empty .concern-visual-stage { min-height: max(690px, calc(100svh - 145px)); }
   html:root .concerns-page.is-empty .concern-page-intro > .eyebrow { font-size: 9px; letter-spacing: .15em; }
-  html:root .concerns-page.is-empty .concern-page-intro > h1 { max-width: 440px; margin: 25px auto 23px; font-size: clamp(32px, 9vw, 48px); line-height: 1.18; }
+  html:root .concerns-page.is-empty .concern-page-intro > h1 { max-width: 440px; margin: 25px auto 23px; font-size: clamp(28px, 8vw, 42px); line-height: 1.18; }
   html:root .concerns-page.is-empty .concern-page-intro > p { font-size: 14px; }
-  html:root .concerns-page.is-empty .concern-search-area { width: min(100%, 340px); margin-top: 30px; }
+  html:root .concerns-page.is-empty .concern-search-area { width: min(100%, 340px); margin-top: 0; }
   html:root .concerns-page.is-empty .concern-search-bar { min-height: 58px; padding: 6px 8px 6px 16px; gap: 10px; }
   .concern-scene-caption { justify-content: center; text-align: center; padding-top: 38px; font-size: 10px; }
   .concern-scene-caption > span { display: none; }
