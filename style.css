@@ -88,11 +88,16 @@ h2 { font-size: 31px; font-weight: 500; letter-spacing: -1.5px; line-height: 1.5
 [data-theme="dark"] .product-visual[data-image-view="texture"] .texture-toggle { background: #111111d9; }
 @media (hover: none), (pointer: coarse), (any-pointer: coarse) {
   .texture-toggle { display: inline-flex; }
+  /* Keep the explicit texture control above the card-wide detail link while
+     letting taps on the rest of the image pass through to that link. */
+  .product-image { z-index: 2; pointer-events: none; }
 }
+/* If WebGL is unavailable, keep the texture explicitly accessible on a
+   desktop as well. The button has its own native keyboard and click target. */
+body[data-site-wide-lens="native"] .texture-toggle { display: inline-flex; }
+body[data-site-wide-lens="native"] .product-image { z-index: 2; pointer-events: none; }
 @media (hover: hover) and (pointer: fine) {
-  .product:hover .product-visual[data-image-view="auto"] .product-packshot, .detail-image:hover .product-visual[data-image-view="auto"] .product-packshot, .my-product-image:hover .product-visual[data-image-view="auto"] .product-packshot,
   .product:has(.product-open:focus-visible) .product-visual[data-image-view="auto"] .product-packshot, .my-product-image:has(.my-product-open:focus-visible) .product-visual[data-image-view="auto"] .product-packshot { opacity: 0; }
-  .product:hover .product-visual[data-image-view="auto"] .product-texture, .detail-image:hover .product-visual[data-image-view="auto"] .product-texture, .my-product-image:hover .product-visual[data-image-view="auto"] .product-texture,
   .product:has(.product-open:focus-visible) .product-visual[data-image-view="auto"] .product-texture, .my-product-image:has(.my-product-open:focus-visible) .product-visual[data-image-view="auto"] .product-texture { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {

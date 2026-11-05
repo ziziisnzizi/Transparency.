@@ -9,6 +9,7 @@ import { mountAmbientBackground } from './ambient-background.js';
 import { siteEffectsConfig } from './site-effects-config.js';
 import { mountSiteTextEffects } from './site-text-effects.js';
 import { mountScrollPosition } from './scroll-position.js';
+import { renderDatePicker, bindDatePickers } from './date-picker.js';
 
 
 
@@ -20,7 +21,7 @@ if (initialUrl.searchParams.get('view') === 'landing') {
   window.history.replaceState({ page: '홈' }, '', `${initialUrl.pathname}${initialUrl.search}${initialUrl.hash}`);
 }
 const initialView = initialUrl.searchParams.get('view');
-let disposeTextEffects = null, disposeAmbientBackground = null, disposeScrollPosition = null;
+let disposeTextEffects = null, disposeAmbientBackground = null, disposeScrollPosition = null, disposeDatePickers = null;
 let page = initialView === 'concerns' ? '내 고민' : '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
 let isPurchase = initialView === 'buy';
 let theme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
@@ -64,6 +65,7 @@ const navIcons = {
 
 function render() {
   disposeTextEffects?.(); disposeTextEffects = null;
+  disposeDatePickers?.(); disposeDatePickers = null;
   document.querySelector('#app').innerHTML = `
     <a class="skip-link" href="#content">본문으로 이동</a>
     <header><button class="logo" data-page="홈" aria-label="Transparency. 홈">${logoMark}</button>
@@ -143,7 +145,7 @@ function detail() {
 function my() {
   return `<section class="section page-section my-products-page"><div class="eyebrow">MY PRODUCTS</div><div class="section-head"><div><h1 class="page-title">나의 제품.<br>나의 사용 기록.</h1><p class="page-intro">개봉일부터 마지막 한 방울까지, 한눈에.</p></div><button class="dark" data-page="제품 탐색">제품 등록하기 <span aria-hidden="true">＋</span></button></div><div class="shelf-summary"><span>전체 <strong>${saved.length}</strong></span><span>사용 중 <strong>${saved.filter(s => !s.done && s.date).length}</strong></span><span>미개봉 <strong>${saved.filter(s => !s.done && !s.date).length}</strong></span><span>사용 완료 <strong>${saved.filter(s => s.done).length}</strong></span></div><div class="my-list">${saved.map((s, i) => {
     const p = products.find(p => p.id === s.id);
-    return `<article class="my-row"><div class="my-product-image"><button type="button" class="my-product-open" data-id="${p.id}" aria-label="${p.name} 정보 보기"></button>${bottle(p)}</div><div class="my-product-copy"><span class="status-badge">${s.done ? '사용 완료' : s.date ? '사용 중' : '미개봉'}</span><h2>${p.name}</h2><span class="product-english">${p.en} / ${p.volume}</span><label class="date-label">개봉일 <input aria-label="${p.name} 개봉일" type="date" data-date="${i}" value="${escape(s.date || '')}"></label><span class="date-hint">개봉일을 비워두면 미개봉으로 기록됩니다.</span></div><div class="my-actions"><button type="button" data-done="${i}" aria-label="${p.name} ${s.done ? '사용 중으로 변경' : '사용 완료'}">${s.done ? '사용 중으로 변경' : '사용 완료'} <span aria-hidden="true">${s.done ? '↺' : '✓'}</span></button><button type="button" data-delete="${i}" class="delete-btn" aria-label="${p.name} 등록 삭제">등록 삭제</button></div></article>`;
+    return `<article class="my-row"><div class="my-product-image"><button type="button" class="my-product-open" data-id="${p.id}" aria-label="${p.name} 정보 보기"></button>${bottle(p)}</div><div class="my-product-copy"><span class="status-badge">${s.done ? '사용 완료' : s.date ? '사용 중' : '미개봉'}</span><h2>${p.name}</h2><span class="product-english">${p.en} / ${p.volume}</span>${renderDatePicker(i, s.date, p.name)}<span class="date-hint">개봉일을 비워두면 미개봉으로 기록됩니다.</span></div><div class="my-actions"><button type="button" data-done="${i}" aria-label="${p.name} ${s.done ? '사용 중으로 변경' : '사용 완료'}">${s.done ? '사용 중으로 변경' : '사용 완료'} <span aria-hidden="true">${s.done ? '↺' : '✓'}</span></button><button type="button" data-delete="${i}" class="delete-btn" aria-label="${p.name} 등록 삭제">등록 삭제</button></div></article>`;
   }).join('') || '<div class="empty"><div class="empty-mark" aria-hidden="true">＋</div><span class="eyebrow">YOUR DAILY RECORD</span><h2>첫 제품을 등록해 보세요.</h2><p>개봉일부터 사용 완료까지,<br>나의 제품을 투명하게 기록하세요.</p><button data-page="제품 탐색" class="text-btn">등록할 제품 찾기 ↗</button></div>'}</div><p class="storage-note">제품 기록은 현재 사용 중인 브라우저에 저장됩니다.</p></section>`;
 }
 
@@ -295,10 +297,9 @@ function bind() {
   bindSearchReset();
   document.querySelector('#back')?.addEventListener('click', () => { selected = null; page = '제품 탐색'; isPurchase = false; writeLocation(); render(); });
   document.querySelector('#register')?.addEventListener('click', () => { if (!saved.some(s => s.id === selected.id)) saved.push({ id: selected.id, date: '', done: false }); selected = null; page = '내 제품'; isPurchase = false; writeLocation(); persist(); window.scrollTo(0, 0); });
-  document.querySelectorAll('[data-date]').forEach(e => e.onchange = () => {
-    const index = e.dataset.date, restore = document.body.classList.contains('keyboard-navigation');
-    saved[index].date = e.value; persist();
-    if (restore) document.querySelector(`[data-date="${index}"]`)?.focus({ preventScroll: true });
+  disposeDatePickers = bindDatePickers(document, (index, value) => {
+    if (!saved[index]) return;
+    saved[index].date = value; persist();
   });
   document.querySelectorAll('[data-done]').forEach(e => e.onclick = event => {
     const index = e.dataset.done, restore = event.detail === 0;

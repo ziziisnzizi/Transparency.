@@ -20,6 +20,20 @@
   will-change: transform, opacity;
 }
 .site-wide-text-canvas[hidden], .site-wide-text-rim[hidden] { display: none !important; }
+/* The texture and the packshot use complementary masks at the exact
+   position of the glass. Both remain local to the product's image box. */
+@media (hover: hover) and (pointer: fine) and (min-width: 751px) {
+  .product-visual[data-product-lens] .product-packshot {
+    -webkit-mask-image: radial-gradient(circle var(--product-lens-radius) at var(--product-lens-x) var(--product-lens-y), rgb(0 0 0 / calc(1 - var(--product-lens-opacity))) calc(var(--product-lens-radius) - .6px), #000 calc(var(--product-lens-radius) + .6px));
+    mask-image: radial-gradient(circle var(--product-lens-radius) at var(--product-lens-x) var(--product-lens-y), rgb(0 0 0 / calc(1 - var(--product-lens-opacity))) calc(var(--product-lens-radius) - .6px), #000 calc(var(--product-lens-radius) + .6px));
+    transition: none;
+  }
+  .product-visual[data-product-lens] .product-texture {
+    opacity: var(--product-lens-opacity);
+    clip-path: circle(var(--product-lens-radius) at var(--product-lens-x) var(--product-lens-y));
+    transition: none;
+  }
+}
 @media (pointer: coarse), (hover: none), (max-width: 750px), (forced-colors: active) {
   .site-wide-text-canvas, .site-wide-text-rim { display: none !important; }
 }

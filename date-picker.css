@@ -1,0 +1,54 @@
+/* Product opening-date calendar. The popup is fixed to avoid clipping in cards. */
+html:root .my-products-page .date-picker-field { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 17px; }
+html:root .my-products-page .date-picker-label { color: var(--ink); font-size: 13px; }
+html:root .my-products-page .date-picker-trigger {
+  display: inline-flex; justify-content: space-between; align-items: center; gap: 14px;
+  width: 160px; max-width: 100%; min-height: 44px; padding: 9px 12px;
+  border: 1px solid var(--liquid-edge); border-radius: 14px;
+  background: var(--liquid-surface); box-shadow: var(--liquid-shadow); color: var(--ink);
+  font-size: 14px; line-height: 1.4; white-space: nowrap;
+}
+html:root .my-products-page .date-picker-trigger:hover { background: var(--liquid-hover); }
+html:root .my-products-page .date-picker-trigger svg { width: 17px; height: 17px; flex: 0 0 auto; }
+html:root .my-products-page .date-picker-trigger:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.calendar-popover {
+  position: fixed; z-index: 1000; padding: 18px; max-height: calc(100dvh - 24px); overflow: auto;
+  border: 1px solid rgba(255, 255, 255, .9); border-radius: 24px;
+  color: #182333; background: rgba(246, 251, 255, .94);
+  box-shadow: 0 18px 50px rgba(23, 45, 70, .18), inset 0 1px 0 #fff;
+  -webkit-backdrop-filter: blur(28px); backdrop-filter: blur(28px);
+  font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+}
+.calendar-heading, .calendar-month, .calendar-actions { display: flex; align-items: center; justify-content: space-between; }
+.calendar-heading { padding: 0 2px 5px; }
+.calendar-kicker { font-family: Arial, sans-serif; font-size: 9px; font-weight: 700; letter-spacing: .16em; opacity: .6; }
+.calendar-popover button { display: inline-grid; place-items: center; padding: 0; border: 0; color: inherit; cursor: pointer; font: inherit; }
+.calendar-popover :is(.calendar-nav, .calendar-close) { width: 36px; height: 36px; border: 1px solid rgba(62, 95, 130, .12); border-radius: 50%; background: rgba(255, 255, 255, .66); font-size: 22px; line-height: 1; }
+.calendar-popover :is(.calendar-nav, .calendar-close):hover { background: #dceeff; }
+.calendar-month { gap: 8px; margin: 3px 0 10px; }
+.calendar-month strong { font-size: 16px; font-weight: 700; letter-spacing: -.035em; }
+.calendar-grid { width: 100%; table-layout: fixed; border-collapse: collapse; text-align: center; }
+.calendar-grid th { height: 29px; font-size: 11px; font-weight: 600; opacity: .68; }
+.calendar-grid td { padding: 1px 0; }
+.calendar-popover .calendar-day { width: 34px; height: 34px; border-radius: 50%; background: transparent; font-size: 12px; line-height: 1; }
+.calendar-popover .calendar-day:hover { background: #dceeff; }
+.calendar-popover .calendar-day.is-outside { opacity: .38; }
+.calendar-popover .calendar-day.is-today:not(.is-selected) { box-shadow: inset 0 0 0 1px #789cc3; }
+.calendar-popover .calendar-day.is-selected { color: #fff; background: #26384f; font-weight: 700; opacity: 1; }
+.calendar-actions { gap: 8px; padding-top: 12px; margin-top: 10px; border-top: 1px solid rgba(44, 66, 92, .12); }
+.calendar-popover .calendar-actions button { min-height: 38px; flex: 1; border-radius: 20px; background: rgba(255, 255, 255, .72); font-size: 12px; font-weight: 600; }
+.calendar-popover .calendar-actions button:hover { background: #dceeff; }
+.calendar-popover button:focus-visible { outline: 2px solid #234d78; outline-offset: 2px; }
+[data-theme="dark"] .calendar-popover { color: #f1f7ff; border-color: rgba(207, 229, 255, .25); background: rgba(13, 25, 42, .96); box-shadow: 0 18px 50px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .1); }
+[data-theme="dark"] .calendar-popover :is(.calendar-nav, .calendar-close, .calendar-actions button) { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .12); }
+[data-theme="dark"] .calendar-popover :is(.calendar-nav, .calendar-close, .calendar-actions button, .calendar-day):hover { background: rgba(180, 216, 255, .2); }
+[data-theme="dark"] .calendar-popover .calendar-day.is-selected { color: #102034; background: #d8ebff; }
+[data-theme="dark"] .calendar-actions { border-color: rgba(226, 240, 255, .16); }
+[data-theme="dark"] .calendar-popover button:focus-visible { outline-color: #d2e8ff; }
+@media (max-width: 750px) { html:root .my-products-page .date-picker-trigger { font-size: 16px; } }
+@media (forced-colors: active) {
+  html:root[data-theme] .calendar-popover { color: CanvasText; background: Canvas; border: 1px solid CanvasText; }
+  html:root[data-theme] .calendar-popover :is(.calendar-nav, .calendar-close, .calendar-actions button) { background: ButtonFace; color: ButtonText; border: 1px solid ButtonText; }
+  html:root[data-theme] .calendar-popover .calendar-day.is-selected { color: HighlightText; background: Highlight; }
+  html:root[data-theme] .calendar-popover button:focus-visible { outline-color: Highlight; }
+}
