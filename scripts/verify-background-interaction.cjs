@@ -222,6 +222,24 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       const whiteFractions = regionCoverage.map(frame => frame.white);
       shape.regionCoverage = regionCoverage;
       checks.largeColourAreasExpandAndRetreat = Math.max(...whiteFractions) - Math.min(...whiteFractions) > .15;
+      // The strongest blue region must travel rather than remaining at the
+      // top. Derive its actual centre from grain-free GPU pixels; y=0 is top.
+      function blueDistribution(pixels) {
+        let weight=0, weightedY=0;
+        for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+          const i=(y*W+x)*4, blue=Math.max(pixels[i+2]-pixels[i]-18,0);
+          weight+=blue;weightedY+=blue*(y+.5)/H;
+        }
+        return { meanStrength:weight/(W*H), centreY:weightedY/Math.max(weight,1) };
+      }
+      const blueMotion=[0,3,10,20,30,40,50,60].map(time=>({time,...blueDistribution(field.capture({time,pointer:neutral}))}));
+      const blueUp=blueDistribution(field.capture({time:3,pointer:up}));
+      const blueDown=blueDistribution(field.capture({time:3,pointer:down}));
+      shape.blueMotion={frames:blueMotion,up:blueUp,down:blueDown};
+      const blueCentres=blueMotion.map(frame=>frame.centreY);
+      checks.blueMovesAcrossUpperAndLowerViewport=blueMotion[0].centreY>.5&&Math.min(...blueCentres)<.46&&Math.max(...blueCentres)>.58;
+      checks.blueRemainsVisibleDuringMotion=blueMotion.every(frame=>frame.meanStrength>8);
+      checks.pointerChangesBlueVerticalPosition=Math.abs(blueUp.centreY-blueDown.centreY)>.04;
       // Identical final kinematics and clock isolate actual path memory from
       // endpoint, pointer lag, velocity, grain or the autonomous time field.
       function closedPathHistory(direction) {

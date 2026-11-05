@@ -68,6 +68,15 @@ vec2 rotatePoint(vec2 p,float angle){
  float c=cos(angle),s=sin(angle);
  return vec2(c*p.x-s*p.y,s*p.x+c*p.y);
 }
+float colourMass(vec2 field,float t,vec2 memory,float memoryWave,vec2 drag){
+ float coarse=latticeNoise(field*.95+vec2(4.8+t*.14,2.4-t*.11))*2.-1.;
+ float fold=latticeNoise(field*1.5+vec2(-2.1-t*.08,6.3+t*.13))*2.-1.;
+ float angle=t*.19+memoryWave*.35+drag.x*.38;
+ float mass=dot(field,vec2(cos(angle),sin(angle)))*.50+coarse*.33+fold*.15;
+ mass+=sin(field.y*3.5+field.x*.5+t*.49+memory.x*.65)*.38;
+ mass+=cos(field.x*3.2-field.y*.6-t*.40+drag.x*.35)*.34;
+ return mass+sin(t*.37+memoryWave*.45)*.27+drag.y*.18+memory.y*.30;
+}
 void main(){
  vec2 uv=gl_FragCoord.xy/resolution;
  float aspect=viewport.x/max(viewport.y,1.);
@@ -118,16 +127,16 @@ void main(){
  vec2 flow=rotatePoint((warped-.5)*vec2(clamp(aspect,.75,1.7),1.),rotation*.22+sin(t*.12)*.16+circulation*.28);
  flow+=(first*.20+second*.26)*amount;
  float coarse=latticeNoise(flow*.95+vec2(4.8+t*.14,2.4-t*.11))*2.-1.;
- float fold=latticeNoise(flow*1.5+vec2(-2.1-t*.08,6.3+t*.13))*2.-1.;
- float angle=t*.19+memoryWave*.35+drag.x*.38;
- vec2 axis=vec2(cos(angle),sin(angle));
- float mass=dot(flow,axis)*.50+coarse*.33+fold*.15;
- mass+=sin(flow.y*3.5+flow.x*.5+t*.49+memory.x*.65)*.38;
- mass+=cos(flow.x*3.2-flow.y*.6-t*.40+drag.x*.35)*.34;
- mass+=sin(t*.37+memoryWave*.45)*.27+drag.y*.18+memory.y*.30;
+ float mass=colourMass(flow,t,memory,memoryWave,drag);
+ // The light field slowly circulates across the full canvas instead of
+ // keeping its blue region anchored to the top. Rotation acts on the same
+ // large continuous mass; gesture history and cursor gravity still bend it.
+ float lightTurn=1.8+sin(t*.36)*.7+t*.32+drag.y*.35+circulation*.22;
+ vec2 lightFlow=rotatePoint(flow,lightTurn);
+ float lightField=colourMass(lightFlow,t,memory,memoryWave,drag);
  // A light base can be overtaken by blue in some poses, with smooth but
  // visibly distinct bands of ice and sky at the shared fluid boundary.
- float lightMass=mass-.32;
+ float lightMass=lightField-.39+.35*(1.-cos(t*.35));
  float blueMass=smoothstep(-.16,.38,lightMass);
  vec3 color=mix(white,ice,smoothstep(-.50,-.08,lightMass)*.62);
  color=mix(color,sky,blueMass*.74);
