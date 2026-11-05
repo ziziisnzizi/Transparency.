@@ -68,13 +68,6 @@ vec2 rotatePoint(vec2 p,float angle){
  float c=cos(angle),s=sin(angle);
  return vec2(c*p.x-s*p.y,s*p.x+c*p.y);
 }
-float organicRegion(vec2 p,vec2 centre,vec2 size,float phase){
- vec2 q=(p-centre)/size;
- float edgeNoise=latticeNoise(p*3.2+vec2(phase*.14,-phase*.11))*2.-1.;
- float edgeWave=sin(atan(q.y,q.x)*3.+phase)*.11;
- float edge=length(q)+edgeNoise*.20+edgeWave;
- return 1.-smoothstep(.25,1.28,edge);
-}
 void main(){
  vec2 uv=gl_FragCoord.xy/resolution;
  float aspect=viewport.x/max(viewport.y,1.);
@@ -82,7 +75,6 @@ void main(){
  vec2 memory=motionHistory.xy;
  float circulation=motionHistory.z;
  float memoryWave=sin(motionHistory.w);
- float memoryTurn=cos(motionHistory.w)-1.;
  // The supplied reference bends the whole colour field, rather than making
  // a small cursor bubble. A slower trail and velocity create a broad inertial sweep.
  vec2 drag=vec2(pointerTrail.x,-pointerTrail.y)*pointerActive;
@@ -119,35 +111,39 @@ void main(){
  )*2.-1.;
  vec2 warped=pushed+(first*.42+second*.58)*amount*.30;
 
- // Independent, soft-edged regions take the place of parallel colour bands.
- // Each region has its own drifting centre and deformed boundary; pointer
- // movement pulls and rotates the shared coordinate field above, so the
- // regions bend and merge rather than sliding together in a straight line.
- vec2 flow=warped+(first*.12+second*.11)*amount;
- flow=rotatePoint(flow-.5,rotation*.12)+.5;
- vec2 c1=vec2(.17+.16*sin(t*.31+memoryWave*.6)+drag.x*.14,
-              .63+.14*cos(t*.24+circulation*.4)+drag.y*.12);
- vec2 c2=vec2(.77+.15*cos(t*.22+circulation*.5)-drag.y*.10,
-              .29+.17*sin(t*.27+memoryWave*.5)+drag.x*.12);
- vec2 c3=vec2(.64+.17*sin(t*.19+1.7)-drag.x*.12,
-              .90+.13*cos(t*.29+1.2)-drag.y*.10);
- vec2 c4=vec2(.32+.19*cos(t*.20+2.1)+drag.y*.10,
-              .08+.15*sin(t*.23+.9)-drag.x*.10);
- float l1=organicRegion(flow,c1,vec2(.36,.43),t*.24);
- float l2=organicRegion(flow,c2,vec2(.33,.38),t*.19+2.);
- float l3=organicRegion(flow,c3,vec2(.34,.29),t*.21+4.);
- float l4=organicRegion(flow,c4,vec2(.33,.31),t*.17+6.);
- float blueArea=clamp(max(l1*.83,l2*.78)+l3*.31,0.,.91);
- float iceArea=clamp(max(l2*.56,l4*.65)+l3*.20,0.,.85);
- vec3 color=mix(white,ice,iceArea*.50);
- color=mix(color,sky,blueArea*.60);
- color=mix(color,blue,blueArea*.37);
- // Dark mode uses the same organic motion with its existing palette.
- float warmArea=clamp(max(l1*.84,l3*.74),0.,.92);
- float coolArea=clamp(max(l2*.86,l4*.72),0.,.90);
- vec3 darkColor=mix(darkBlack,darkBlue,coolArea*.90);
- darkColor=mix(darkColor,darkCyan,clamp(l4*.44+l2*.12,0.,.52));
- darkColor=mix(darkColor,darkWarm,warmArea*.84);
+ // One continuous field defines the colour masses. The field is advected by
+ // cursor gravity and gesture history, while low-frequency folding changes
+ // the boundary itself. The threshold drifts independently so a region can
+ // swell across the viewport or retreat, rather than orbiting as fixed blobs.
+ vec2 flow=rotatePoint((warped-.5)*vec2(clamp(aspect,.75,1.7),1.),rotation*.22+sin(t*.12)*.16+circulation*.28);
+ flow+=(first*.20+second*.26)*amount;
+ float coarse=latticeNoise(flow*.95+vec2(4.8+t*.14,2.4-t*.11))*2.-1.;
+ float fold=latticeNoise(flow*1.5+vec2(-2.1-t*.08,6.3+t*.13))*2.-1.;
+ float angle=t*.19+memoryWave*.35+drag.x*.38;
+ vec2 axis=vec2(cos(angle),sin(angle));
+ float mass=dot(flow,axis)*.50+coarse*.33+fold*.15;
+ mass+=sin(flow.y*3.5+flow.x*.5+t*.49+memory.x*.65)*.38;
+ mass+=cos(flow.x*3.2-flow.y*.6-t*.40+drag.x*.35)*.34;
+ mass+=sin(t*.37+memoryWave*.45)*.27+drag.y*.18+memory.y*.30;
+ // A light base can be overtaken by blue in some poses, with smooth but
+ // visibly distinct bands of ice and sky at the shared fluid boundary.
+ float lightMass=mass-.32;
+ float blueMass=smoothstep(-.16,.38,lightMass);
+ vec3 color=mix(white,ice,smoothstep(-.50,-.08,lightMass)*.62);
+ color=mix(color,sky,blueMass*.74);
+ color=mix(color,blue,smoothstep(.05,.63,lightMass)*.57);
+ // A second evolving low-frequency field independently opens and closes
+ // broad dark pockets, letting warm or cool areas expand and merge. Cyan is
+ // concentrated near the seam where the large warm and cool masses meet.
+ float cool=smoothstep(-.22,.43,mass);
+ vec3 darkColor=mix(darkWarm,darkBlue,cool);
+ float seam=exp(-pow((mass-.08)/.20,2.));
+ darkColor=mix(darkColor,darkCyan,seam*.58);
+ float shadowField=cos(flow.x*2.6+t*.45+memory.y*.8)*.38
+                  +sin(flow.y*2.9-t*.38+drag.y*.4)*.32
+                  +coarse*.20+sin(t*.31+memoryWave)*.22;
+ float shadow=smoothstep(.10,.48,shadowField);
+ darkColor=mix(darkColor,darkBlack,shadow*.98);
  color=mix(color,darkColor,darkMode);
  // No exposure lift or whitening veil. Foreground glass and local scrims
  // provide legibility above the active theme’s artwork.

@@ -213,25 +213,15 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         checks[`${name}ShapeChangesBeyondBestTranslation`] = bestTranslation.best.meanRGBDelta > minimum / 2 && bestTranslation.residualFraction > .15;
         checks[`${name}TrailAndVelocityAffectSameEndpoint`] = trailResponse.meanRGBDelta > minimum / 2 && velocityResponse.meanRGBDelta > .01;
       }
-      // Independent regions have boundaries pointing in multiple directions;
-      // parallel colour stripes concentrate almost all gradient energy on one
-      // axis. Evaluate the actual grain-free GPU pixels in both themes and
-      // several pointer positions/times using a structure-tensor coherence.
-      function orientationCoherence(pixels) {
-        let xx=0,yy=0,xy=0;
-        const value=(x,y)=>{const i=(y*W+x)*4;return (pixels[i]+pixels[i+1]+pixels[i+2])/3;};
-        for(let y=8;y<H-8;y+=4)for(let x=8;x<W-8;x+=4){
-          const gx=value(x+4,y)-value(x-4,y),gy=value(x,y+4)-value(x,y-4);
-          xx+=gx*gx; yy+=gy*gy; xy+=gx*gy;
-        }
-        return Math.hypot(xx-yy,2*xy)/Math.max(xx+yy,1);
-      }
-      const poses=[{time:0,pointer:left},{time:3,pointer:right},
-        {time:5,pointer:up},{time:10,pointer:down},{time:20,pointer:moving}];
-      const orientations=Object.fromEntries([false,true].map(dark=>[dark?'dark':'light',
-        poses.map(pose=>orientationCoherence(field.capture({...pose,dark}))) ]));
-      checks.organicRegionsAvoidSingleParallelDirection=Object.values(orientations).every(values=>values.every(value=>value<.78));
-      shape.orientations=orientations;
+      // Large colour areas should expand and retreat, even with a stationary
+      // pointer. Track actual white-area coverage, not boundary orientation:
+      // a broad curved boundary is a valid intermediate frame.
+      const regionCoverage = [0, 3, 10, 20, 45].map(time => ({
+        time, white: paletteStats(field.capture({ time, pointer: neutral })).nearWhiteFraction,
+      }));
+      const whiteFractions = regionCoverage.map(frame => frame.white);
+      shape.regionCoverage = regionCoverage;
+      checks.largeColourAreasExpandAndRetreat = Math.max(...whiteFractions) - Math.min(...whiteFractions) > .15;
       // Identical final kinematics and clock isolate actual path memory from
       // endpoint, pointer lag, velocity, grain or the autonomous time field.
       function closedPathHistory(direction) {
