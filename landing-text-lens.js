@@ -87,7 +87,7 @@ export function mountLandingTextLens(hero, lens = {}) {
     radius,
     rimWidth: clamp(finite(options.rimWidth, 10), 1, radius / 3),
     refraction: clamp(finite(options.refraction, 7), 0, 20),
-    rgbOffset: clamp(finite(options.rgbOffset, 1.5), 0, 4),
+    rgbOffset: clamp(finite(options.rgbOffset, 1.5), 0, 6),
   };
   const followRate = clamp(finite(options.followRate, 12), 1, 80);
   const fadeRate = clamp(finite(options.fadeRate, 10), 1, 80);

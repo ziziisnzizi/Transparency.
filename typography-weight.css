@@ -1,0 +1,21 @@
+/* Keep a clear hierarchy while making the site's text easier to read. */
+html:root { font-weight: 500; }
+
+html:root main#content :is(h1, h2, h3, h4, h5, h6),
+html:root main#content:has(> .site-hero) .principle-title {
+  font-weight: 700;
+}
+
+html:root main#content :is(p, li, label, input, textarea, select, summary) {
+  font-weight: 500;
+}
+
+html:root nav button,
+html:root header button:not(.logo, .theme-toggle),
+html:root main#content button {
+  font-weight: 600;
+}
+
+html:root main#content :is(.eyebrow, .number, .product-meta, .review-count-context, .image-caption, .result-count) {
+  font-weight: 600;
+}

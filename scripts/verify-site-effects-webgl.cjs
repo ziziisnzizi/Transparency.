@@ -178,7 +178,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
           for(let i=0;i<pixels.length;i+=4)if(radial(i)<point.radius-2&&base[i+3]===0&&opaque[i+3]>=250){const value=pixels[i+3]/opaque[i+3],r=pixels[i],g=pixels[i+1],b=pixels[i+2];softFringes.pixels++;softFringes.minRatio=Math.min(softFringes.minRatio,value);softFringes.maxRatio=Math.max(softFringes.maxRatio,value);if(r>200&&g<70&&b<30)softFringes.redPixels++;if(b>200&&g<70&&r<30)softFringes.bluePixels++;if(r>200&&g>128&&b<30)softFringes.yellowPixels++;if(b>200&&g>128&&r<30)softFringes.cyanPixels++;if(r>30&&b>30)softFringes.magentaPixels++;}
         }
         if(fraction===.92){
-          const smaller=capture({rimWidth:.1,reveal:0,rgbOffset:2}),sum=[0,0,0],weighted=[0,0,0];
+          const smaller=capture({rimWidth:.1,reveal:0,rgbOffset:3.4}),sum=[0,0,0],weighted=[0,0,0];
           for(let x=0;x<pw;x++)for(let c=0;c<3;c++){const v=smaller[(row*pw+x)*4+c];sum[c]+=v;weighted[c]+=(x+.5)*v;}
           smallerSpread=Math.abs(weighted[2]/sum[2]-weighted[0]/sum[0])/ratio;
         }
@@ -215,7 +215,7 @@ const names = ['landing-lens-renderer.js', 'site-background.js', 'site-effects-c
         separatedColoursFullyOpaque:softFringes.pixels>5&&softFringes.minRatio>.995&&softFringes.maxRatio<=1,
         fringesFollowReferenceSpectrum:softFringes.redPixels>5&&softFringes.bluePixels>5&&softFringes.yellowPixels>5&&softFringes.cyanPixels>5&&softFringes.magentaPixels===0,
         fringeOpacityZeroRestoresCarrier:metrics.fringeOffMatchesSharpCarrier.maxRGBA<=1,
-        coloursExtendFurtherThanTwoPixels:radialDispersion.at(-1).spread>smallerSpread+.10,
+        coloursExtendFurtherThanPreviousOffset:radialDispersion.at(-1).spread>smallerSpread+.10,
         independentReferenceAligned: metrics.independentUnwarpedReference.maxRGBA <= 2,
         sufficientExclusiveStrokes: metrics.koreanExclusiveRemoved.pixels >= 400 && metrics.englishExclusivePresent.pixels >= 400,
         koreanRemovedInCore: metrics.koreanExclusiveRemoved.maxRGBA <= 1,

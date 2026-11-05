@@ -96,7 +96,7 @@ export function mountSiteWideTextLens(document,config={}) {
   const view=document.defaultView,settings=config.lens||config;
   const diameter=clamp(number(settings.diameter,180),140,200),radius=diameter/2;
   const minFontSize=clamp(number(settings.minFontSize,16),12,32);
-  const optical={radius,rimWidth:clamp(number(settings.rimWidth,10),1,radius/3),refraction:clamp(number(settings.refraction,7),0,20),rgbOffset:clamp(number(settings.rgbOffset,2.6),0,4),fringeOpacity:clamp(number(settings.fringeOpacity,.70),0,1)};
+  const optical={radius,rimWidth:clamp(number(settings.rimWidth,10),1,radius/3),refraction:clamp(number(settings.refraction,7),0,20),rgbOffset:clamp(number(settings.rgbOffset,2.6),0,6),fringeOpacity:clamp(number(settings.fringeOpacity,.70),0,1)};
   const coarse=view.matchMedia('(pointer: coarse), (hover: none), (max-width: 750px), (forced-colors: active)');
   const motion=view.matchMedia('(prefers-reduced-motion: reduce)');
   const main=document.getElementById('content');
