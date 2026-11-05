@@ -419,3 +419,85 @@ html:root #content [data-landing-language][data-site-language] { opacity: 1; }
   .site-hero-bottom > .text-btn { border-color: ButtonText; background: ButtonFace; color: ButtonText; }
   main#content > [data-landing-lens] { display: none; }
 }
+
+/* Product records: keep actions aligned, readable, and distinct by purpose. */
+html:root .my-products-page .section-head > .dark {
+  gap: 24px;
+  min-height: 48px;
+  padding: 12px 19px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+html:root .my-products-page .my-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 9px;
+  width: 158px;
+  text-align: center;
+}
+html:root .my-products-page .my-actions button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 13px;
+  border: 1px solid var(--liquid-edge);
+  border-radius: 24px;
+  color: var(--ink);
+  background: var(--liquid-surface);
+  box-shadow: var(--liquid-shadow);
+  font-size: 13px;
+  line-height: 1.4;
+  text-decoration: none;
+}
+html:root .my-products-page .my-actions [data-done] {
+  color: var(--liquid-action-ink);
+  background: var(--liquid-action);
+  border-color: var(--liquid-edge);
+}
+html:root .my-products-page .my-actions [data-done]:hover {
+  color: var(--liquid-action-ink);
+  background: var(--liquid-action-hover);
+}
+html:root .my-products-page .my-actions .delete-btn {
+  justify-self: auto;
+  color: var(--ink);
+  text-decoration: none;
+}
+html:root .my-products-page .my-actions .delete-btn:hover { background: var(--liquid-hover); }
+html:root .my-products-page .date-label { gap: 10px; font-size: 13px; }
+html:root .my-products-page .date-label input {
+  width: 160px;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  font-size: 14px;
+}
+html:root .my-products-page .date-hint { font-size: 11px; line-height: 1.6; }
+html:root .my-products-page :is(.section-head > button, .my-actions button, .date-label input):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+@media (max-width: 750px) {
+  html:root .my-products-page .my-actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 9px;
+  }
+  html:root .my-products-page .my-actions button { padding: 9px 8px; font-size: 12px; }
+  html:root .my-products-page .date-label input { font-size: 16px; }
+}
+@media (forced-colors: active) {
+  html:root .my-products-page .my-actions button {
+    color: ButtonText;
+    background: ButtonFace;
+    border-color: ButtonText;
+  }
+  html:root .my-products-page .my-actions button:focus-visible { outline-color: Highlight; }
+}

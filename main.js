@@ -141,9 +141,9 @@ function detail() {
 }
 
 function my() {
-  return `<section class="section page-section"><div class="eyebrow">MY PRODUCTS</div><div class="section-head"><div><h1 class="page-title">나의 제품.<br>나의 사용 기록.</h1><p class="page-intro">개봉일부터 마지막 한 방울까지, 한눈에.</p></div><button class="dark" data-page="제품 탐색">제품 등록하기 <span aria-hidden="true">＋</span></button></div><div class="shelf-summary"><span>전체 <strong>${saved.length}</strong></span><span>사용 중 <strong>${saved.filter(s => !s.done && s.date).length}</strong></span><span>미개봉 <strong>${saved.filter(s => !s.done && !s.date).length}</strong></span><span>사용 완료 <strong>${saved.filter(s => s.done).length}</strong></span></div><div class="my-list">${saved.map((s, i) => {
+  return `<section class="section page-section my-products-page"><div class="eyebrow">MY PRODUCTS</div><div class="section-head"><div><h1 class="page-title">나의 제품.<br>나의 사용 기록.</h1><p class="page-intro">개봉일부터 마지막 한 방울까지, 한눈에.</p></div><button class="dark" data-page="제품 탐색">제품 등록하기 <span aria-hidden="true">＋</span></button></div><div class="shelf-summary"><span>전체 <strong>${saved.length}</strong></span><span>사용 중 <strong>${saved.filter(s => !s.done && s.date).length}</strong></span><span>미개봉 <strong>${saved.filter(s => !s.done && !s.date).length}</strong></span><span>사용 완료 <strong>${saved.filter(s => s.done).length}</strong></span></div><div class="my-list">${saved.map((s, i) => {
     const p = products.find(p => p.id === s.id);
-    return `<article class="my-row"><div class="my-product-image"><button type="button" class="my-product-open" data-id="${p.id}" aria-label="${p.name} 정보 보기"></button>${bottle(p)}</div><div class="my-product-copy"><span class="status-badge">${s.done ? '사용 완료' : s.date ? '사용 중' : '미개봉'}</span><h2>${p.name}</h2><span class="product-english">${p.en} / ${p.volume}</span><label class="date-label">개봉일 <input aria-label="${p.name} 개봉일" type="date" data-date="${i}" value="${escape(s.date || '')}"></label><span class="date-hint">개봉일을 비워두면 미개봉으로 기록됩니다.</span></div><div class="my-actions"><button data-done="${i}">${s.done ? '사용 중으로 변경' : '사용 완료'} ${arrow}</button><button data-delete="${i}" class="delete-btn">등록 삭제</button></div></article>`;
+    return `<article class="my-row"><div class="my-product-image"><button type="button" class="my-product-open" data-id="${p.id}" aria-label="${p.name} 정보 보기"></button>${bottle(p)}</div><div class="my-product-copy"><span class="status-badge">${s.done ? '사용 완료' : s.date ? '사용 중' : '미개봉'}</span><h2>${p.name}</h2><span class="product-english">${p.en} / ${p.volume}</span><label class="date-label">개봉일 <input aria-label="${p.name} 개봉일" type="date" data-date="${i}" value="${escape(s.date || '')}"></label><span class="date-hint">개봉일을 비워두면 미개봉으로 기록됩니다.</span></div><div class="my-actions"><button type="button" data-done="${i}" aria-label="${p.name} ${s.done ? '사용 중으로 변경' : '사용 완료'}">${s.done ? '사용 중으로 변경' : '사용 완료'} <span aria-hidden="true">${s.done ? '↺' : '✓'}</span></button><button type="button" data-delete="${i}" class="delete-btn" aria-label="${p.name} 등록 삭제">등록 삭제</button></div></article>`;
   }).join('') || '<div class="empty"><div class="empty-mark" aria-hidden="true">＋</div><span class="eyebrow">YOUR DAILY RECORD</span><h2>첫 제품을 등록해 보세요.</h2><p>개봉일부터 사용 완료까지,<br>나의 제품을 투명하게 기록하세요.</p><button data-page="제품 탐색" class="text-btn">등록할 제품 찾기 ↗</button></div>'}</div><p class="storage-note">제품 기록은 현재 사용 중인 브라우저에 저장됩니다.</p></section>`;
 }
 
@@ -295,9 +295,23 @@ function bind() {
   bindSearchReset();
   document.querySelector('#back')?.addEventListener('click', () => { selected = null; page = '제품 탐색'; isPurchase = false; writeLocation(); render(); });
   document.querySelector('#register')?.addEventListener('click', () => { if (!saved.some(s => s.id === selected.id)) saved.push({ id: selected.id, date: '', done: false }); selected = null; page = '내 제품'; isPurchase = false; writeLocation(); persist(); window.scrollTo(0, 0); });
-  document.querySelectorAll('[data-date]').forEach(e => e.onchange = () => { saved[e.dataset.date].date = e.value; persist(); });
-  document.querySelectorAll('[data-done]').forEach(e => e.onclick = () => { saved[e.dataset.done].done = !saved[e.dataset.done].done; persist(); });
-  document.querySelectorAll('[data-delete]').forEach(e => e.onclick = () => { if (window.confirm('등록한 제품과 사용 기록을 삭제할까요?')) { saved.splice(+e.dataset.delete, 1); persist(); } });
+  document.querySelectorAll('[data-date]').forEach(e => e.onchange = () => {
+    const index = e.dataset.date, restore = document.body.classList.contains('keyboard-navigation');
+    saved[index].date = e.value; persist();
+    if (restore) document.querySelector(`[data-date="${index}"]`)?.focus({ preventScroll: true });
+  });
+  document.querySelectorAll('[data-done]').forEach(e => e.onclick = event => {
+    const index = e.dataset.done, restore = event.detail === 0;
+    saved[index].done = !saved[index].done; persist();
+    if (restore) document.querySelector(`[data-done="${index}"]`)?.focus({ preventScroll: true });
+  });
+  document.querySelectorAll('[data-delete]').forEach(e => e.onclick = event => {
+    if (window.confirm('등록한 제품과 사용 기록을 삭제할까요?')) {
+      const index = +e.dataset.delete, restore = event.detail === 0;
+      saved.splice(index, 1); persist();
+      if (restore) (document.querySelector(`[data-delete="${Math.min(index, saved.length - 1)}"]`) || document.querySelector('.my-products-page .section-head [data-page]'))?.focus({ preventScroll: true });
+    }
+  });
 }
 document.addEventListener('keydown', event => {
   if (event.key === 'Tab') document.body.classList.add('keyboard-navigation');
