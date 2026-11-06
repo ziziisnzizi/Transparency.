@@ -12,15 +12,7 @@ function textStyle(context, line) {
   context.direction = style.direction;
   if ('fontKerning' in context) context.fontKerning = style.fontKerning === 'none' ? 'none' : 'normal';
   if ('letterSpacing' in context) context.letterSpacing = style.letterSpacing === 'normal' ? '0px' : style.letterSpacing;
-  const inverse = Boolean(line.closest('[data-ink-inverse]'));
-  context.fillStyle = inverse ? '#fff' : style.color;
-  const strokeWidth = parseFloat(style.webkitTextStrokeWidth) || 0;
-  context.lineWidth = Math.max(strokeWidth, .001);
-  context._textStrokeWidth = strokeWidth;
-  context.strokeStyle = style.webkitTextStrokeColor || 'transparent';
-  context.shadowColor = strokeWidth ? (inverse ? 'rgba(18,36,62,.9)' : 'rgba(255,255,255,.85)') : 'transparent';
-  context.shadowBlur = strokeWidth ? 4 : 0;
-  context.shadowOffsetX = context.shadowOffsetY = 0;
+  context.fillStyle = style.color;
   return style;
 }
 
@@ -40,10 +32,7 @@ function drawLine(context, line, titleRect) {
   line.appendChild(probe);
   const baseline = probe.getBoundingClientRect().top - titleRect.top;
   probe.remove();
-  if ('letterSpacing' in context) {
-    if (context._textStrokeWidth > 0) context.strokeText(text, x, baseline);
-    context.fillText(text, x, baseline);
-  }
+  if ('letterSpacing' in context) context.fillText(text, x, baseline);
   else {
     const spacing = parseFloat(style.letterSpacing) || 0;
     const letters = typeof Intl.Segmenter === 'function'
@@ -52,7 +41,6 @@ function drawLine(context, line, titleRect) {
     let prefix = '';
     letters.forEach((letter, index) => {
       const advance = context.measureText(prefix + letter).width - context.measureText(letter).width;
-      if (context._textStrokeWidth > 0) context.strokeText(letter, x + advance + spacing * index, baseline);
       context.fillText(letter, x + advance + spacing * index, baseline);
       prefix += letter;
     });

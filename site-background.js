@@ -25,25 +25,6 @@ function referenceNoise(x, y) {
   const c = referenceHash(ix, iy + 1), d = referenceHash(ix + 1, iy + 1);
   return (a + (b - a) * u) * (1 - v) + (c + (d - c) * u) * v;
 }
-// Shader lattice hashes run in float32. Emulate their intermediate precision
-// for color estimates so dark/bright decisions agree at noisy boundaries.
-function estimateHash(x, y) {
-  const f = Math.fround;
-  let a = fract(f(f(f(x) * f(.07173)) + f(.413)));
-  let b = fract(f(f(f(y) * f(.10917)) + f(.173)));
-  const d = f(f(a * f(b + f(19.19))) + f(b * f(a + f(23.73))));
-  a = f(a + d); b = f(b + d);
-  return fract(f(f(a * b) * f(a + b)));
-}
-function estimateNoise(x, y) {
-  const f = Math.fround;
-  x = f(x); y = f(y);
-  const ix = Math.floor(x), iy = Math.floor(y), fx = fract(x), fy = fract(y);
-  const u = f(f(fx * fx) * f(3 - f(2 * fx))), v = f(f(fy * fy) * f(3 - f(2 * fy)));
-  const a = estimateHash(ix, iy), b = estimateHash(ix + 1, iy);
-  const c = estimateHash(ix, iy + 1), d = estimateHash(ix + 1, iy + 1);
-  return f(f(a * f(1 - u) + b * u) * f(1 - v) + f(c * f(1 - u) + d * u) * v);
-}
 function lightFieldStats(aspect, time) {
   const scaledAspect = clamp(aspect, .75, 1.7);
   let sum = 0, squares = 0;
@@ -59,47 +40,6 @@ function lightFieldStats(aspect, time) {
   }
   const mean = sum / 16;
   return [mean, Math.sqrt(Math.max(squares / 16 - mean * mean, .03))];
-}
-const smoothstep = (edge0, edge1, value) => {
-  const x = clamp((value - edge0) / (edge1 - edge0), 0, 1);
-  return x * x * (3 - 2 * x);
-};
-const blendColor = (a, b, amount) => a.map((value, index) => value + (b[index] - value) * amount);
-function estimateLightPoint(x, y, frame, colors, settings) {
-  const { aspect, time, mean, spread, pointer, history } = frame;
-  // The framebuffer uses a bottom-left origin; points use viewport coordinates.
-  const uvX = x, uvY = 1 - y;
-  const cursorX = pointer.x * .5 + .5, cursorY = .5 - pointer.y * .5;
-  const dx = (uvX - cursorX) * aspect, dy = uvY - cursorY;
-  const distance = Math.hypot(dx, dy), squared = dx * dx + dy * dy;
-  const radius = Math.max(settings.pointerRadius, .025);
-  const influence = 1 / (1 + squared / (radius * radius * .50));
-  const well = Math.exp(-squared / (radius * radius * .14));
-  const orbit = Math.exp(-(((distance - .34) / .21) ** 2));
-  const vx = pointer.vx * pointer.active, vy = -pointer.vy * pointer.active;
-  const dragX = pointer.trailX * pointer.active;
-  const curl = clamp(vx * .22 - vy * .16 + dragX * .12, -.7, .7);
-  const radialScale = (.36 * influence + .74 * well) / Math.max(distance + .25, .25);
-  const tangentScale = (.22 * influence + .25 * orbit + curl * .15) / Math.max(distance + .40, .40);
-  const gravityX = (dx * radialScale - dy * tangentScale) * settings.pointerPush * pointer.active;
-  const gravityY = (dy * radialScale + dx * tangentScale) * settings.pointerPush * pointer.active;
-  const cx = uvX - .5, cy = uvY - .5, centreScale = 1 - (cx * cx + cy * cy) * .30;
-  const warpedX = uvX + gravityX / Math.max(aspect, .25) + history.x * .20 * centreScale - cy * history.spin * .12;
-  const warpedY = uvY + gravityY + history.y * .20 * centreScale + cx * history.spin * .12;
-  let px = (warpedX - .5) * clamp(aspect, .75, 1.7), py = warpedY - .5;
-  const nx = estimateNoise(px * 1.5 + 4.8 + time * .14, py * 1.5 + 2.4 - time * .11) * 2 - 1;
-  const ny = estimateNoise(px * 1.5 - 2.1 - time * .08, py * 1.5 + 6.3 + time * .13) * 2 - 1;
-  px += nx * .23; py += ny * .23;
-  const value = .56 * Math.sin(px * 4.6 + Math.sin(py * 3.2 + time * .42) * 1.25 + time * .35)
-    + .50 * Math.cos(py * 5 + Math.cos(px * 3.1 - time * .36) * 1.10 - time * .30)
-    + .30 * (estimateNoise(px * 2.1 + 4.2 + time * .10, py * 2.1 - 2.7 - time * .11) * 2 - 1);
-  const liquid = (value - mean) / spread;
-  const blueMass = smoothstep(.34, .90, liquid);
-  const navyMass = smoothstep(1.22, 1.58, liquid);
-  let color = blendColor(colors.white, colors.ice, blueMass * .35);
-  color = blendColor(color, colors.sky, blueMass * .86);
-  color = blendColor(color, colors.blue, smoothstep(.75, 1.31, liquid) * .72);
-  return blendColor(color, colors.navy, navyMass * .94);
 }
 function rgb(value, fallback) {
   let hex = typeof value === 'string' ? value.trim().replace(/^#/, '') : '';
@@ -246,11 +186,31 @@ void main(){
  // stays consistent as the time-varying field morphs and flows.
  float liquid=(lightLiquid(lightUv,t)-lightStats.x)/lightStats.y;
  float blueMass=smoothstep(.34,.90,liquid);
- float navyMass=smoothstep(1.22,1.58,liquid);
+ // Anchor the darkest hue to the sides of the viewport rather than the
+ // moving UVs, leaving the reading area clear as the other colors flow.
+ float edgeWidth=clamp(viewport.x*.035,10.,45.);
+ float edgeSide=step(.5,uv.x);
+ float irregularity=latticeNoise(vec2(uv.y*4.8+t*.14,2.7+edgeSide*5.1));
+ float irregularWidth=edgeWidth*(.45+.55*irregularity);
+ float edge=1.-smoothstep(irregularWidth*.25,irregularWidth,min(uv.x,1.-uv.x)*viewport.x);
+ float topGuard=smoothstep(70.,90.,(1.-uv.y)*viewport.y);
+ float bottomGuard=viewport.x<750.?smoothstep(90.,110.,uv.y*viewport.y):smoothstep(8.,25.,uv.y*viewport.y);
+ // Modulate the narrow edge accent independently: the flowing blue field
+ // may sit entirely in the middle, but a little navy remains at the sides.
+ float edgeWave=sin(uv.y*10.7+t*.48+memoryWave*.30+edgeSide*1.9)+
+   (latticeNoise(vec2(uv.y*3.2+t*.16,3.7+drag.x*.40+edgeSide*4.0))*2.-1.)*.55;
+ float edgeFade=smoothstep(0.,edgeWidth*.30,min(uv.x,1.-uv.x)*viewport.x);
+ float navyMass=edge*edgeFade*topGuard*bottomGuard*smoothstep(.15,.90,edgeWave);
  vec3 color=mix(white,ice,blueMass*.35);
  color=mix(color,sky,blueMass*.86);
- color=mix(color,blue,smoothstep(.75,1.31,liquid)*.72);
- color=mix(color,navy,navyMass*.94);
+ // Keep the moving blue light enough for the fixed muted text above it.
+ color=mix(color,blue,smoothstep(.75,1.31,liquid)*.55);
+ // A much lighter blue halo softens the narrow dark core into the page;
+ // only the navy itself is confined to the extreme edge.
+ float edgeAura=(1.-smoothstep(irregularWidth*.15,irregularWidth*4.,min(uv.x,1.-uv.x)*viewport.x))
+   *topGuard*bottomGuard*smoothstep(-.15,.8,edgeWave);
+ color=mix(color,sky,edgeAura*.58);
+ color=mix(color,navy,navyMass*.40);
  // A second evolving low-frequency field independently opens and closes
  // broad dark pockets, letting warm or cool areas expand and merge. Cyan is
  // concentrated near the seam where the large warm and cool masses meet.
@@ -315,7 +275,7 @@ export function createSiteBackground(canvas, background = {}) {
     outputMaxPixelRatio: clamp(finite(source.outputMaxPixelRatio, DEFAULTS.outputMaxPixelRatio), 1, 3),
     outputPixelBudget: clamp(finite(source.outputPixelBudget, DEFAULTS.outputPixelBudget), 100000, 16000000),
   };
-  let gl, buffer, texture, framebuffer, disposed = false, lastFrame = null;
+  let gl, buffer, texture, framebuffer, disposed = false;
   let width = 1, height = 1, fieldWidth = 1, fieldHeight = 1;
   const shaders = [], programs = [];
   function dispose() {
@@ -428,17 +388,6 @@ export function createSiteBackground(canvas, background = {}) {
         gl.uniform1f(uniforms.clock, Math.max(0, finite(time, 0)));
         const [lightMean, lightSpread] = lightFieldStats(width / height, Math.max(0, finite(time, 0)) * settings.timeScale * 1.6);
         gl.uniform2f(uniforms.lightStats, lightMean, lightSpread);
-        lastFrame = dark ? null : {
-          aspect: width / height, time: Math.max(0, finite(time, 0)) * settings.timeScale * 1.6,
-          mean: lightMean, spread: lightSpread,
-          pointer: {
-            x: clamp(finite(pointer?.x, 0), -1, 1), y: clamp(finite(pointer?.y, 0), -1, 1),
-            trailX: clamp(finite(pointer?.trailX, finite(pointer?.x, 0)), -1, 1),
-            vx: clamp(finite(pointer?.vx, 0), -2.5, 2.5), vy: clamp(finite(pointer?.vy, 0), -2.5, 2.5),
-            active: clamp(finite(pointer?.active, 0), 0, 1),
-          },
-          history: { x: clamp(finite(history?.x, 0), -.55, .55), y: -clamp(finite(history?.y, 0), -.55, .55), spin: clamp(finite(history?.spin, 0), -1.1, 1.1) },
-        };
         gl.uniform1f(uniforms.darkMode, dark ? 1 : 0);
         gl.uniform1f(uniforms.pointerActive, clamp(finite(pointer?.active, 0), 0, 1));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -448,14 +397,6 @@ export function createSiteBackground(canvas, background = {}) {
         bindQuad(composite);
         gl.uniform2f(finalUniforms.resolution, canvas.width, canvas.height);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      },
-      estimate(points) {
-        if (disposed || !lastFrame || !Array.isArray(points)) return null;
-        return points.map(([x, y]) => {
-          const sx = clamp(Math.floor(clamp(finite(x, 0), 0, 1) * fieldWidth), 0, fieldWidth - 1);
-          const sy = clamp(Math.floor((1 - clamp(finite(y, 0), 0, 1)) * fieldHeight), 0, fieldHeight - 1);
-          return estimateLightPoint((sx + .5) / fieldWidth, 1 - (sy + .5) / fieldHeight, lastFrame, lightColors, settings);
-        });
       },
       sample(points) {
         if (disposed || gl.isContextLost()) return null;

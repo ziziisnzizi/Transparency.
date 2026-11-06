@@ -212,7 +212,10 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         checks[`${name}DirectionChangesRenderedField`] = horizontal.meanRGBDelta > minimum && vertical.meanRGBDelta > minimum;
         checks[`${name}BroadResponseAcrossViewport`] = horizontal.verticalThirds.every(part => part.meanRGBDelta > minimum / 2);
         checks[`${name}ShapeChangesBeyondBestTranslation`] = bestTranslation.best.meanRGBDelta > minimum / 2 && bestTranslation.residualFraction > .15;
-        checks[`${name}TrailAndVelocityAffectSameEndpoint`] = trailResponse.meanRGBDelta > minimum / 2 && velocityResponse.meanRGBDelta > .01;
+        // With dark accents constrained to the side strips, the same
+        // interaction produces a smaller average RGB change over the full
+        // frame. It must still affect a meaningful visible area.
+        checks[`${name}TrailAndVelocityAffectSameEndpoint`] = trailResponse.meanRGBDelta > .25 && trailResponse.fractionOver2 > .05 && velocityResponse.meanRGBDelta > .01;
       }
       // Large colour areas should expand and retreat, even with a stationary
       // pointer. Track actual white-area coverage, not boundary orientation:
@@ -292,19 +295,48 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       // the continuous uniform-noise model. Visibility remains an independent gate.
       grain.standardDeviationTolerance = Math.max(.65, grain.expectedStandardDeviation * .2);
       for (const key of ['nearWhite', 'nearBlack', 'nearIce', 'blue', 'navy', 'warm']) palette[`${key}Fraction`] = palette[key] / Math.max(1, palette.pixels);
-      const paletteFrames = [0, 5, 12, 25, 50, 85, 140, 220].flatMap(time => [neutral, left, right].map(cursor => paletteStats(field.capture({ time, pointer: cursor }))));
+      const palettePixels = [0, 5, 12, 25, 50, 85, 140, 220].flatMap(time => [neutral, left, right].map(cursor => field.capture({ time, pointer: cursor })));
+      const paletteFrames = palettePixels.map(paletteStats);
+      const protectedArea = { outsideEdges: 0, inHeader: 0, inMobileNavigation: 0, edgeNavy: 0, minimumInteriorLuminance: 1 };
+      const edgeWidth = Math.max(10, Math.min(45, W * .035));
+      for (const frame of palettePixels) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4;
+        const rgb = [frame[i], frame[i + 1], frame[i + 2]];
+        const lum = luminance(rgb);
+        const interior = x + .5 >= edgeWidth && W - (x + .5) >= edgeWidth;
+        if (interior) protectedArea.minimumInteriorLuminance = Math.min(protectedArea.minimumInteriorLuminance, lum);
+      }
+      // Compare the same frames with a different navy uniform so even a
+      // softly blended accent is tracked without confusing it with blue.
+      const alternateNavy = fixture({ ...settings, grain: 0, palette: { ...settings.palette, navy: '#ffffff' } });
+      const navyFrames = [0, 25, 85].map(time => ({ actual: field.capture({ time, pointer: neutral }), alternate: alternateNavy.capture({ time, pointer: neutral }) }));
+      for (const { actual, alternate } of navyFrames) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4;
+        const changed = [0, 1, 2].some(channel => Math.abs(actual[i + channel] - alternate[i + channel]) > 1);
+        if (!changed) continue;
+        if (x + .5 >= edgeWidth && W - (x + .5) >= edgeWidth) protectedArea.outsideEdges++;
+        if (y + .5 <= 70) protectedArea.inHeader++;
+        if (H - (y + .5) <= 90) protectedArea.inMobileNavigation++;
+        protectedArea.edgeNavy++;
+      }
+      const alternateError = alternateNavy.gl.getError();
+      alternateNavy.renderer.dispose();
+      shape.protectedArea = protectedArea;
+      checks.navyStaysAwayFromReadingAreaAndNavigation = protectedArea.edgeNavy > 0 && protectedArea.outsideEdges === 0 && protectedArea.inHeader === 0 && protectedArea.inMobileNavigation === 0;
+      // Even the darkest blue in the reading area needs adequate contrast
+      // with the site's muted #34404f text (4.5:1, allowing quantization).
+      checks.readingAreaRetainsMutedTextContrast = (protectedArea.minimumInteriorLuminance + .05) / (luminance([52,64,79]) + .05) >= 4.5;
       const fieldError = field.gl.getError(); field.renderer.dispose();
       checks.lightPaletteHasWhiteAndBlue = palette.nearWhiteFraction > palette.blueFraction && palette.blueFraction > .03;
       checks.sampledWhiteIceBluePalette = palette.nearWhiteFraction > .01 && palette.nearIceFraction > .01 && palette.nearBlackFraction === 0 && palette.blueFraction > .05 && palette.warmFraction < .001;
-      // Navy is intentionally dark; text contrast above the moving field is
-      // verified separately from the decorative canvas color distribution.
-      checks.sampledLightNavyAndWhiteRange = spectrum.minRelativeLuminance < .10 && spectrum.maxRelativeLuminance > .85 && palette.navyFraction > .02;
+      // The navy is deliberately a very narrow accent at the guarded edges.
+      checks.sampledLightNavyAndWhiteRange = spectrum.maxRelativeLuminance > .85 && protectedArea.edgeNavy > 0;
       const avg = name => paletteFrames.reduce((sum, item) => sum + item[name], 0) / paletteFrames.length;
       shape.paletteDistribution = { frames: paletteFrames.length, nearWhite: avg('nearWhiteFraction'), blue: avg('blueFraction'), navy: avg('navyFraction') };
-      checks.whiteDominantBlueAndNavyAcrossRepresentativeFrames = shape.paletteDistribution.nearWhite > .50 && shape.paletteDistribution.nearWhite < .85 && shape.paletteDistribution.blue > .10 && shape.paletteDistribution.blue < .35 && shape.paletteDistribution.navy > .02 && shape.paletteDistribution.navy < .25;
+      checks.whiteDominantBlueAndNavyAcrossRepresentativeFrames = shape.paletteDistribution.nearWhite > .50 && shape.paletteDistribution.nearWhite < .85 && shape.paletteDistribution.blue > .10 && shape.paletteDistribution.blue < .35 && protectedArea.edgeNavy > 0;
       checks.visibleAchromaticGrain = grain.samples > 1000 && Math.abs(grain.standardDeviation - grain.expectedStandardDeviation) <= grain.standardDeviationTolerance && grain.standardDeviation > 1 && grain.meanAbsolute > 1 && grain.fractionOver2 > .1 && grain.maxChannelSpread <= 1;
       checks.grainIsStaticAcrossTimeAndPointer = grain.maxStateResidualDifference <= 1;
-      checks.noGLErrors = normalError === 0 && fieldError === 0;
+      checks.noGLErrors = normalError === 0 && fieldError === 0 && alternateError === 0;
       checks.contextsDisposed = normalDisposed && field.gl.isContextLost();
       checks.resourcesReleased = Object.keys(ledger.created).every(type => ledger.created[type] === ledger.deleted[type]);
       return { fixture: { size: [W, H], fixedClock: clock, times, adjacentInterval: 1 / 30, paletteThresholds: { nearBlack: 'relative luminance < .025 and RGB spread < 40', nearWhite: 'all RGB channels > 224 and spread < 32', cobalt: 'B > 130, B-R > 55, B-G > 20', ice: 'R > 200, G > 220, B > 240; B-R 24..48 and B-G 8..25' }, pointers: { neutral, left, right, up, down, moving, velocityOnly }, interpretation: 'Sampled framebuffer observations only; no all-time contrast, motion, or flash-safety guarantee. The legacy poster flag does not switch the shared scene; dark mode deliberately changes its palette. Foreground contrast over local UI surfaces requires application verification. Controller event wiring and inertial decay require application verification.' }, implementation, legacyInvariance, observations, shape, historyObservation, palette, darkPalette, themeDifference, darkMovement, grain, spectrum, ledger, checks, passed: Object.values(checks).every(Boolean) };
