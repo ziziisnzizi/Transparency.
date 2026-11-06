@@ -19,17 +19,22 @@
 .product-evidence .evidence-study-types { margin: 5px 0 0; color: var(--ink); font-size: 10px; line-height: 1.8; }
 .product-evidence .evidence-metric-limit { margin: 8px 0 0; color: var(--ink); font-size: 10px; line-height: 1.8; }
 .product-evidence .evidence-methods { margin-bottom: 39px; padding: 0 20px; border: 1px solid var(--line); border-radius: 18px; background: #ffffff18; }
-.product-evidence .evidence-methods>summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 15px 0; list-style: none; cursor: pointer; color: var(--ink); font-size: 12px; font-weight: 500; line-height: 1.8; }
+.product-evidence .evidence-methods>summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; margin: 0 -10px; padding: 16px 10px; border-radius: 12px; list-style: none; cursor: pointer; color: var(--ink); font-size: 14px; font-weight: 600; line-height: 1.6; }
 .product-evidence .evidence-methods>summary::-webkit-details-marker { display: none; }
+.product-evidence .evidence-methods>summary::after { content: none; }
+.product-evidence .evidence-methods>summary:focus-visible { outline: 2px solid var(--ink); outline-offset: -3px; }
+.product-evidence .evidence-methods-icon { display: grid; place-items: center; position: relative; flex: 0 0 28px; width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%; }
+.product-evidence .evidence-methods-icon::before, .product-evidence .evidence-methods-icon::after { content: ''; position: absolute; width: 12px; height: 1.5px; border-radius: 1px; background: currentColor; }
+.product-evidence .evidence-methods-icon::after { transform: rotate(90deg); }
+.product-evidence .evidence-methods[open] .evidence-methods-icon::after { transform: rotate(0deg); }
 .product-evidence .evidence-expand { flex: 0 0 auto; font-size: 17px; font-weight: 400; line-height: 1; }
-.product-evidence .evidence-methods[open] .evidence-expand { transform: rotate(45deg); }
-.product-evidence .evidence-methods-body { padding: 4px 0 20px; }
-.product-evidence .evidence-methods-body>p { margin: 0 0 15px; font-size: 11px; line-height: 1.9; }
+.product-evidence .evidence-methods-body { padding: 16px 0 24px; border-top: 1px solid var(--line); }
+.product-evidence .evidence-methods-body>p { max-width: none; margin: 0 0 15px; font-size: 13px; line-height: 1.8; word-break: keep-all; }
 .product-evidence .evidence-methods-body>ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; list-style: none; padding: 0; margin: 19px 0 24px; }
 .product-evidence .evidence-methods-body>ol>li { display: grid; align-content: start; gap: 4px; min-width: 0; padding-top: 12px; border-top: 1px solid var(--line); }
-.product-evidence .evidence-methods-body>ol strong { color: var(--ink); font-size: 11px; font-weight: 600; }
-.product-evidence .evidence-methods-body>ol span { color: var(--muted); font-size: 10px; line-height: 1.8; overflow-wrap: anywhere; }
-.product-evidence .evidence-methods-body .evidence-equation { padding: 13px 15px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: #ffffff20; font-size: 11px; overflow-wrap: anywhere; }
+.product-evidence .evidence-methods-body>ol strong { color: var(--ink); font-size: 13px; font-weight: 600; }
+.product-evidence .evidence-methods-body>ol span { color: var(--muted); font-size: 12px; line-height: 1.7; word-break: keep-all; overflow-wrap: anywhere; }
+.product-evidence .evidence-methods-body .evidence-equation { padding: 13px 15px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: #ffffff20; font-size: 13px; overflow-wrap: anywhere; }
 .product-evidence .evidence-methods-body .evidence-methods-limit { margin-bottom: 0; padding-top: 8px; }
 .product-evidence .evidence-methods-limit>strong { color: var(--ink); font-weight: 500; }
 .product-evidence .evidence-all-ingredients { margin: -19px 0 39px; border: 1px solid var(--line); border-radius: 18px; background: #ffffff18; }
@@ -141,7 +146,7 @@
   .product-evidence .evidence-metric-label { margin-top: 18px; }
   .product-evidence .evidence-metric strong { font-size: 31px; }
   .product-evidence .evidence-methods { padding: 0 15px; margin-bottom: 31px; }
-  .product-evidence .evidence-methods>summary { font-size: 11px; }
+  .product-evidence .evidence-methods>summary { font-size: 13px; }
   .product-evidence .evidence-all-ingredients { margin: -15px 0 31px; }
   .product-evidence .evidence-all-ingredients>summary { padding: 15px; }
   .product-evidence .evidence-all-ingredients-body { padding: 0 15px 15px; }

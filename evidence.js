@@ -106,7 +106,7 @@ function metricCards(ingredients, papers) {
 function methods(state, papers) {
   const coverage = coverageFor(papers);
   return `<details class="evidence-methods" data-evidence-methods ${state.methodsOpen ? 'open' : ''}>
-    <summary><span>연구 정보 확인율은 어떻게 계산하나요?</span><span class="evidence-expand" aria-hidden="true">＋</span></summary>
+    <summary><span>연구 정보 확인율은 어떻게 계산하나요?</span><span class="evidence-methods-icon" aria-hidden="true"></span></summary>
     <div class="evidence-methods-body">
       <p>논문마다 아래 6개 항목의 정보가 확인되는지 살펴봅니다. 각 항목의 비중은 같으며, 미확인 항목은 확인 수에 포함하지 않습니다.</p>
       <ol>${INFORMATION_CHECKS.map(check => `<li><strong>${escape(check.label)}</strong><span>${escape(check.description)}</span></li>`).join('')}</ol>
