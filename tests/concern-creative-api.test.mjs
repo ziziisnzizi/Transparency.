@@ -64,5 +64,17 @@ test('invalid requests, origins, missing credentials and quota limits are handle
 
 test('provider failure is an unavailable response and does not pretend static copy is an AI response', async () => {
   const result = await invoke(createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response({ error: { message: fakeKey } }, 403) }));
-  assert.equal(result.status, 503); assert.deepEqual(result.body, { status: 'unavailable' }); assert(!result.raw.includes(fakeKey));
+  assert.equal(result.status, 503); assert.deepEqual(result.body, { status: 'unavailable', reason: 'provider_http_403' }); assert(!result.raw.includes(fakeKey));
+});
+
+test('provider diagnostics expose only fixed categories, never provider messages', async () => {
+  for (const code of [400, 401, 403, 404, 429, 500, 418]) {
+    const result = await invoke(createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response({ error: { message: 'private provider data' } }, code) }));
+    const expected = [400, 401, 403, 404, 429].includes(code) ? `provider_http_${code}` : code >= 500 ? 'provider_http_5xx' : 'provider_http_other';
+    assert.equal(result.body.reason, expected); assert(!result.raw.includes(fakeKey)); assert(!result.raw.includes('private provider data'));
+  }
+  const mismatch = await invoke(createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response(parsed('사랑은 세럼 S.1처럼 투명해요.')) }));
+  assert.equal(mismatch.body.reason, 'provider_product_mismatch');
+  const unsafe = await invoke(createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response(parsed('사랑은 토너 T.1으로 여드름을 치료해요.')) }));
+  assert.equal(unsafe.body.reason, 'provider_unsafe_analogy');
 });

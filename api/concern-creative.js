@@ -1,6 +1,6 @@
 import { analyzeConcern, validateConcernQuery } from '../lib/concern-search.js';
 import { geminiConfiguration } from '../lib/ai-provider.js';
-import { generateConcernCreative, hasSensitiveCreativeContext } from '../lib/concern-creative-provider.js';
+import { CreativeProviderError, generateConcernCreative, hasSensitiveCreativeContext } from '../lib/concern-creative-provider.js';
 
 const limitBytes = 4096;
 const header = (req, name) => { const v = req.headers?.[name.toLowerCase()]; return Array.isArray(v) ? v[0] : typeof v === 'string' ? v : ''; };
@@ -41,7 +41,7 @@ export function createConcernCreativeHandler({ env = process.env, fetchImpl = gl
       // Never turn health, exclusion or crisis requests into sales copy.
       if (hasSensitiveCreativeContext(parsed.query, analysis)) return send(res, 200, { status: 'caution' });
       const { key, model } = geminiConfiguration(env);
-      if (!key) return send(res, 503, { status: 'unavailable' });
+      if (!key) return send(res, 503, { status: 'unavailable', reason: 'provider_not_configured' });
       const time = now();
       for (const [address, bucket] of buckets) if (bucket.expires <= time) buckets.delete(address);
       const address = (header(req, 'x-forwarded-for').split(',')[0].trim() || req.socket?.remoteAddress || 'anonymous').slice(0, 128);
@@ -54,7 +54,7 @@ export function createConcernCreativeHandler({ env = process.env, fetchImpl = gl
       try {
         const result = await generateConcernCreative(parsed.query, { apiKey: key, model, fetchImpl, timeoutMs, signal: controller.signal });
         return send(res, 200, result);
-      } catch { return send(res, 503, { status: 'unavailable' }); }
+      } catch (error) { return send(res, 503, { status: 'unavailable', reason: error instanceof CreativeProviderError ? error.reason : 'provider_unavailable' }); }
       finally { res.removeListener?.('close', disconnect); }
     } catch { return send(res, 500, { status: 'unavailable' }); }
   };
