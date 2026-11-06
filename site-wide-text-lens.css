@@ -23,6 +23,12 @@
 /* The texture and the packshot use complementary masks at the exact
    position of the glass. Both remain local to the product's image box. */
 @media (hover: hover) and (pointer: fine) and (min-width: 751px) {
+  /* Keep opacity transitions disabled both before and after a lens is
+     released. Otherwise removing the lens also removes its clip-path while
+     the texture is still fading out over the entire product photograph. */
+  body[data-site-wide-lens="webgl"] .product-visual:is([data-image-view="auto"], [data-image-view="product"]) :is(.product-packshot, .product-texture) {
+    transition-property: transform;
+  }
   .product-visual[data-product-lens] .product-packshot {
     -webkit-mask-image: radial-gradient(circle var(--product-lens-radius) at var(--product-lens-x) var(--product-lens-y), rgb(0 0 0 / calc(1 - var(--product-lens-opacity))) calc(var(--product-lens-radius) - .6px), #000 calc(var(--product-lens-radius) + .6px));
     mask-image: radial-gradient(circle var(--product-lens-radius) at var(--product-lens-x) var(--product-lens-y), rgb(0 0 0 / calc(1 - var(--product-lens-opacity))) calc(var(--product-lens-radius) - .6px), #000 calc(var(--product-lens-radius) + .6px));
