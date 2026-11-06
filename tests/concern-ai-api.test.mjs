@@ -156,6 +156,19 @@ test('research provider failures have fixed diagnostic categories without provid
   }
 });
 
+test('research generation HTTP errors expose only fixed status categories', async () => {
+  for (const status of [400, 401, 403, 404, 429, 500, 418]) {
+    const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async (url) => {
+      if (url.includes('/interactions')) return response({}, 429);
+      if (url.includes('europepmc')) return response({ resultList: { result: [{ source: 'MED', pmid: '12345678', title: 'Research title', abstractText: 'Research details. '.repeat(10) }] } });
+      return response({ error: { message: 'private provider detail' } }, status);
+    } });
+    const result = await invoke(handler);
+    assert.equal(result.body.reason, status === 500 ? 'research_generation_http_5xx' : status === 418 ? 'research_generation_http_other' : `research_generation_http_${status}`);
+    assert(!result.raw.includes('private provider detail'));
+  }
+});
+
 test('unsupported primary model retries the grounded fallback without disclosing credentials', async () => {
   const called = [];
   const result = await searchConcernWithGemini(query, { apiKey: fakeKey, model: 'primary-model', fetchImpl: async (_url, options) => {
