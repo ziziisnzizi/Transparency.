@@ -3,12 +3,16 @@ import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
 import { test } from 'node:test';
 import { createConcernAiHandler, MAX_CONCERN_AI_REQUEST_BYTES } from '../api/concern-ai.js';
-import { validateSearchSuggestions, searchConcernWithGemini } from '../lib/concern-ai-provider.js';
+import { ConcernAiError, validateSearchSuggestions, searchConcernWithGemini } from '../lib/concern-ai-provider.js';
+import { WikipediaSearchError } from '../lib/concern-wikipedia-provider.js';
 
 const fakeKey = 'unit-test-secret-not-a-real-key';
 const widget = '<style>.container { display: flex; } .chip { color: #123456; }</style><div class="container"><svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M0 0L1 1Z" fill="#4285F4"/></svg><a class="chip" href="https://www.google.com/search?q=skin">skin</a></div>';
 const query = '세안 후 피부가 당겨요';
 const answer = '세안 후 피부가 당기는 느낌은 여러 원인과 관련될 수 있습니다.\n\n보습에 관한 자료를 확인해 보세요.';
+const unavailableCompatibleSearch = async () => { throw new ConcernAiError('provider_http_429'); };
+const noWikiSources = async () => { throw new WikipediaSearchError('wikipedia_no_sources'); };
+const researchOnly = { google25: unavailableCompatibleSearch, wikipedia: noWikiSources };
 const grounded = () => ({ status: 'completed', steps: [
   { type: 'google_search_call', arguments: { queries: ['skin tightness after cleansing'] } },
   { type: 'google_search_result', result: [{ search_suggestions: widget }] },
@@ -68,8 +72,11 @@ test('non-grounded, unsourced, unsafe or fabricated provider responses are never
   ];
   for (const [expected, modify] of cases) {
     const data = grounded(); modify(data);
-    const result = await invoke(createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async () => response(data) }));
-    assert.equal(result.status, 503); assert.equal(result.body.status, 'unavailable'); assert.equal(result.body.reason, expected); assert(!result.raw.includes(fakeKey));
+    await assert.rejects(searchConcernWithGemini(query, { apiKey: fakeKey, model: 'gemini-3.5-flash-lite', fetchImpl: async () => response(data) }), error => {
+      assert.equal(error.issue, expected);
+      assert(!String(error).includes(fakeKey));
+      return true;
+    });
   }
 });
 
@@ -96,18 +103,18 @@ test('missing keys, service failures and rate limits leave the web-search result
 
 test('provider status codes are reported only as fixed diagnostic categories', async () => {
   for (const status of [400, 401, 403, 404, 429, 500, 418]) {
-    const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response({ error: { message: 'private provider detail' } }, status) });
-    const result = await invoke(handler, status === 429 ? request({ query: '무슨 말인지 모르겠어요' }) : request());
-    assert.equal(result.status, 503);
-    assert.equal(result.body.reason, status === 429 ? 'research_topic_unavailable' : status === 500 ? 'provider_http_5xx' : status === 418 ? 'provider_http_other' : `provider_http_${status}`);
-    assert(!result.raw.includes('private provider detail'));
+    await assert.rejects(searchConcernWithGemini(query, { apiKey: fakeKey, model: 'gemini-3.5-flash-lite', fetchImpl: async () => response({ error: { message: 'private provider detail' } }, status) }), error => {
+      assert.equal(error.issue, status === 500 ? 'provider_http_5xx' : status === 418 ? 'provider_http_other' : `provider_http_${status}`);
+      assert(!String(error).includes('private provider detail'));
+      return true;
+    });
   }
 });
 
 test('grounding quota fallback retrieves real research records and sends only known subject terms to Europe PMC', async () => {
   const calls = [];
   const article = { source: 'MED', pmid: '12345678', title: 'A study of moisturizer', abstractText: 'This abstract describes a study of skin hydration and its limitations. '.repeat(3) };
-  const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async (url, options) => {
+  const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, providers: researchOnly, fetchImpl: async (url, options) => {
     calls.push({ url, options });
     if (url.includes('/interactions')) return response({}, 429);
     if (url.includes('europepmc')) return response({ resultList: { result: [article] } });
@@ -126,14 +133,14 @@ test('grounding quota fallback retrieves real research records and sends only kn
 
 test('research fallback refuses missing abstracts and invented citations', async () => {
   for (const missingAbstract of [true, false]) {
-    const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async (url) => {
+    const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, providers: researchOnly, fetchImpl: async (url) => {
       if (url.includes('/interactions')) return response({}, 429);
       if (url.includes('europepmc')) return response({ resultList: { result: [{ source: 'MED', pmid: '12345678', title: 'Research title', abstractText: missingAbstract ? '' : 'Research details. '.repeat(10) }] } });
       return response({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ relevant: true, answer: '답변', sourceIds: ['98765432'] }) }] } }] });
     } });
     const result = await invoke(handler);
     assert.equal(result.status, 503);
-    assert.equal(result.body.reason, missingAbstract ? 'research_no_abstract' : 'research_generation_citation');
+    assert.equal(result.body.reason, missingAbstract ? 'wikipedia_no_sources' : 'research_generation_citation');
   }
 });
 
@@ -149,20 +156,20 @@ test('research provider failures have fixed diagnostic categories without provid
     [{ candidates: [{ finishReason: 'STOP', content: { parts: [] } }] }, 'research_generation_parts_invalid'],
   ];
   for (const [generated, reason] of cases) {
-    const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async (url) => {
+    const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, providers: researchOnly, fetchImpl: async (url) => {
       if (url.includes('/interactions')) return response({}, 429);
       if (url.includes('europepmc')) return response({ resultList: { result: [{ source: 'MED', pmid: '12345678', title: 'Research title', abstractText: 'Research details. '.repeat(10) }] } });
       return response(generated);
     } });
     const result = await invoke(handler);
-    assert.equal(result.body.reason, reason);
+    assert.equal(result.body.reason, reason === 'research_irrelevant' ? 'wikipedia_no_sources' : reason);
     assert(!result.raw.includes('private malformed value'));
   }
 });
 
 test('research generation HTTP errors expose only fixed status categories', async () => {
   for (const status of [400, 401, 403, 404, 429, 500, 418]) {
-    const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async (url) => {
+    const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, providers: researchOnly, fetchImpl: async (url) => {
       if (url.includes('/interactions')) return response({}, 429);
       if (url.includes('europepmc')) return response({ resultList: { result: [{ source: 'MED', pmid: '12345678', title: 'Research title', abstractText: 'Research details. '.repeat(10) }] } });
       return response({ error: { message: 'private provider detail' } }, status);

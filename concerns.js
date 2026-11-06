@@ -106,7 +106,7 @@ function validArticle(article) {
 function searchForm() {
   return `<form class="concern-search-form" data-concern-form role="search" aria-label="내 고민 검색" novalidate>
     <div class="concern-search-bar"><span class="concern-search-icon" aria-hidden="true"></span><input id="concern-query" name="concern" type="search" maxlength="${CONCERN_QUERY_LIMIT}" value="${escape(state.draft)}" placeholder="어떤 피부 고민이 있나요?" aria-label="피부 고민 검색" aria-describedby="concern-search-hint concern-search-error" ${state.error ? 'aria-invalid="true"' : ''} autocomplete="off" enterkeyhint="search"><button type="submit" aria-label="고민 검색하기"><span aria-hidden="true">↗</span></button></div>
-    <div class="concern-search-meta"><p id="concern-search-hint">AI 답변과 제품 연결을 위해 입력 문장이 Gemini와 Google 검색에 전달될 수 있습니다. Google은 검색에 사용된 질문과 답변을 최대 30일 보관할 수 있습니다. 이름·연락처 등 민감한 정보는 적지 마세요.</p><output for="concern-query" data-concern-count>${state.draft.length}/${CONCERN_QUERY_LIMIT}</output></div>
+    <div class="concern-search-meta"><p id="concern-search-hint">AI 답변과 자료 검색을 위해 입력 문장이나 검색어가 Gemini, Google 검색 및 위키백과에 전달될 수 있습니다. Google은 검색에 사용된 질문과 답변을 최대 30일 보관할 수 있습니다. 이름·연락처 등 민감한 정보는 적지 마세요.</p><output for="concern-query" data-concern-count>${state.draft.length}/${CONCERN_QUERY_LIMIT}</output></div>
     <p class="concern-search-error" id="concern-search-error" role="alert" ${state.error ? '' : 'hidden'}>${escape(state.error)}</p>
   </form>`;
 }
@@ -143,8 +143,11 @@ function newsContent() {
 function aiContent() {
   const ai = state.ai || { status: 'idle' };
   const sources = list(ai.sources);
+  const label = ai.sourceMode === 'research' ? '공개 연구자료 검색 기반 AI 요약' : ai.sourceMode === 'wikipedia' ? '위키백과 자료 기반 Gemini 요약' : 'Google 웹 검색 기반 AI 요약';
+  const origin = ai.sourceMode === 'research' ? '<p class="concern-ai-origin">Europe PMC에서 찾은 공개 연구자료를 바탕으로 정리합니다.</p>' : ai.sourceMode === 'wikipedia' ? '<p class="concern-ai-origin">한국어 위키백과에서 찾은 자료를 바탕으로 정리합니다.</p>' : '';
+  const attribution = ai.sourceMode === 'wikipedia' ? '<p class="concern-ai-attribution">원문: 한국어 위키백과 기여자 · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a></p>' : '';
   return `<div class="concern-section-head"><span class="eyebrow">03 / AI WEB SEARCH</span><h3 id="concern-ai-heading">AI와 함께 웹 자료 살펴보기</h3><p>검색한 자료를 Gemini가 정리합니다. 출처와 작성 시점을 직접 확인해 주세요.</p></div>
-    ${ai.status === 'loading' ? '<div class="concern-ai-state" role="status" aria-live="polite"><span class="concern-loading-dot" aria-hidden="true"></span><p>관련 웹 자료를 찾고 내용을 정리하고 있습니다.</p><button type="button" data-concern-ai-cancel>요청 중단</button></div>' : ai.status === 'ok' ? `<div class="concern-ai-answer"><div class="concern-ai-label">${ai.sourceMode === 'research' ? '공개 연구자료 검색 기반 AI 요약' : 'Google 웹 검색 기반 AI 요약'}</div>${ai.sourceMode === 'research' ? '<p class="concern-ai-origin">Europe PMC에서 찾은 공개 연구자료를 바탕으로 정리합니다.</p>' : ''}<p>${escape(ai.answer)}</p>${ai.sourceMode === 'google' ? '<div class="concern-ai-suggestions" data-concern-ai-suggestions aria-label="Google 검색 제안"></div>' : ''}<div class="concern-ai-sources"><h4>${ai.sourceMode === 'research' ? '참고한 공개 연구자료' : '참고한 웹 자료'}</h4><ul>${sources.map(source => `<li><a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">${escape(source.title)} <span aria-hidden="true">↗</span><span class="sr-only"> (새 창)</span></a></li>`).join('')}</ul></div><p class="concern-ai-limit">AI의 요약은 오류가 있을 수 있으며, 진단이나 제품의 효과를 입증하는 결과가 아닙니다.</p></div>` : `<div class="concern-ai-state concern-ai-unavailable" role="status" aria-live="polite"><p>${escape(ai.status === 'idle' ? 'AI 웹 자료 검색은 질문 내용을 Gemini와 Google 검색에 전달합니다.' : ai.message || '지금 AI 웹 자료를 확인하지 못했습니다. 기존 자료와 제품 정보는 계속 볼 수 있습니다.')}</p><button type="button" data-concern-ai-retry>${ai.status === 'idle' ? 'AI 웹 자료 확인하기' : 'AI 웹 자료 다시 찾기'} <span aria-hidden="true">↗</span></button></div>`}`;
+    ${ai.status === 'loading' ? '<div class="concern-ai-state" role="status" aria-live="polite"><span class="concern-loading-dot" aria-hidden="true"></span><p>관련 웹 자료를 찾고 내용을 정리하고 있습니다.</p><button type="button" data-concern-ai-cancel>요청 중단</button></div>' : ai.status === 'ok' ? `<div class="concern-ai-answer"><div class="concern-ai-label">${label}</div>${origin}<p>${escape(ai.answer)}</p>${ai.sourceMode === 'google' ? '<div class="concern-ai-suggestions" data-concern-ai-suggestions aria-label="Google 검색 제안"></div>' : ''}<div class="concern-ai-sources"><h4>${ai.sourceMode === 'research' ? '참고한 공개 연구자료' : '참고한 웹 자료'}</h4><ul>${sources.map(source => `<li><a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">${escape(source.title)} <span aria-hidden="true">↗</span><span class="sr-only"> (새 창)</span></a></li>`).join('')}</ul>${attribution}</div><p class="concern-ai-limit">AI의 요약은 오류가 있을 수 있으며, 진단이나 제품의 효과를 입증하는 결과가 아닙니다.</p></div>` : `<div class="concern-ai-state concern-ai-unavailable" role="status" aria-live="polite"><p>${escape(ai.status === 'idle' ? 'AI 웹 자료 검색은 질문이나 검색어를 Gemini, Google 검색 및 위키백과에 전달할 수 있습니다.' : ai.message || '지금 AI 웹 자료를 확인하지 못했습니다. 기존 자료와 제품 정보는 계속 볼 수 있습니다.')}</p><button type="button" data-concern-ai-retry>${ai.status === 'idle' ? 'AI 웹 자료 확인하기' : 'AI 웹 자료 다시 찾기'} <span aria-hidden="true">↗</span></button></div>`}`;
 }
 
 function creativeContent() {
@@ -309,6 +312,19 @@ function abortAi() {
   state.aiController = null;
 }
 
+function aiFailureMessage(status, reason) {
+  if (status === 429 || ['provider_http_429', 'research_generation_http_429'].includes(reason)) {
+    return '지금은 자료 검색 요청이 많습니다. 잠시 후 다시 시도해 주세요.';
+  }
+  if (reason === 'wikipedia_privacy_protected') {
+    return '개인정보로 보일 수 있는 표현을 제외하거나 질문을 바꿔 주세요.';
+  }
+  if (['research_topic_unavailable', 'research_no_abstract', 'research_irrelevant', 'wikipedia_keyword_unavailable', 'wikipedia_no_sources', 'wikipedia_no_topic'].includes(reason)) {
+    return '이 질문과 관련된 자료를 확인하지 못했습니다. 질문을 조금 더 구체적으로 입력해 주세요.';
+  }
+  return '지금 AI 웹 자료를 확인하지 못했습니다. 기존 자료와 제품 정보는 계속 볼 수 있습니다.';
+}
+
 async function loadAi() {
   if (!state.result?.query) return;
   const query = state.result.query;
@@ -320,6 +336,7 @@ async function loadAi() {
   state.ai = { status: 'loading' };
   refreshAi();
   const timeout = setTimeout(() => controller.abort(), 55000);
+  let unavailableMessage = aiFailureMessage(0, '');
   try {
     const response = await fetch('/api/concern-ai', {
       method: 'POST',
@@ -327,20 +344,24 @@ async function loadAi() {
       body: JSON.stringify({ query }),
       signal: controller.signal,
     });
-    if (!response.ok) throw new Error('웹 자료 검색 응답을 확인하지 못했습니다.');
+    if (!response.ok) unavailableMessage = aiFailureMessage(response.status, '');
     const raw = await response.text();
     if (raw.length > 100000) throw new Error('웹 자료 검색 응답이 너무 큽니다.');
     const data = JSON.parse(raw);
+    if (!response.ok) {
+      unavailableMessage = aiFailureMessage(response.status, typeof data?.reason === 'string' ? data.reason : '');
+      throw new Error('웹 자료 검색 응답을 확인하지 못했습니다.');
+    }
     const sources = list(data.sources).map(source => ({
       title: typeof source?.title === 'string' && source.title.length <= 300 ? source.title : '',
       url: safeUrl(source?.url),
     }));
-    if (data.status !== 'ok' || typeof data.answer !== 'string' || !data.answer.trim() || data.answer.length > 8000 || !sources.length || sources.length > 20 || sources.some(source => !source.title.trim() || !source.url) || !['research', 'google'].includes(data.sourceMode) || (data.sourceMode === 'google' && !suggestionFragment(data.searchSuggestions))) throw new Error('출처가 있는 웹 자료를 확인하지 못했습니다.');
+    if (data.status !== 'ok' || typeof data.answer !== 'string' || !data.answer.trim() || data.answer.length > 8000 || !sources.length || sources.length > 20 || sources.some(source => !source.title.trim() || !source.url) || !['research', 'google', 'wikipedia'].includes(data.sourceMode) || (data.sourceMode === 'google' && !suggestionFragment(data.searchSuggestions)) || (data.sourceMode === 'wikipedia' && sources.some(source => { const url = new URL(source.url); return url.hostname !== 'ko.wikipedia.org' || !url.pathname.startsWith('/wiki/'); }))) throw new Error('출처가 있는 웹 자료를 확인하지 못했습니다.');
     if (state.version !== version || state.aiVersion !== aiVersion) return;
     state.ai = { status: 'ok', sourceMode: data.sourceMode, answer: data.answer, sources, searchSuggestions: data.sourceMode === 'google' ? data.searchSuggestions : null };
   } catch {
     if (state.version !== version || state.aiVersion !== aiVersion) return;
-    state.ai = { status: 'unavailable', message: '지금 AI 웹 자료를 확인하지 못했습니다. 기존 자료와 제품 정보는 계속 볼 수 있습니다.' };
+    state.ai = { status: 'unavailable', message: unavailableMessage };
   } finally {
     clearTimeout(timeout);
     if (state.version === version && state.aiVersion === aiVersion) {

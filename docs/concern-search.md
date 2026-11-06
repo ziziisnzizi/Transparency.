@@ -45,7 +45,7 @@ flowchart TD
 - 실시간 뉴스 수집·본문 복제·RSS 피드 재배포는 하지 않습니다. ‘뉴스에서 더
   찾아보기’는 정해진 일반 주제어로 Google News를 여는 링크입니다.
 - 원문 확인 기록은 [출처 검증 문서](concern-source-verification.md)에 있습니다.
-- AI 자료 안내는 별도의 `POST /api/concern-ai`에서 Gemini의 Google 검색 연결을 사용합니다. 검색 연결이 제한될 때는 관련 주제에 대해 Europe PMC 공개 연구자료를 검색하고 Gemini가 확인된 논문을 요약하는 대체 경로를 사용합니다. 연구자료 검색은 웹 전체 검색과 구분해 표시합니다. 출처를 확인할 수 없거나 연결이 실패하면 기존 자료와 제품 비교는 계속 이용할 수 있습니다.
+- AI 자료 안내는 별도의 `POST /api/concern-ai`에서 Gemini의 Google 검색 연결을 사용합니다. 검색 연결이 제한될 때는 관련 주제에 대해 Europe PMC 공개 연구자료 또는 위키백과 공개 문서를 검색하고 Gemini가 확인된 자료를 요약하는 대체 경로를 사용합니다. 자료의 출처와 종류는 Google 웹 검색과 구분해 표시합니다. 출처를 확인할 수 없거나 연결이 실패하면 기존 자료와 제품 비교는 계속 이용할 수 있습니다.
 - 일반 질문에는 `POST /api/concern-creative`에서 Gemini가 질문과 자사 제품을 잇는 짧은 비유를 만듭니다. 제품의 제형과 사용 단계는 등록된 제품 정보에서 따로 가져옵니다. 건강·알레르기 등 제품 사용의 적합성을 판단할 수 없거나 비유가 부적절한 질문에는 창작 연결을 표시하지 않습니다.
 
 ## 리뷰와 개인정보
@@ -56,7 +56,7 @@ flowchart TD
 브라우저에서 직접 작성한 유효한 별점 2점 이하의 관련 사용감 리뷰입니다.
 별점만 낮거나 ‘끈적이지 않다’처럼 불편을 부정한 리뷰는 해당 불편의 근거가 아닙니다.
 
-이 사이트는 입력·결과를 브라우저 저장소에 보관하지 않으며 화면의 내용은 새로고침하면 사라집니다. AI 제품 연결이나 웹 검색을 요청하면 입력된 질문이 서버와 Google Gemini에 전달되고, 웹 검색 시 관련 검색어가 Google 검색에 사용될 수 있습니다. Google은 검색에 사용된 질문·문맥과 응답을 30일간 보관합니다. 리뷰 전체는 보내지 않으며, 리뷰에서 유입된 질문의 AI 요청은 사용자의 별도 요청으로 시작합니다. 폼에 이 전송과 민감정보 입력 주의가 표시됩니다. 화면 효과를 위해 입력 문장이나 HTML 화면을 이미지로 캡처하지 않습니다. 제품 상세의 Gemini 질문 기능은 별도 API입니다.
+이 사이트는 입력·결과를 브라우저 저장소에 보관하지 않으며 화면의 내용은 새로고침하면 사라집니다. AI 제품 연결이나 자료 검색을 요청하면 입력된 질문이 서버와 Google Gemini에 전달되고, 웹 검색 시 관련 검색어가 Google 검색에 사용될 수 있습니다. 위키백과 검색에는 AI가 질문에서 추출한 검색어가 전달될 수 있으며, 공개 연구자료 검색에는 정해진 일반 주제어를 사용합니다. Google은 검색에 사용된 질문·문맥과 응답을 30일간 보관합니다. 리뷰 전체는 보내지 않으며, 리뷰에서 유입된 질문의 AI 요청은 사용자의 별도 요청으로 시작합니다. 폼에 이 전송과 민감정보 입력 주의가 표시됩니다. 화면 효과를 위해 입력 문장이나 HTML 화면을 이미지로 캡처하지 않습니다. 제품 상세의 Gemini 질문 기능은 별도 API입니다.
 
 ## 상담에서 제안한 비교
 
@@ -75,6 +75,7 @@ flowchart TD
 | `lib/concern-search.js`, `lib/concern-topics.js` | 로컬 고민 해석·정해진 주제·제품 연결 |
 | `lib/concern-news-sources.js`, `api/concern-news.js` | 검토한 외부 출처와 주제 전용 API |
 | `lib/concern-ai-provider.js`, `lib/concern-research-provider.js`, `api/concern-ai.js` | Gemini 검색·공개 연구자료 대체 경로와 출처 검증 API |
+| `lib/concern-google25-provider.js`, `lib/concern-wikipedia-provider.js` | Google 검색 대체 모델과 위키백과 공개 자료 검색 |
 | `lib/concern-creative-provider.js`, `api/concern-creative.js` | 일반 질문과 제품을 연결하는 AI 비유 |
 | `reviews.js`, `reviews.css` | 실제 작성 리뷰 읽기·불편 검색 버튼 |
 | `concern-optics.css`, `concern-glass.css` | ‘내 고민’의 반응형 검색 영역·투명 검색창 |
