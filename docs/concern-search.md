@@ -46,7 +46,7 @@ flowchart TD
   찾아보기’는 정해진 일반 주제어로 Google News를 여는 링크입니다.
 - 원문 확인 기록은 [출처 검증 문서](concern-source-verification.md)에 있습니다.
 - AI 자료 안내는 별도의 `POST /api/concern-ai`에서 Gemini의 Google 검색 연결을 사용합니다. 검색 연결이 제한될 때는 관련 주제에 대해 Europe PMC 공개 연구자료 또는 위키백과 공개 문서를 검색하고 Gemini가 확인된 자료를 요약하는 대체 경로를 사용합니다. 자료의 출처와 종류는 Google 웹 검색과 구분해 표시합니다. 출처를 확인할 수 없거나 연결이 실패하면 기존 자료와 제품 비교는 계속 이용할 수 있습니다.
-- 일반 질문에는 `POST /api/concern-creative`에서 Gemini가 질문과 자사 제품을 잇는 짧은 비유를 만듭니다. 제품의 제형과 사용 단계는 등록된 제품 정보에서 따로 가져옵니다. 건강·알레르기 등 제품 사용의 적합성을 판단할 수 없거나 비유가 부적절한 질문에는 창작 연결을 표시하지 않습니다.
+- 일반 질문에는 `POST /api/concern-creative`에서 Gemini가 질문과 자사 제품을 잇는 짧은 비유를 만듭니다. 제품의 제형과 사용 단계는 등록된 제품 정보에서 따로 가져옵니다. AI가 응답하지 못하는 일반 질문에는 확인된 제품 정보를 AI 생성 문구와 구분해 표시합니다. 건강·알레르기 등 제품 사용의 적합성을 판단할 수 없거나 비유가 부적절한 질문에는 창작 연결을 표시하지 않습니다.
 
 ## 리뷰와 개인정보
 
@@ -77,6 +77,7 @@ flowchart TD
 | `lib/concern-ai-provider.js`, `lib/concern-research-provider.js`, `api/concern-ai.js` | Gemini 검색·공개 연구자료 대체 경로와 출처 검증 API |
 | `lib/concern-google25-provider.js`, `lib/concern-wikipedia-provider.js` | Google 검색 대체 모델과 위키백과 공개 자료 검색 |
 | `lib/concern-creative-provider.js`, `api/concern-creative.js` | 일반 질문과 제품을 연결하는 AI 비유 |
+| `lib/concern-creative-fallback.js` | AI 응답이 없을 때의 제품 정보와 민감한 질문 구분 |
 | `reviews.js`, `reviews.css` | 실제 작성 리뷰 읽기·불편 검색 버튼 |
 | `concern-optics.css`, `concern-glass.css` | ‘내 고민’의 반응형 검색 영역·투명 검색창 |
 | `concern-atmosphere.css` | 빈 검색 화면의 큰 타이포그래피와 배치; 전용 색상은 공통 효과 CSS에서 조정 |

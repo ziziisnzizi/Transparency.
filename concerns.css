@@ -291,6 +291,7 @@
 .concerns-page .concern-creative-answer .concern-creative-message { margin: 19px 0 20px; color: var(--ink); font-size: clamp(18px, 1.6vw, 22px); font-weight: 700; line-height: 1.75; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; }
 .concerns-page .concern-creative-answer button,
 .concerns-page .concern-creative-state button { min-height: 44px; padding: 9px 16px; border: 1px solid var(--liquid-selected-edge); border-radius: 999px; color: var(--ink); background: var(--liquid-selected); font-size: 14px; font-weight: 700; }
+.concerns-page .concern-creative-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .concerns-page .concern-creative-answer button:hover,
 .concerns-page .concern-creative-state button:hover { text-decoration: underline; text-underline-offset: 4px; }
 .concerns-page .concern-creative-state { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; }

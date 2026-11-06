@@ -106,12 +106,45 @@ const { chromium } = require('playwright');
       const refusal = await setup(1440, 'dark', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status }) }).catch(() => {}));
       await search(refusal.page, '이것에 대해 알려줘');
       await refusal.page.locator('#concern-creative [data-concern-creative-retry]').waitFor({ timeout: 10000 });
-      assert.equal(await refusal.page.locator('.concern-creative-message').count(), 0, status);
+      if (status === 'declined') {
+        assert.match(await refusal.page.locator('.concern-creative-label').innerText(), /제품 정보/);
+        assert.match(await refusal.page.locator('.concern-creative-message').innerText(), /토너 T\.1/);
+        assert.doesNotMatch(await refusal.page.locator('.concern-creative-label').innerText(), /AI/);
+      } else {
+        assert.equal(await refusal.page.locator('.concern-creative-message').count(), 0, status);
+      }
       assert.equal(await refusal.page.locator('.concern-sensitive-notice').count(), 0, status);
       assert.equal(await refusal.page.locator('.concern-catalog .concern-product').count(), 3, status);
       assert.equal(await refusal.page.locator('#concern-ai').count(), 1, status);
       await refusal.context.close();
     }
+
+    // An unrelated question still reaches a real product when the model
+    // declines or is temporarily unavailable, without labelling the fixed
+    // introduction as an AI-generated response.
+    for (const [question, statusCode] of [['오늘 뭐 먹지?', 503], ['오늘 날씨 어때?', 429]]) {
+      const fallback = await setup(390, 'light', route => route.fulfill({ status: statusCode, body: '{}' }).catch(() => {}));
+      await search(fallback.page, question);
+      const story = fallback.page.locator('#concern-creative');
+      await story.locator('.concern-creative-message').waitFor({ timeout: 10000 });
+      assert.match(await story.locator('.concern-creative-label').innerText(), /제품 정보/);
+      assert.doesNotMatch(await story.locator('.concern-creative-label').innerText(), /AI/);
+      assert.match(await story.locator('.concern-creative-message').innerText(), /토너 T\.1/);
+      assert.match(await story.locator('.concern-creative-message').innerText(), question.includes('날씨') ? /날씨/ : /메뉴/);
+      assert.equal(await story.locator('[data-concern-product="toner-t1"]').count(), 1);
+      assert.equal(await story.locator('[data-concern-creative-retry]').count(), 1);
+      await fallback.context.close();
+    }
+
+    // The existing products remain available while AI generation is slow.
+    const pending = await setup(390, 'light', async route => {
+      await new Promise(resolve => setTimeout(resolve, 6000));
+      await route.fulfill({ status: 503, body: '{}' }).catch(() => {});
+    });
+    await search(pending.page, '오늘 날씨 어때?');
+    assert.equal(await pending.page.locator('.concern-catalog .concern-product').count(), 3);
+    assert.match(await pending.page.locator('#concern-creative').innerText(), /만들고 있어요/);
+    await pending.context.close();
 
     // Navigating away while Gemini is pending must not reinsert the response.
     const away = await setup(1440, 'light', async route => {
@@ -156,7 +189,8 @@ const { chromium } = require('playwright');
     await review.page.locator('[data-concern-creative-retry]').waitFor({ timeout: 10000 });
     assert.equal(reviewCalls, 0);
     await review.page.locator('[data-concern-creative-retry]').click();
-    await review.page.waitForFunction(() => document.querySelector('#concern-creative') && !document.querySelector('.concern-creative-message'), null, { timeout: 10000 });
+    await review.page.locator('#concern-creative .concern-creative-message').waitFor({ timeout: 10000 });
+    assert.match(await review.page.locator('#concern-creative .concern-creative-label').innerText(), /제품 정보/);
     assert.equal(reviewCalls, 1);
     await review.context.close();
     console.log(JSON.stringify({ passed: true, layouts, validation: true, retry: true, race: true, care: true, navigation: true, sensitive: true, reviewConsent: true }));

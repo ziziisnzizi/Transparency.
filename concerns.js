@@ -3,6 +3,7 @@ import { getConcernTopic } from './lib/concern-topics.js';
 import { getWrittenReviews } from './reviews.js';
 import { renderResearchDetail } from './evidence.js';
 import { isCrisisConcern } from './lib/concern-safety.js';
+import { fallbackConcernCreative, isEverydayCreativeQuestion } from './lib/concern-creative-fallback.js';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const list = value => Array.isArray(value) ? value : [];
@@ -155,8 +156,8 @@ function creativeContent() {
   const product = list(state.result?.catalog).find(item => item.slug === creative.productSlug);
   const body = creative.status === 'loading'
     ? '<div class="concern-creative-state" role="status" aria-live="polite"><span class="concern-loading-dot" aria-hidden="true"></span><p>질문과 제품을 연결하는 이야기를 만들고 있어요.</p></div>'
-    : creative.status === 'ok' && product
-      ? `<div class="concern-creative-answer"><span class="concern-creative-label">AI가 만든 제품 이야기</span><p class="concern-creative-message">${escape(creative.message)}</p><button type="button" data-concern-product="${escape(product.slug)}">${escape(product.name)} 살펴보기 <span aria-hidden="true">↗</span></button></div>`
+    : ['ok', 'fallback'].includes(creative.status) && product
+      ? `<div class="concern-creative-answer" role="status" aria-live="polite"><span class="concern-creative-label">${creative.status === 'ok' ? 'AI가 만든 제품 이야기' : '제품 정보'}</span><p class="concern-creative-message">${escape(creative.message)}</p><div class="concern-creative-actions"><button type="button" data-concern-product="${escape(product.slug)}">${escape(product.name)} 살펴보기 <span aria-hidden="true">↗</span></button>${creative.status === 'fallback' ? '<button type="button" data-concern-creative-retry>다시 만들기 <span aria-hidden="true">↗</span></button>' : ''}</div></div>`
       : creative.status === 'caution'
         ? `<div class="concern-creative-state"><p>${['care', 'unsupported'].includes(state.result?.status) ? '이 질문은 상태와 주의사항을 먼저 확인해 주세요. 아래에서 자사 제품의 일반 정보를 볼 수 있습니다.' : '민감한 내용이 포함된 질문에는 AI 제품 이야기를 표시하지 않습니다. 위급한 상황이라면 가까운 사람이나 지역의 긴급 지원 기관에 도움을 요청해 주세요.'}</p></div>`
         : `<div class="concern-creative-state" role="status" aria-live="polite"><p>${creative.status === 'idle' ? 'AI 제품 이야기는 질문 내용을 Gemini에 전달합니다.' : '지금 AI 제품 이야기를 만들지 못했어요. 제품 정보는 아래에서 확인할 수 있습니다.'}</p><button type="button" data-concern-creative-retry>${creative.status === 'idle' ? 'AI 제품 이야기 보기' : '다시 만들기'} <span aria-hidden="true">↗</span></button></div>`;
@@ -255,6 +256,13 @@ function abortCreative() {
   state.creativeController = null;
 }
 
+function safeCreativeFallback(query) {
+  const fallback = fallbackConcernCreative(query, { neutral: !isEverydayCreativeQuestion(query) });
+  const product = list(state.result?.catalog).find(item => item.slug === fallback?.productSlug);
+  return fallback?.status === 'fallback' && product && typeof fallback.message === 'string' && fallback.message.trim()
+    ? fallback : { status: 'unavailable' };
+}
+
 async function loadCreative() {
   if (!state.result?.query) return;
   abortCreative();
@@ -285,9 +293,11 @@ async function loadCreative() {
     if (state.version !== version || state.creativeVersion !== creativeVersion) return;
     if (['care', 'unsupported'].includes(state.result?.status)) {
       state.creative = { status: 'caution' };
-    } else if (data.status === 'caution' || data.status === 'declined') {
-      // A model may decline a benign question; that must not hide the basic
-      // answer or the catalog. Crisis inputs are checked before any request.
+    } else if (data.status === 'declined') {
+      // An ordinary question can receive a verified product introduction when
+      // generation is declined; it must not be labelled as AI-generated.
+      state.creative = safeCreativeFallback(query);
+    } else if (data.status === 'caution') {
       state.creative = { status: 'declined' };
     } else {
       const product = list(state.result?.catalog).find(item => item.slug === data.productSlug);
@@ -296,7 +306,7 @@ async function loadCreative() {
     }
   } catch {
     if (state.version !== version || state.creativeVersion !== creativeVersion) return;
-    state.creative = { status: 'unavailable' };
+    state.creative = safeCreativeFallback(query);
   } finally {
     clearTimeout(timeout);
     if (state.version === version && state.creativeVersion === creativeVersion) {

@@ -54,6 +54,31 @@ test('model refusal is distinct from a safety concern and never invents promotio
   assert.deepEqual(result.body, { status: 'declined' });
 });
 
+test('a harmless unrelated question gets a single guarded retry after model refusal', async () => {
+  for (const question of ['오늘 뭐 먹지?', '내일 날씨 어때?', '고양이 좋아해?', '우주가 뭐야?', '2+2는?']) {
+    const payloads = [];
+    const handler = createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async (_url, options) => {
+      payloads.push(JSON.parse(options.body));
+      return response(payloads.length === 1 ? parsed('', 'toner-t1', false) : parsed('오늘의 작은 순간은 토너 T.1처럼 맑게 시작해요.'));
+    } });
+    const result = await invoke(handler, request({ query: question }));
+    assert.equal(result.body.status, 'ok', question);
+    assert.equal(payloads.length, 2, question);
+    const instruction = payloads[1].systemInstruction.parts[0].text;
+    assert.match(instruction, /제품과 연관이 없다는 이유만으로 거절하지 말고/);
+    assert.match(instruction, /화장품을 음식이나 마실 수 있는 것으로 비유하거나 섭취를 권하지 마세요/);
+    assert.match(instruction, /날씨 예보, 시사 사실, 식사 메뉴나 수학 정답을 지어내지 말고/);
+  }
+});
+
+test('unclassified model refusals are not repeatedly forced into promotion', async () => {
+  let calls = 0;
+  const handler = createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async () => { calls++; return response(parsed('', 'toner-t1', false)); } });
+  const result = await invoke(handler, request({ query: '알 수 없는 이야기를 들려줘' }));
+  assert.equal(result.body.status, 'declined');
+  assert.equal(calls, 1);
+});
+
 test('invalid requests, origins, missing credentials and quota limits are handled without exposing input or key', async () => {
   let calls = 0; const handler = createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, rateLimit: 1, fetchImpl: async () => { calls++; return response(parsed()); } });
   for (const [req, code] of [[request({ query }, { method: 'GET' }), 405], [request({ query }, { headers: { origin: 'https://attacker.example' } }), 403], [request({ query }, { headers: { 'content-type': 'text/plain' } }), 415], [request({ query: '' }), 400], [request({ query, other: 'value' }), 400], [request({ query: 'x'.repeat(301) }), 400], [request('x'.repeat(4097)), 413]]) assert.equal((await invoke(handler, req)).status, code);
