@@ -188,29 +188,33 @@ void main(){
  float blueMass=smoothstep(.34,.90,liquid);
  // Anchor the darkest hue to the sides of the viewport rather than the
  // moving UVs, leaving the reading area clear as the other colors flow.
- float edgeWidth=clamp(viewport.x*.035,10.,45.);
+ // Keep the darkest colour in the empty page gutter, but make its motion
+ // visible: mobile content starts about 20px from the edge, desktop content
+ // farther in. The animated width never exceeds those safe gutter bounds.
+ float safeEdge=viewport.x<750.?clamp(viewport.x*.042,13.,16.):clamp(viewport.x*.042,30.,56.);
+ float edgeWidth=safeEdge*(.78+.22*(.5+.5*sin(t*.83+memoryWave*.45)));
  float edgeSide=step(.5,uv.x);
- float irregularity=latticeNoise(vec2(uv.y*4.8+t*.14,2.7+edgeSide*5.1));
- float irregularWidth=edgeWidth*(.45+.55*irregularity);
+ float irregularity=latticeNoise(vec2(uv.y*1.7+t*.25,2.7+edgeSide*5.1));
+ float irregularWidth=edgeWidth*(.58+.42*irregularity);
  float edge=1.-smoothstep(irregularWidth*.25,irregularWidth,min(uv.x,1.-uv.x)*viewport.x);
  float topGuard=smoothstep(70.,90.,(1.-uv.y)*viewport.y);
  float bottomGuard=viewport.x<750.?smoothstep(90.,110.,uv.y*viewport.y):smoothstep(8.,25.,uv.y*viewport.y);
- // Modulate the narrow edge accent independently: the flowing blue field
- // may sit entirely in the middle, but a little navy remains at the sides.
- float edgeWave=sin(uv.y*10.7+t*.48+memoryWave*.30+edgeSide*1.9)+
-   (latticeNoise(vec2(uv.y*3.2+t*.16,3.7+drag.x*.40+edgeSide*4.0))*2.-1.)*.55;
- float edgeFade=smoothstep(0.,edgeWidth*.30,min(uv.x,1.-uv.x)*viewport.x);
- float navyMass=edge*edgeFade*topGuard*bottomGuard*smoothstep(.15,.90,edgeWave);
+ // The same warped liquid field that moves the blue also shapes the navy:
+ // broad, irregular colour masses can enter or leave an edge without a
+ // repeated row of independent vertical dashes.
+ float edgeWave=liquid+(latticeNoise(vec2(uv.y*1.5+t*.25,3.7+drag.x*.60+edgeSide*4.0))*2.-1.)*.18;
+ float edgeFade=smoothstep(0.,edgeWidth*.65,min(uv.x,1.-uv.x)*viewport.x);
+ float navyMass=edge*edgeFade*topGuard*bottomGuard*smoothstep(.40,1.15,edgeWave);
  vec3 color=mix(white,ice,blueMass*.35);
  color=mix(color,sky,blueMass*.86);
  // Keep the moving blue light enough for the fixed muted text above it.
  color=mix(color,blue,smoothstep(.75,1.31,liquid)*.55);
  // A much lighter blue halo softens the narrow dark core into the page;
  // only the navy itself is confined to the extreme edge.
- float edgeAura=(1.-smoothstep(irregularWidth*.15,irregularWidth*4.,min(uv.x,1.-uv.x)*viewport.x))
-   *topGuard*bottomGuard*smoothstep(-.15,.8,edgeWave);
- color=mix(color,sky,edgeAura*.58);
- color=mix(color,navy,navyMass*.40);
+ float edgeAura=(1.-smoothstep(irregularWidth*.15,irregularWidth*5.,min(uv.x,1.-uv.x)*viewport.x))
+   *topGuard*bottomGuard*smoothstep(.20,.90,edgeWave);
+ color=mix(color,sky,edgeAura*.64);
+ color=mix(color,navy,navyMass*.48);
  // A second evolving low-frequency field independently opens and closes
  // broad dark pockets, letting warm or cool areas expand and merge. Cyan is
  // concentrated near the seam where the large warm and cool masses meet.

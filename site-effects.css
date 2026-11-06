@@ -36,8 +36,8 @@ body .ambient-background {
 body .ambient-background[data-renderer="css"] .ambient-wave-fallback {
   inset: -32px;
   background:
-    radial-gradient(ellipse clamp(25px, 5vw, 80px) 30% at 32px 40%, var(--site-bg-navy, #10294e) 0%, var(--site-bg-blue, #4c8ee8) 35%, var(--site-bg-sky, #acdfff) 65%, transparent 100%),
-    radial-gradient(ellipse clamp(25px, 5vw, 80px) 30% at calc(100% - 32px) 60%, var(--site-bg-navy, #10294e) 0%, var(--site-bg-blue, #4c8ee8) 35%, var(--site-bg-sky, #acdfff) 65%, transparent 100%),
+    radial-gradient(ellipse clamp(30px, 5.5vw, 92px) 32% at 32px 40%, var(--site-bg-navy, #10294e) 0%, var(--site-bg-blue, #4c8ee8) 35%, var(--site-bg-sky, #acdfff) 65%, transparent 100%),
+    radial-gradient(ellipse clamp(30px, 5.5vw, 92px) 32% at calc(100% - 32px) 60%, var(--site-bg-navy, #10294e) 0%, var(--site-bg-blue, #4c8ee8) 35%, var(--site-bg-sky, #acdfff) 65%, transparent 100%),
     radial-gradient(ellipse 38% 35% at 72% 64%, var(--site-bg-sky, #acdfff), transparent 100%),
     var(--site-bg-white, #f7fbff);
 }

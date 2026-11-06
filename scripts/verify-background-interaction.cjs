@@ -298,7 +298,7 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       const palettePixels = [0, 5, 12, 25, 50, 85, 140, 220].flatMap(time => [neutral, left, right].map(cursor => field.capture({ time, pointer: cursor })));
       const paletteFrames = palettePixels.map(paletteStats);
       const protectedArea = { outsideEdges: 0, inHeader: 0, inMobileNavigation: 0, edgeNavy: 0, minimumInteriorLuminance: 1 };
-      const edgeWidth = Math.max(10, Math.min(45, W * .035));
+      const edgeWidth = W < 750 ? Math.max(13, Math.min(16, W * .042)) : Math.max(30, Math.min(56, W * .042));
       for (const frame of palettePixels) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
         const i = (y * W + x) * 4;
         const rgb = [frame[i], frame[i + 1], frame[i + 2]];
@@ -309,7 +309,12 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       // Compare the same frames with a different navy uniform so even a
       // softly blended accent is tracked without confusing it with blue.
       const alternateNavy = fixture({ ...settings, grain: 0, palette: { ...settings.palette, navy: '#ffffff' } });
-      const navyFrames = [0, 25, 85].map(time => ({ actual: field.capture({ time, pointer: neutral }), alternate: alternateNavy.capture({ time, pointer: neutral }) }));
+      const navyStates = [
+        { time: 0, pointer: neutral }, { time: 25, pointer: neutral },
+        { time: 85, pointer: neutral },
+        ...[0, 5, 12, 25, 50, 85].flatMap(time => [{ time, pointer: left }, { time, pointer: moving }]),
+      ];
+      const navyFrames = navyStates.map(state => ({ actual: field.capture(state), alternate: alternateNavy.capture(state) }));
       for (const { actual, alternate } of navyFrames) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
         const i = (y * W + x) * 4;
         const changed = [0, 1, 2].some(channel => Math.abs(actual[i + channel] - alternate[i + channel]) > 1);
@@ -323,6 +328,27 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       alternateNavy.renderer.dispose();
       shape.protectedArea = protectedArea;
       checks.navyStaysAwayFromReadingAreaAndNavigation = protectedArea.edgeNavy > 0 && protectedArea.outsideEdges === 0 && protectedArea.inHeader === 0 && protectedArea.inMobileNavigation === 0;
+      // Compare the navy-only contribution rather than the rest of the field:
+      // a change to the moving blue alone must not satisfy this interaction.
+      function navyMotion(a, b) {
+        let difference = 0, changed = 0, pixels = 0;
+        for (let y = 90; y < H - 110; y++) for (let x = 0; x < W; x++) {
+          if (x >= edgeWidth && W - 1 - x >= edgeWidth) continue;
+          const i = (y * W + x) * 4;
+          let peak = 0;
+          for (let c = 0; c < 3; c++) {
+            const delta = Math.abs((a.actual[i+c] - a.alternate[i+c]) - (b.actual[i+c] - b.alternate[i+c]));
+            difference += delta; peak = Math.max(peak, delta);
+          }
+          if (peak > 2) changed++;
+          pixels++;
+        }
+        return { mean: difference / Math.max(1, pixels * 3), fraction: changed / Math.max(1, pixels) };
+      }
+      const navyAutonomous = navyMotion(navyFrames[0], navyFrames[1]);
+      const navyPointer = [0, 5, 12, 25, 50, 85].map((time, index) => ({ time, ...navyMotion(navyFrames[3 + index * 2], navyFrames[4 + index * 2]) }));
+      shape.navyMotion = { autonomous: navyAutonomous, pointer: navyPointer };
+      checks.navyAccentMovesWithTimeAndPointer = navyAutonomous.mean > 1 && navyAutonomous.fraction > .05 && navyPointer.some(result => result.mean > .2 && result.fraction > .01);
       // Even the darkest blue in the reading area needs adequate contrast
       // with the site's muted #34404f text (4.5:1, allowing quantization).
       checks.readingAreaRetainsMutedTextContrast = (protectedArea.minimumInteriorLuminance + .05) / (luminance([52,64,79]) + .05) >= 4.5;
