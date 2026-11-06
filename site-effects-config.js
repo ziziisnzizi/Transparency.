@@ -58,6 +58,14 @@ export const siteEffectsConfig = {
   // Matching ignores whitespace so the service's existing line breaks remain.
   translations: {
     '성분에 장난 없이.': ['Honest ingredients.'],
+    '보이는 것, 그 너머까지. 투명하게.': ['Beyond what you see.', 'Clearly.'],
+    '손안에서 확인하는 제품의 모든 것.': ['Everything you need,', 'in your hands.'],
+    '나의 제품. 나에게 맞는 사용법.': ['My products.', 'My way to use them.'],
+    '무엇을, 얼마나 담았는지.': ["What's inside, and how much."],
+    '성분 연구, 확인한 만큼 투명하게.': ['Ingredient research, made clear.'],
+    '첫 사용부터, 마지막 한 방울까지.': ['From first use to the last drop.'],
+    '궁금한 것은, 남김없이.': ['Every question, out in the open.'],
+    '사용자의 경험을 먼저 봅니다.': ['Real experiences come first.'],
     '나의 제품. 나의 사용 기록.': ['My products.', 'My usage log.'],
     '가릴 것이 없으니까.': ['Nothing to hide.'],
     '지금, 피부에 무엇이 궁금한가요?': ['Your skin.', 'What concerns you?'],

@@ -2,7 +2,9 @@ import { mountSiteWideTextLens } from './site-wide-text-lens.js';
 
 const mounted = new WeakMap();
 const normalize = value => String(value ?? '').normalize('NFC').replace(/\s+/g, '');
-const primarySelector = '#hero-title, .page-title, .concern-page-intro>h1';
+// Only headings with a configured translation are decorated. Include the
+// section and product-tab headings as well as each page's main heading.
+const primarySelector = '#hero-title, .page-title, .concern-page-intro>h1, h2';
 
 function lineNodes(heading, document) {
   const source = heading.querySelector('[data-site-source-plane]') || heading;
@@ -50,14 +52,15 @@ export function mountSiteTextEffects(document, config = {}) {
   const main = document?.getElementById('content');
   if (!main) return () => {};
   mounted.get(main)?.();
-  let active = null, wide = null, disposed = false, queued = false;
+  const active = new Map();
+  let wide = null, disposed = false, queued = false;
   const previousSiteLens = main.getAttribute('data-site-lens');
   const previousSiteSource = main.getAttribute('data-site-lens-source');
   const previousSiteTarget = main.getAttribute('data-site-lens-target');
 
   function mirrorMode() {
-    main.dataset.siteLens = active && main.dataset.landingTextMode === 'webgl' ? 'active' : 'native';
-    if (!active) { delete main.dataset.siteLensSource; delete main.dataset.siteLensTarget; }
+    main.dataset.siteLens = active.size && main.dataset.landingTextMode === 'webgl' ? 'active' : 'native';
+    if (!active.size) { delete main.dataset.siteLensSource; delete main.dataset.siteLensTarget; }
   }
 
   function decorate(heading) {
@@ -150,14 +153,20 @@ export function mountSiteTextEffects(document, config = {}) {
     queued = false;
     if (disposed) return;
     if (!main.isConnected) { dispose(); return; }
-    const heading = main.querySelector(primarySelector);
-    const currentSignature = heading ? signature(heading, document) : '';
-    if (active && active.heading === heading && heading.contains(active.source) && active.signature === currentSignature) { mirrorMode(); return; }
-    const replacement = active && active.heading === heading && heading.contains(active.source)
-      ? [...active.source.childNodes].map(node => node.cloneNode(true)) : null;
-    active?.dispose(replacement);
-    active = null;
-    if (heading?.isConnected) active = decorate(heading);
+    const headings = [...main.querySelectorAll(primarySelector)];
+    const candidates = new Set(headings);
+    for (const [heading, record] of active) {
+      if (candidates.has(heading) && heading.contains(record.source) && record.signature === signature(heading, document)) continue;
+      const replacement = candidates.has(heading) && heading.contains(record.source)
+        ? [...record.source.childNodes].map(node => node.cloneNode(true)) : null;
+      record.dispose(replacement);
+      active.delete(heading);
+    }
+    for (const heading of headings) {
+      if (active.has(heading) || !heading.isConnected) continue;
+      const record = decorate(heading);
+      if (record) active.set(heading, record);
+    }
     mirrorMode();
   }
   function queueRefresh() {
@@ -176,8 +185,8 @@ export function mountSiteTextEffects(document, config = {}) {
     disposed = true;
     observer.disconnect(); stateObserver.disconnect(); removal.disconnect();
     wide?.(); wide = null;
-    active?.dispose();
-    active = null;
+    for (const record of active.values()) record.dispose();
+    active.clear();
     if (previousSiteLens === null) main.removeAttribute('data-site-lens'); else main.setAttribute('data-site-lens', previousSiteLens);
     if (previousSiteSource === null) main.removeAttribute('data-site-lens-source'); else main.setAttribute('data-site-lens-source', previousSiteSource);
     if (previousSiteTarget === null) main.removeAttribute('data-site-lens-target'); else main.setAttribute('data-site-lens-target', previousSiteTarget);
