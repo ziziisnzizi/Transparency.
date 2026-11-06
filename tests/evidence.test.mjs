@@ -12,12 +12,12 @@ import {
 import { renderProductEvidence } from '../evidence.js';
 
 const checkKeys = ['bibliography', 'design', 'population', 'intervention', 'comparator', 'results'];
-const idsByProduct = {
-  'serum-s1': ['glycerin', 'panthenol', 'hyaluronic-acid'],
-  'toner-t1': ['glycerin', 'panthenol', 'beta-glucan'],
-  'cream-c1': ['glycerin', 'squalane', 'ceramide-np'],
+const requiredIdsByProduct = {
+  'serum-s1': ['glycerin', 'panthenol', 'centella', 'hyaluronic-acid', 'allantoin'],
+  'toner-t1': ['glycerin', 'panthenol', 'beta-glucan', 'hyaluronic-acid', 'allantoin'],
+  'cream-c1': ['glycerin', 'squalane', 'ceramide-np', 'allantoin', 'panthenol'],
 };
-const ingredientIds = new Set(Object.values(idsByProduct).flat());
+const ingredientIds = new Set(products.flatMap(product => getResearchIngredients(product.slug).map(ingredient => ingredient.id)));
 const sourceHosts = new Set([
   'doi.org', 'pubmed.ncbi.nlm.nih.gov', 'pmc.ncbi.nlm.nih.gov',
   'www.kci.go.kr', 'kci.go.kr', 'scienceon.kisti.re.kr',
@@ -93,21 +93,22 @@ test('coverage and product lookup leave supplied records and published catalog d
   assert.equal(JSON.stringify(researchPapers), papersBefore);
 });
 
-test('each product exposes exactly its three current ingredients and catalog concentrations', () => {
-  for (const [slug, ids] of Object.entries(idsByProduct)) {
+test('research ingredients match each product’s complete formula and current concentrations', () => {
+  for (const [slug, ids] of Object.entries(requiredIdsByProduct)) {
     const product = products.find(item => item.slug === slug);
     assert.ok(product, `published product ${slug}`);
     const ingredients = getResearchIngredients(slug);
-    assert.deepEqual(ingredients.map(item => item.id), ids);
-    assert.equal(new Set(ingredients.map(item => item.id)).size, 3);
+    assert.ok(ids.every(id => ingredients.some(ingredient => ingredient.id === id)), `${slug}: expected ingredient mappings`);
+    assert.equal(new Set(ingredients.map(item => item.id)).size, ingredients.length);
     for (const ingredient of ingredients) {
-      const source = product.ingredients.find(([label]) => label.startsWith(ingredient.name));
-      assert.ok(source, `${slug}: ${ingredient.name} must occur in the current formula`);
-      assert.equal(ingredient.concentration, source[0].match(/[\d.]+%/)?.[0]);
+      const name = ingredient.id === 'ceramide-np' ? '세라마이드엔피' : ingredient.name;
+      const index = product.fullIngredients.indexOf(name);
+      assert.notEqual(index, -1, `${slug}: ${ingredient.name} must occur in the current formula`);
+      assert.equal(ingredient.concentration, product.fullIngredientConcentrations[index]);
     }
   }
   assert.equal(getResearchIngredients('toner-t1').find(item => item.id === 'panthenol').concentration, '0.5%');
-  assert.equal(getResearchIngredients('serum-s1').find(item => item.id === 'panthenol').concentration, '1.0%');
+  assert.equal(getResearchIngredients('serum-s1').find(item => item.id === 'panthenol').concentration, '0.5%');
 });
 
 test('unknown product identifiers cannot inherit another product’s ingredient research', () => {
@@ -142,7 +143,7 @@ test('published papers have unique identities, traceable HTTPS sources, bibliogr
     assert.ok(authors.length > 0);
     authors.forEach(author => nonempty(author, `${paper.id}.authors`));
     assert.ok(Number.isInteger(paper.year) && paper.year >= 1900 && paper.year <= checkedYear, `${paper.id}.year`);
-    assert.ok(['인체시험', '체외시험', '문헌고찰'].includes(paper.studyType), `${paper.id}.studyType`);
+    assert.ok(['인체시험', '동물실험', '체외시험', '문헌고찰', '안전성 평가'].includes(paper.studyType), `${paper.id}.studyType`);
     assert.ok(['domestic', 'international'].includes(paper.origin), `${paper.id}.origin`);
     assert.ok(Array.isArray(paper.ingredientIds) && paper.ingredientIds.length > 0);
     assert.equal(new Set(paper.ingredientIds).size, paper.ingredientIds.length);
@@ -175,7 +176,7 @@ test('product-linked papers preserve source identity and disclose formula-specif
     for (const paper of linked) {
       const source = researchPapers.find(item => item.id === paper.id);
       assert.notStrictEqual(paper, source);
-      assert.deepEqual({ ...paper, productScope: undefined }, { ...source, productScope: undefined });
+      assert.deepEqual({ ...paper, productScope: undefined, applicationNote: undefined }, { ...source, productScope: undefined, applicationNote: undefined });
       assert.ok(paper.productScope.includes(product.name));
       const formulaScope = paper.productScope.slice(0, paper.productScope.indexOf('입니다.'));
       for (const ingredient of ingredients.filter(item => paper.ingredientIds.includes(item.id))) {
@@ -201,7 +202,7 @@ test('the cream research view renders information coverage, real paper controls 
   const linked = getProductResearch(cream.slug);
   assert.ok(linked.length > 0);
   const html = renderProductEvidence(cream);
-  assert.equal((html.match(/class="evidence-ingredient"/g) || []).length, 3);
+  assert.equal((html.match(/class="evidence-ingredient"/g) || []).length, getResearchIngredients(cream.slug).length);
   assert.match(html, /연구 정보 확인율/);
   assert.match(html, /효과·안전성 보장률이 아닙니다/);
   assert.match(html, /공개된 완제품 시험 자료가 없습니다/);
@@ -210,4 +211,17 @@ test('the cream research view renders information coverage, real paper controls 
   for (const paper of linked) assert.ok(html.includes(`data-evidence-paper="${paper.id}"`));
   assert.doesNotMatch(html, /NaN|Infinity|undefined/);
   assert.doesNotMatch(html, /(?:효능|효과|안전성)\s*(?:보장률|확률)\s*(?:은|:)?\s*\d+%/);
+});
+
+test('each product shows all formula ingredients and distinguishes reviewed evidence from search results', () => {
+  for (const product of products) {
+    const html = renderProductEvidence(product);
+    assert.match(html, /전성분별 연구와 자료/);
+    assert.match(html, /검색 결과는 아직 개별 검토하지 않은 자료/);
+    for (let i = 0; i < product.fullIngredients.length; i++) {
+      assert.ok(html.includes(product.fullIngredients[i]), `${product.slug}: ingredient ${product.fullIngredients[i]}`);
+      assert.ok(html.includes(product.fullIngredientConcentrations[i]), `${product.slug}: amount`);
+    }
+  }
+  assert.match(renderProductEvidence(products.find(product => product.slug === 'cream-c1')), /합계는 99\.95%/);
 });

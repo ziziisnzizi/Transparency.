@@ -34,7 +34,7 @@ const cases = [
         await ingredient.waitFor();
         const names = (await ingredient.innerText()).split(', ').map(value => value.trim());
         assert.equal(names.length, item.count, `${item.slug} ingredient count`);
-        assert.equal(names[0], item.first); assert(names.includes(item.unique));
+        assert(names[0].startsWith(`${item.first} `)); assert(names.some(name => name.startsWith(`${item.unique} `)));
         await page.getByRole('tab', { name: '사용 안내' }).click();
         const panel = page.locator('#detail-panel');
         assert((await panel.innerText()).includes(item.step), `${item.slug} directions`);

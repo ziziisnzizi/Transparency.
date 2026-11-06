@@ -1,4 +1,6 @@
 import { products } from './products.js';
+import { ingredientReviewedResearch } from './ingredient-reviewed-research.js';
+import { extraIngredientResearch } from './ingredient-extra-research.js';
 
 export const RESEARCH_CHECKED_AT = '2026.11.03';
 
@@ -18,17 +20,23 @@ const ingredientCatalog = {
   'beta-glucan': '베타글루칸',
   squalane: '스쿠알란',
   'ceramide-np': '세라마이드 NP',
+  centella: '병풀추출물',
+  allantoin: '알란토인',
+  propanediol: '프로판다이올',
+  'butylene-glycol': '부틸렌글라이콜',
 };
 
 const productIngredients = {
-  'toner-t1': ['glycerin', 'panthenol', 'beta-glucan'],
-  'serum-s1': ['glycerin', 'panthenol', 'hyaluronic-acid'],
-  'cream-c1': ['glycerin', 'squalane', 'ceramide-np'],
+  'toner-t1': ['glycerin', 'panthenol', 'beta-glucan', 'hyaluronic-acid', 'allantoin', 'propanediol', 'butylene-glycol'],
+  'serum-s1': ['glycerin', 'panthenol', 'centella', 'hyaluronic-acid', 'allantoin', 'propanediol', 'butylene-glycol'],
+  'cream-c1': ['glycerin', 'squalane', 'ceramide-np', 'allantoin', 'panthenol', 'propanediol', 'butylene-glycol'],
 };
 
 // Manually curated from the linked original abstracts/full texts. A paper is not
 // a finished-product trial, and metadata completeness is not efficacy certainty.
 export const researchPapers = [
+  ...ingredientReviewedResearch,
+  ...extraIngredientResearch,
   {
     "id": "ceramide-np-rct-2026",
     "ingredientIds": [
@@ -60,7 +68,7 @@ export const researchPapers = [
       "단일기관, 소규모,42일 연구이며7명이 중도탈락했습니다.",
       "원료 순도95%이상은 완제품의 NP 함량95%를 뜻하지 않으며 완제품 NP 농도는 비공개입니다."
     ],
-    "applicationNote": "아토피피부염 환자의 표준치료 병행 연구이며 NP 농도도 공개되지 않았습니다. 크림 C.1의 세라마이드 NP0.05% 또는 완제품의 피부 장벽 개선·질환 개선을 입증하지 않습니다. 스쿠알란을 함께 포함했지만 단독 효과를 평가하지 않았으므로 스쿠알란 근거로 분류하지 않습니다.",
+    "applicationNote": "아토피피부염 환자의 표준치료 병행 연구이며 NP 농도도 공개되지 않았습니다. 크림 C.1의 세라마이드 NP0.1% 또는 완제품의 피부 장벽 개선·질환 개선을 입증하지 않습니다. 스쿠알란을 함께 포함했지만 단독 효과를 평가하지 않았으므로 스쿠알란 근거로 분류하지 않습니다.",
     "access": "원문 공개",
     "checks": {
       "bibliography": true,
@@ -279,7 +287,7 @@ export const researchPapers = [
       "인위적으로 손상시킨 장벽의 회복 결과는 일반인의 일상 사용 조건과 다릅니다.",
       "연구진에 화장품 기업과 원료 기업 소속이 포함되어 있습니다."
     ],
-    "applicationNote": "연구의 HP-C. sinensis CER NP는 특정 지방산 조성의 원료이며 농도는0.5%입니다. 크림 C.1의 세라마이드 NP0.05%는 농도가10분의1이고 동일한 원료인지 확인되지 않았습니다. 성분 계열이 같다는 이유로 동일 효과를 주장할 수 없습니다. 제목의 NPs를 나노입자 효과로 해석하지 않습니다.",
+    "applicationNote": "연구의 HP-C. sinensis CER NP는 특정 지방산 조성의 원료이며 농도는0.5%입니다. 크림 C.1의 세라마이드 NP0.1%는 농도가5분의1이고 동일한 원료인지 확인되지 않았습니다. 성분 계열이 같다는 이유로 동일 효과를 주장할 수 없습니다. 제목의 NPs를 나노입자 효과로 해석하지 않습니다.",
     "access": "초록 확인",
     "checks": {
       "bibliography": true,
@@ -321,7 +329,7 @@ export const researchPapers = [
       "아토피피부염·손상 피부와 고농도 연고 자료 등을 포함하므로 건강한 얼굴 피부에 그대로 적용할 수 없습니다.",
       "Bayer Korea 소속 저자가 참여한 문헌이라는 점을 함께 표시하는 것이 적절합니다."
     ],
-    "applicationNote": "T.1의 판테놀 0.5%와 S.1의 판테놀 1.0%를 이해하기 위한 성분 문헌입니다. 특정 함량의 우수성, 민감성 피부 적합성 또는 아토피 치료효과를 제품에 부여하는 자료가 아닙니다.",
+    "applicationNote": "T.1의 판테놀 0.5%와 S.1의 판테놀 0.5%를 이해하기 위한 성분 문헌입니다. 특정 함량의 우수성, 민감성 피부 적합성 또는 아토피 치료효과를 제품에 부여하는 자료가 아닙니다.",
     "access": "원문 공개",
     "checks": {
       "bibliography": true,
@@ -449,7 +457,7 @@ export const researchPapers = [
       "인위적인 SLS 자극 조건이므로 얼굴 피부의 일상 사용 조건에 그대로 적용할 수 없습니다.",
       "공개 초록의 평가 항목은 피지량·각질층 수분·pH·임상 모습이며 TEWL은 명시되지 않았습니다. 모든 지표가 유의하게 개선된 것은 아닙니다."
     ],
-    "applicationNote": "이 연구의 덱스판테놀 농도는 5%로, 세럼 S.1의 판테놀 1.0% 및 토너 T.1의 판테놀 0.5%와 다릅니다. 제품 원료의 입체이성질체·규격과 제형의 동일성도 확인되지 않았으므로 본 제품의 장벽 개선이나 자극 예방 효과를 직접 입증하지 않습니다.",
+    "applicationNote": "이 연구의 덱스판테놀 농도는 5%로, 세럼 S.1의 판테놀 0.5% 및 토너 T.1의 판테놀 0.5%와 다릅니다. 제품 원료의 입체이성질체·규격과 제형의 동일성도 확인되지 않았으므로 본 제품의 장벽 개선이나 자극 예방 효과를 직접 입증하지 않습니다.",
     "access": "초록 확인",
     "checks": {
       "bibliography": true,
@@ -577,7 +585,7 @@ export const researchPapers = [
       "7일간 특정 친유성 제형을 사용한 결과이며 장기 효과나 다른 제형의 결과를 보여주지 않습니다.",
       "농도와 대상 조건이 충분히 공개되지 않은 자료이므로 제품의 판테놀 함량에 직접 대응하는 근거로 해석할 수 없습니다."
     ],
-    "applicationNote": "세럼 S.1의 판테놀 1.0% 및 토너 T.1의 판테놀 0.5%와 연구 제형의 농도가 같은지 확인되지 않았습니다. 덱스판테놀 원료의 규격과 친유성 기제도 본 제품과 동일하다고 볼 수 없으므로 본 제품의 효과를 직접 검증한 자료가 아닙니다.",
+    "applicationNote": "세럼 S.1의 판테놀 0.5% 및 토너 T.1의 판테놀 0.5%와 연구 제형의 농도가 같은지 확인되지 않았습니다. 덱스판테놀 원료의 규격과 친유성 기제도 본 제품과 동일하다고 볼 수 없으므로 본 제품의 효과를 직접 검증한 자료가 아닙니다.",
     "access": "초록 확인",
     "checks": {
       "bibliography": true,
@@ -598,7 +606,10 @@ export function getResearchIngredients(productSlug) {
   return (productIngredients[productSlug] || []).map(id => {
     const name = ingredientCatalog[id];
     const label = product.ingredients.find(([label]) => label.startsWith(name))?.[0] || name;
-    return { id, name, concentration: label.match(/[\d.]+%/)?.[0] || '미공개' };
+    const fullName = id === 'ceramide-np' ? '세라마이드엔피' : name;
+    const index = product.fullIngredients?.indexOf(fullName) ?? -1;
+    const concentration = label.match(/[\d.]+%/)?.[0] || (index >= 0 ? product.fullIngredientConcentrations?.[index] : '') || '미공개';
+    return { id, name, concentration };
   });
 }
 
@@ -608,9 +619,15 @@ export function getProductResearch(productSlug) {
   if (!product) return [];
   return researchPapers.filter(paper => paper.ingredientIds.some(id => ingredients.some(ingredient => ingredient.id === id))).map(paper => {
     const labels = ingredients.filter(ingredient => paper.ingredientIds.includes(ingredient.id)).map(ingredient => `${ingredient.name} ${ingredient.concentration}`).join(' · ');
+    const newlyLinked = (productSlug === 'toner-t1' && paper.ingredientIds.includes('hyaluronic-acid'))
+      || (productSlug === 'cream-c1' && paper.ingredientIds.includes('panthenol'));
+    const applicationNote = newlyLinked
+      ? '연구에 사용한 원료·농도·제형과 이 제품의 동등성은 확인되지 않았습니다.'
+      : paper.applicationNote;
     return {
       ...paper,
-      productScope: `${product.name}의 공개된 관련 성분은 ${labels}입니다. ${paper.applicationNote} 이 논문은 ${product.name}의 완제품 시험 결과가 아니며, 이 제품의 효과·안전성을 보장하지 않습니다.`,
+      applicationNote,
+      productScope: `${product.name}의 공개된 관련 성분은 ${labels}입니다. ${applicationNote} 이 논문은 ${product.name}의 완제품 시험 결과가 아니며, 이 제품의 효과·안전성을 보장하지 않습니다.`,
     };
   });
 }

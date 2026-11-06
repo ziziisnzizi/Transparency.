@@ -121,7 +121,7 @@ function explore() {
 
 function ingredientContent(p) {
   const fullIngredients = Array.isArray(p.fullIngredients) ? p.fullIngredients : [];
-  const fullList = fullIngredients.length ? `<section class="product-full-ingredients" aria-labelledby="full-ingredients-title"><span class="eyebrow">FULL INGREDIENTS</span><h3 id="full-ingredients-title">전성분</h3><p>제공된 자료의 전성분을 표기 순서대로 안내합니다.</p><p class="product-ingredients-text">${fullIngredients.map(escape).join(', ')}</p></section>` : '';
+  const fullList = fullIngredients.length ? `<section class="product-full-ingredients" aria-labelledby="full-ingredients-title"><span class="eyebrow">FULL INGREDIENTS</span><h3 id="full-ingredients-title">전성분</h3><p>제공된 자료의 전성분과 함량을 표기 순서대로 안내합니다.</p><p class="product-ingredients-text">${fullIngredients.map((name, index) => `${escape(name)}${p.fullIngredientConcentrations?.[index] ? ` ${escape(p.fullIngredientConcentrations[index])}` : ''}`).join(', ')}</p>${p.slug === 'cream-c1' ? '<p>제공받은 함량의 합계는 99.95%로, 최종 배합 비율 확인이 필요합니다.</p>' : ''}</section>` : '';
   return `<span class="eyebrow">01 / INGREDIENTS</span><h2>무엇을, 얼마나 담았는지.</h2><div class="product-ingredient-heading"><h3>주요 성분과 함량</h3><p>제품의 주요 성분과 역할을 확인하세요.</p></div><div class="ingredient-list">${p.ingredients.map(([name, role, reason]) => `<article><div class="ingredient-row"><h3>${name}</h3><span>${role}</span></div><p>${reason}</p></article>`).join('')}</div>${fullList}<div class="info-note"><strong>성분표 읽는 법</strong><br>주요 성분의 함량과 역할, 전성분 목록을 함께 확인하세요. 성분의 함량만으로 제품의 효능을 판단하기는 어렵습니다.</div><p class="data-date">정보 확인일 2026.11.06</p>`;
 }
 
