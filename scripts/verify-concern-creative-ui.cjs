@@ -99,14 +99,19 @@ const { chromium } = require('playwright');
     }
     await care.context.close();
 
-    // Server-side safety can identify a concern not recognized by local rules.
-    const serverCare = await setup(1440, 'dark', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'caution' }) }).catch(() => {}));
-    await serverCare.page.locator('#concern-query').fill('이것에 대해 알려줘');
-    await serverCare.page.locator('#concern-query').press('Enter', { noWaitAfter: true });
-    await serverCare.page.locator('.concern-sensitive-notice').waitFor({ timeout: 10000 });
-    assert.equal(await serverCare.page.locator('.concern-creative-message').count(), 0);
-    assert.equal(await serverCare.page.locator('.concern-products').count(), 0);
-    await serverCare.context.close();
+    // When the model declines or the provider gives a generic caution, only
+    // the generated story is withheld; unrelated questions are not presented
+    // as a crisis and the ordinary answer and product information remain.
+    for (const status of ['declined', 'caution']) {
+      const refusal = await setup(1440, 'dark', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status }) }).catch(() => {}));
+      await search(refusal.page, '이것에 대해 알려줘');
+      await refusal.page.locator('#concern-creative [data-concern-creative-retry]').waitFor({ timeout: 10000 });
+      assert.equal(await refusal.page.locator('.concern-creative-message').count(), 0, status);
+      assert.equal(await refusal.page.locator('.concern-sensitive-notice').count(), 0, status);
+      assert.equal(await refusal.page.locator('.concern-catalog .concern-product').count(), 3, status);
+      assert.equal(await refusal.page.locator('#concern-ai').count(), 1, status);
+      await refusal.context.close();
+    }
 
     // Navigating away while Gemini is pending must not reinsert the response.
     const away = await setup(1440, 'light', async route => {

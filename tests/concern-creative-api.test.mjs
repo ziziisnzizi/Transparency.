@@ -49,9 +49,9 @@ test('unsafe or unverified AI output is never shown as product copy', async () =
   }
 });
 
-test('model refusal yields caution rather than invented promotional content', async () => {
+test('model refusal is distinct from a safety concern and never invents promotional content', async () => {
   const result = await invoke(createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async () => response(parsed('', 'toner-t1', false)) }));
-  assert.deepEqual(result.body, { status: 'caution' });
+  assert.deepEqual(result.body, { status: 'declined' });
 });
 
 test('invalid requests, origins, missing credentials and quota limits are handled without exposing input or key', async () => {
@@ -86,6 +86,18 @@ test('an analogy with a prohibited product claim gets one safer regeneration und
   assert.equal(result.status, 200); assert.equal(result.body.status, 'ok'); assert.equal(payloads.length, 2);
   assert.match(payloads[1].systemInstruction.parts[0].text, /추상적인 감정이나 이미지로만 다시/);
   assert(!JSON.stringify(payloads[1]).includes('사랑은 토너 T.1로 피부 보습을 채워줘요.'));
+});
+
+test('a clear Korean object-particle mistake is regenerated while valid words are preserved', async () => {
+  const payloads = [];
+  const handler = createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async (_url, options) => { payloads.push(JSON.parse(options.body)); return response(payloads.length === 1 ? parsed('사랑은 토너 T.1처럼 온기을 전해요.') : parsed('사랑은 토너 T.1처럼 온기를 전해요.')); } });
+  const result = await invoke(handler);
+  assert.equal(result.status, 200); assert.match(result.body.message, /온기를/); assert.equal(payloads.length, 2);
+  assert.match(payloads[1].systemInstruction.parts[0].text, /받침 유무에 맞는 을·를/);
+  for (const analogy of ['사랑은 토너 T.1처럼 가을의 온기를 전해요.', '사랑은 토너 T.1처럼 가을을 닮았어요.', '사랑은 토너 T.1처럼 마음을 전해요.', '사랑은 토너 T.1처럼 가을.']) {
+    const ok = await invoke(createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response(parsed(analogy)) }));
+    assert.equal(ok.status, 200, analogy);
+  }
 });
 
 test('a configured model that rejects native options retries once on Flash-Lite', async () => {

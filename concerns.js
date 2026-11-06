@@ -182,10 +182,10 @@ function results() {
   const result = state.result;
   if (!result || state.loading) return '';
   // Keep urgent or vulnerable situations free from product promotion. A
-  // provider caution can also suppress promotion when the local rules miss it.
+  // model declining a creative analogy is separate from a crisis situation.
   const crisis = isCrisisConcern(result.query);
-  if (crisis || (state.creative?.status === 'caution' && !['care', 'unsupported'].includes(result.status))) {
-    return `<div class="concern-results" id="concern-results"><div class="concern-result-heading concern-sensitive-notice"><p class="concern-query-context">입력하신 내용에 관해</p><h2 id="concern-result-heading" tabindex="-1">${crisis ? '도움이 필요할 때는 혼자 감당하지 마세요.' : '이 질문은 신중하게 살펴볼게요.'}</h2><p>${crisis ? '힘든 상황을 겪고 계시다면 가까운 사람이나 관련 지원 기관에 이야기해 보세요.' : '이 질문에는 AI 제품 이야기를 제공하지 않습니다. 도움이 필요한 상황이라면 가까운 사람이나 관련 지원 기관에 이야기해 보세요.'} 지금 당장 위험하다면 지역 긴급 서비스에 연락해 도움을 요청해 주세요.</p></div></div>`;
+  if (crisis) {
+    return `<div class="concern-results" id="concern-results"><div class="concern-result-heading concern-sensitive-notice"><p class="concern-query-context">입력하신 내용에 관해</p><h2 id="concern-result-heading" tabindex="-1">도움이 필요할 때는 혼자 감당하지 마세요.</h2><p>힘든 상황을 겪고 계시다면 가까운 사람이나 관련 지원 기관에 이야기해 보세요. 지금 당장 위험하다면 지역 긴급 서비스에 연락해 도움을 요청해 주세요.</p></div></div>`;
   }
   const papers = list(result.research);
   const topic = getConcernTopic(result.newsTopic);
@@ -280,14 +280,12 @@ async function loadCreative() {
     if (raw.length > 10000) throw new Error('제품 이야기가 너무 깁니다.');
     const data = JSON.parse(raw);
     if (state.version !== version || state.creativeVersion !== creativeVersion) return;
-    if (data.status === 'caution' || ['care', 'unsupported'].includes(state.result?.status)) {
+    if (['care', 'unsupported'].includes(state.result?.status)) {
       state.creative = { status: 'caution' };
-      if (!['care', 'unsupported'].includes(state.result?.status)) {
-        abortAi();
-        abortNews();
-        const target = document.getElementById('concern-results');
-        if (target) target.outerHTML = results();
-      }
+    } else if (data.status === 'caution' || data.status === 'declined') {
+      // A model may decline a benign question; that must not hide the basic
+      // answer or the catalog. Crisis inputs are checked before any request.
+      state.creative = { status: 'declined' };
     } else {
       const product = list(state.result?.catalog).find(item => item.slug === data.productSlug);
       if (data.status !== 'ok' || !product || typeof data.message !== 'string' || !data.message.trim() || data.message.length > 1200) throw new Error('제품 이야기를 확인하지 못했습니다.');
