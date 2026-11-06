@@ -76,7 +76,16 @@ test('provider diagnostics expose only fixed categories, never provider messages
   const mismatch = await invoke(createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response(parsed('사랑은 세럼 S.1처럼 투명해요.')) }));
   assert.equal(mismatch.body.reason, 'provider_product_mismatch');
   const unsafe = await invoke(createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response(parsed('사랑은 토너 T.1으로 여드름을 치료해요.')) }));
-  assert.equal(unsafe.body.reason, 'provider_unsafe_analogy');
+  assert.equal(unsafe.body.reason, 'provider_unsafe_claim');
+});
+
+test('an analogy with a prohibited product claim gets one safer regeneration under the same checks', async () => {
+  const payloads = [];
+  const handler = createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async (_url, options) => { payloads.push(JSON.parse(options.body)); return response(payloads.length === 1 ? parsed('사랑은 토너 T.1로 피부 보습을 채워줘요.') : parsed()); } });
+  const result = await invoke(handler);
+  assert.equal(result.status, 200); assert.equal(result.body.status, 'ok'); assert.equal(payloads.length, 2);
+  assert.match(payloads[1].systemInstruction.parts[0].text, /추상적인 감정이나 이미지로만 다시/);
+  assert(!JSON.stringify(payloads[1]).includes('사랑은 토너 T.1로 피부 보습을 채워줘요.'));
 });
 
 test('a configured model that rejects native options retries once on Flash-Lite', async () => {
