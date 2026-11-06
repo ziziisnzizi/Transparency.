@@ -153,11 +153,11 @@ function creativeContent() {
   const body = creative.status === 'loading'
     ? '<div class="concern-creative-state" role="status" aria-live="polite"><span class="concern-loading-dot" aria-hidden="true"></span><p>질문과 제품을 연결하는 이야기를 만들고 있어요.</p></div>'
     : creative.status === 'ok' && product
-      ? `<div class="concern-creative-answer"><span class="concern-creative-label">AI가 만든 제품 이야기</span><p class="concern-creative-message">${escape(creative.message)}</p><button type="button" data-concern-product="${escape(product.slug)}">${escape(product.name)} 살펴보기 <span aria-hidden="true">↗</span></button><p class="concern-creative-note">질문을 제품의 특징에 빗대어 표현한 문구입니다.</p></div>`
+      ? `<div class="concern-creative-answer"><span class="concern-creative-label">AI가 만든 제품 이야기</span><p class="concern-creative-message">${escape(creative.message)}</p><button type="button" data-concern-product="${escape(product.slug)}">${escape(product.name)} 살펴보기 <span aria-hidden="true">↗</span></button></div>`
       : creative.status === 'caution'
         ? `<div class="concern-creative-state"><p>${['care', 'unsupported'].includes(state.result?.status) ? '이 질문은 상태와 주의사항을 먼저 확인해 주세요. 아래에서 자사 제품의 일반 정보를 볼 수 있습니다.' : '민감한 내용이 포함된 질문에는 AI 제품 이야기를 표시하지 않습니다. 위급한 상황이라면 가까운 사람이나 지역의 긴급 지원 기관에 도움을 요청해 주세요.'}</p></div>`
         : `<div class="concern-creative-state" role="status" aria-live="polite"><p>${creative.status === 'idle' ? 'AI 제품 이야기는 질문 내용을 Gemini에 전달합니다.' : '지금 AI 제품 이야기를 만들지 못했어요. 제품 정보는 아래에서 확인할 수 있습니다.'}</p><button type="button" data-concern-creative-retry>${creative.status === 'idle' ? 'AI 제품 이야기 보기' : '다시 만들기'} <span aria-hidden="true">↗</span></button></div>`;
-  return `<div class="concern-section-head"><span class="eyebrow">AI / A DIFFERENT CONNECTION</span><h3 id="concern-creative-heading">질문을 제품과 연결하면</h3><p>질문에서 떠올린 이야기를 제품의 특징에 빗대어 표현합니다.</p></div>${body}`;
+  return body;
 }
 
 function productCatalog(result) {
@@ -192,7 +192,7 @@ function results() {
   const title = result.status === 'unknown' ? '이 질문을 이렇게 살펴볼게요.' : result.title;
   const summary = result.status === 'unknown' ? '이 질문에서 확인할 내용을 살펴보세요.' : result.summary;
   const caution = ['care', 'unsupported'].includes(result.status);
-  const creativeSection = `<section class="concern-section concern-creative" id="concern-creative" aria-labelledby="concern-creative-heading">${creativeContent()}</section>`;
+  const creativeSection = `<section class="concern-section concern-creative" id="concern-creative" aria-label="AI 제품 이야기">${creativeContent()}</section>`;
   return `<div class="concern-results" id="concern-results"><div class="concern-result-heading"><p class="concern-query-context">“${escape(result.query)}”에서 살펴본 내용</p><h2 id="concern-result-heading" tabindex="-1">${escape(title)}</h2><p>${escape(summary)}</p>${list(result.topics).length ? `<div class="concern-topic-tags" aria-label="살펴볼 주제">${result.topics.map(item => `<span>${escape(item.label)}</span>`).join('')}</div>` : ''}</div>
     ${caution ? findings(result) : ''}
     ${creativeSection}
