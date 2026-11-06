@@ -89,9 +89,19 @@ test('requests reject invalid origins, excess data and client-supplied context b
 });
 
 test('missing keys, service failures and rate limits leave the web-search result unavailable', async () => {
-  const noKey = await invoke(createConcernAiHandler({ env: {} })); assert.equal(noKey.status, 503); assert.equal(noKey.body.reason, 'provider_unavailable');
+  const noKey = await invoke(createConcernAiHandler({ env: {} })); assert.equal(noKey.status, 503); assert.equal(noKey.body.reason, 'provider_not_configured');
   const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, rateLimit: 1, fetchImpl: async () => response({}, 403) });
   assert.equal((await invoke(handler)).status, 503); assert.equal((await invoke(handler)).status, 429);
+});
+
+test('provider status codes are reported only as fixed diagnostic categories', async () => {
+  for (const status of [400, 401, 403, 404, 429, 500, 418]) {
+    const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response({ error: { message: 'private provider detail' } }, status) });
+    const result = await invoke(handler);
+    assert.equal(result.status, 503);
+    assert.equal(result.body.reason, status === 500 ? 'provider_http_5xx' : status === 418 ? 'provider_http_other' : `provider_http_${status}`);
+    assert(!result.raw.includes('private provider detail'));
+  }
 });
 
 test('unsupported primary model retries the grounded fallback without disclosing credentials', async () => {

@@ -65,7 +65,7 @@ export function createConcernAiHandler({ env = process.env, fetchImpl = globalTh
       if (req.method !== 'POST') return send(res, 405, { status: 'unavailable', error: '지원하지 않는 요청입니다.' }, { Allow: 'POST' });
       const query = await requestBody(req);
       const { key, model } = geminiConfiguration(env);
-      if (!key) return send(res, 503, { status: 'unavailable', error: unavailable, reason: 'provider_unavailable' });
+      if (!key) return send(res, 503, { status: 'unavailable', error: unavailable, reason: 'provider_not_configured' });
       const time = now();
       for (const [address, bucket] of buckets) if (bucket.expires <= time) buckets.delete(address);
       const address = (header(req, 'x-forwarded-for').split(',')[0].trim() || req.socket?.remoteAddress || 'anonymous').slice(0, 128);
