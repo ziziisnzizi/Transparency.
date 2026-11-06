@@ -1,7 +1,7 @@
 // Original procedural artwork. Only the supplied decorative canvas is drawn;
 // this renderer has no events, animation loop, DOM/image capture or I/O.
 const DEFAULTS = {
-  palette: { white: '#f7fbff', ice: '#dcefff', sky: '#acdfff', blue: '#4c8ee8' },
+  palette: { white: '#f7fbff', ice: '#dcefff', sky: '#acdfff', blue: '#4c8ee8', navy: '#10294e' },
   darkPalette: { black: '#080b13', blue: '#183f86', cyan: '#9cd5de', warm: '#e65c21' },
   timeScale: .12, rotation: -.55, distortion: .68, grain: .045, grainCellSize: 1.3, pointerRadius: 1.05, pointerPush: .38,
   maxPixelRatio: 1.5, pixelBudget: 1800000,
@@ -9,6 +9,98 @@ const DEFAULTS = {
 };
 const finite = (value, fallback) => typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+// Compute the frame-wide 4×4 reference once on the CPU, rather than repeating
+// identical normalization work for every fragment on mobile GPUs.
+const fract = value => value - Math.floor(value);
+function referenceHash(x, y) {
+  let a = fract(x * .07173 + .413), b = fract(y * .10917 + .173);
+  const d = a * (b + 19.19) + b * (a + 23.73);
+  a += d; b += d;
+  return fract(a * b * (a + b));
+}
+function referenceNoise(x, y) {
+  const ix = Math.floor(x), iy = Math.floor(y), fx = fract(x), fy = fract(y);
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const a = referenceHash(ix, iy), b = referenceHash(ix + 1, iy);
+  const c = referenceHash(ix, iy + 1), d = referenceHash(ix + 1, iy + 1);
+  return (a + (b - a) * u) * (1 - v) + (c + (d - c) * u) * v;
+}
+// Shader lattice hashes run in float32. Emulate their intermediate precision
+// for color estimates so dark/bright decisions agree at noisy boundaries.
+function estimateHash(x, y) {
+  const f = Math.fround;
+  let a = fract(f(f(f(x) * f(.07173)) + f(.413)));
+  let b = fract(f(f(f(y) * f(.10917)) + f(.173)));
+  const d = f(f(a * f(b + f(19.19))) + f(b * f(a + f(23.73))));
+  a = f(a + d); b = f(b + d);
+  return fract(f(f(a * b) * f(a + b)));
+}
+function estimateNoise(x, y) {
+  const f = Math.fround;
+  x = f(x); y = f(y);
+  const ix = Math.floor(x), iy = Math.floor(y), fx = fract(x), fy = fract(y);
+  const u = f(f(fx * fx) * f(3 - f(2 * fx))), v = f(f(fy * fy) * f(3 - f(2 * fy)));
+  const a = estimateHash(ix, iy), b = estimateHash(ix + 1, iy);
+  const c = estimateHash(ix, iy + 1), d = estimateHash(ix + 1, iy + 1);
+  return f(f(a * f(1 - u) + b * u) * f(1 - v) + f(c * f(1 - u) + d * u) * v);
+}
+function lightFieldStats(aspect, time) {
+  const scaledAspect = clamp(aspect, .75, 1.7);
+  let sum = 0, squares = 0;
+  for (let iy = 0; iy < 4; iy++) for (let ix = 0; ix < 4; ix++) {
+    let x = ((ix + .5) * .25 - .5) * scaledAspect, y = (iy + .5) * .25 - .5;
+    const nx = referenceNoise(x * 1.5 + 4.8 + time * .14, y * 1.5 + 2.4 - time * .11) * 2 - 1;
+    const ny = referenceNoise(x * 1.5 - 2.1 - time * .08, y * 1.5 + 6.3 + time * .13) * 2 - 1;
+    x += nx * .23; y += ny * .23;
+    const value = .56 * Math.sin(x * 4.6 + Math.sin(y * 3.2 + time * .42) * 1.25 + time * .35)
+      + .50 * Math.cos(y * 5 + Math.cos(x * 3.1 - time * .36) * 1.10 - time * .30)
+      + .30 * (referenceNoise(x * 2.1 + 4.2 + time * .10, y * 2.1 - 2.7 - time * .11) * 2 - 1);
+    sum += value; squares += value * value;
+  }
+  const mean = sum / 16;
+  return [mean, Math.sqrt(Math.max(squares / 16 - mean * mean, .03))];
+}
+const smoothstep = (edge0, edge1, value) => {
+  const x = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+  return x * x * (3 - 2 * x);
+};
+const blendColor = (a, b, amount) => a.map((value, index) => value + (b[index] - value) * amount);
+function estimateLightPoint(x, y, frame, colors, settings) {
+  const { aspect, time, mean, spread, pointer, history } = frame;
+  // The framebuffer uses a bottom-left origin; points use viewport coordinates.
+  const uvX = x, uvY = 1 - y;
+  const cursorX = pointer.x * .5 + .5, cursorY = .5 - pointer.y * .5;
+  const dx = (uvX - cursorX) * aspect, dy = uvY - cursorY;
+  const distance = Math.hypot(dx, dy), squared = dx * dx + dy * dy;
+  const radius = Math.max(settings.pointerRadius, .025);
+  const influence = 1 / (1 + squared / (radius * radius * .50));
+  const well = Math.exp(-squared / (radius * radius * .14));
+  const orbit = Math.exp(-(((distance - .34) / .21) ** 2));
+  const vx = pointer.vx * pointer.active, vy = -pointer.vy * pointer.active;
+  const dragX = pointer.trailX * pointer.active;
+  const curl = clamp(vx * .22 - vy * .16 + dragX * .12, -.7, .7);
+  const radialScale = (.36 * influence + .74 * well) / Math.max(distance + .25, .25);
+  const tangentScale = (.22 * influence + .25 * orbit + curl * .15) / Math.max(distance + .40, .40);
+  const gravityX = (dx * radialScale - dy * tangentScale) * settings.pointerPush * pointer.active;
+  const gravityY = (dy * radialScale + dx * tangentScale) * settings.pointerPush * pointer.active;
+  const cx = uvX - .5, cy = uvY - .5, centreScale = 1 - (cx * cx + cy * cy) * .30;
+  const warpedX = uvX + gravityX / Math.max(aspect, .25) + history.x * .20 * centreScale - cy * history.spin * .12;
+  const warpedY = uvY + gravityY + history.y * .20 * centreScale + cx * history.spin * .12;
+  let px = (warpedX - .5) * clamp(aspect, .75, 1.7), py = warpedY - .5;
+  const nx = estimateNoise(px * 1.5 + 4.8 + time * .14, py * 1.5 + 2.4 - time * .11) * 2 - 1;
+  const ny = estimateNoise(px * 1.5 - 2.1 - time * .08, py * 1.5 + 6.3 + time * .13) * 2 - 1;
+  px += nx * .23; py += ny * .23;
+  const value = .56 * Math.sin(px * 4.6 + Math.sin(py * 3.2 + time * .42) * 1.25 + time * .35)
+    + .50 * Math.cos(py * 5 + Math.cos(px * 3.1 - time * .36) * 1.10 - time * .30)
+    + .30 * (estimateNoise(px * 2.1 + 4.2 + time * .10, py * 2.1 - 2.7 - time * .11) * 2 - 1);
+  const liquid = (value - mean) / spread;
+  const blueMass = smoothstep(.34, .90, liquid);
+  const navyMass = smoothstep(1.22, 1.58, liquid);
+  let color = blendColor(colors.white, colors.ice, blueMass * .35);
+  color = blendColor(color, colors.sky, blueMass * .86);
+  color = blendColor(color, colors.blue, smoothstep(.75, 1.31, liquid) * .72);
+  return blendColor(color, colors.navy, navyMass * .94);
+}
 function rgb(value, fallback) {
   let hex = typeof value === 'string' ? value.trim().replace(/^#/, '') : '';
   if (/^[\da-f]{3}$/i.test(hex)) hex = [...hex].map(channel => channel + channel).join('');
@@ -40,6 +132,7 @@ uniform vec3 ice;
 uniform vec3 white;
 uniform vec3 sky;
 uniform vec3 blue;
+uniform vec3 navy;
 uniform vec3 darkBlack;
 uniform vec3 darkBlue;
 uniform vec3 darkCyan;
@@ -48,6 +141,7 @@ uniform float darkMode;
 uniform float pointerActive;
 uniform float pointerRadius;
 uniform float pointerPush;
+uniform vec2 lightStats;
 
 float latticeHash(vec2 cell){
  vec2 q=fract(cell*vec2(.07173,.10917)+vec2(.413,.173));
@@ -76,6 +170,15 @@ float colourMass(vec2 field,float t,vec2 memory,float memoryWave,vec2 drag){
  mass+=sin(field.y*3.5+field.x*.5+t*.49+memory.x*.65)*.38;
  mass+=cos(field.x*3.2-field.y*.6-t*.40+drag.x*.35)*.34;
  return mass+sin(t*.37+memoryWave*.45)*.27+drag.y*.18+memory.y*.30;
+}
+float lightLiquid(vec2 p,float t){
+ return .56*sin(p.x*4.6+sin(p.y*3.2+t*.42)*1.25+t*.35)
+       +.50*cos(p.y*5.0+cos(p.x*3.1-t*.36)*1.10-t*.30)
+       +.30*(latticeNoise(p*2.1+vec2(4.2+t*.10,-2.7-t*.11))*2.-1.);
+}
+vec2 lightWarp(vec2 p,float t){
+ vec2 warp=vec2(latticeNoise(p*1.5+vec2(4.8+t*.14,2.4-t*.11)), latticeNoise(p*1.5+vec2(-2.1-t*.08,6.3+t*.13)))*2.-1.;
+ return p+warp*.23;
 }
 void main(){
  vec2 uv=gl_FragCoord.xy/resolution;
@@ -134,13 +237,20 @@ void main(){
  float lightTurn=1.8+sin(t*.36)*.7+t*.32+drag.y*.35+circulation*.22;
  vec2 lightFlow=rotatePoint(flow,lightTurn);
  float lightField=colourMass(lightFlow,t,memory,memoryWave,drag);
- // A light base can be overtaken by blue in some poses, with smooth but
- // visibly distinct bands of ice and sky at the shared fluid boundary.
- float lightMass=lightField-.39+.35*(1.-cos(t*.35));
- float blueMass=smoothstep(-.16,.38,lightMass);
- vec3 color=mix(white,ice,smoothstep(-.50,-.08,lightMass)*.62);
- color=mix(color,sky,blueMass*.74);
- color=mix(color,blue,smoothstep(.05,.63,lightMass)*.57);
+ // Interleaved low-frequency waves form an irregular field, warped by the
+ // same cursor gravity as the rest of the scene. No circular shape or
+ // straight band defines the colour boundary.
+ vec2 lightUv=(pushed-.5)*vec2(clamp(aspect,.75,1.7),1.);
+ lightUv=lightWarp(lightUv,t);
+ // Normalize against a CPU-sampled reference grid so the global color balance
+ // stays consistent as the time-varying field morphs and flows.
+ float liquid=(lightLiquid(lightUv,t)-lightStats.x)/lightStats.y;
+ float blueMass=smoothstep(.34,.90,liquid);
+ float navyMass=smoothstep(1.22,1.58,liquid);
+ vec3 color=mix(white,ice,blueMass*.35);
+ color=mix(color,sky,blueMass*.86);
+ color=mix(color,blue,smoothstep(.75,1.31,liquid)*.72);
+ color=mix(color,navy,navyMass*.94);
  // A second evolving low-frequency field independently opens and closes
  // broad dark pockets, letting warm or cool areas expand and merge. Cyan is
  // concentrated near the seam where the large warm and cool masses meet.
@@ -191,6 +301,7 @@ export function createSiteBackground(canvas, background = {}) {
   const source = background && typeof background === 'object' ? background : {};
   const palette = source.palette && typeof source.palette === 'object' ? source.palette : {};
   const darkPalette = source.darkPalette && typeof source.darkPalette === 'object' ? source.darkPalette : {};
+  const lightColors = Object.fromEntries(['white', 'ice', 'sky', 'blue', 'navy'].map(key => [key, rgb(palette[key], DEFAULTS.palette[key])]));
   const settings = {
     timeScale: clamp(finite(source.timeScale, DEFAULTS.timeScale), 0, 1),
     rotation: finite(source.rotation, DEFAULTS.rotation),
@@ -204,7 +315,7 @@ export function createSiteBackground(canvas, background = {}) {
     outputMaxPixelRatio: clamp(finite(source.outputMaxPixelRatio, DEFAULTS.outputMaxPixelRatio), 1, 3),
     outputPixelBudget: clamp(finite(source.outputPixelBudget, DEFAULTS.outputPixelBudget), 100000, 16000000),
   };
-  let gl, buffer, texture, framebuffer, disposed = false;
+  let gl, buffer, texture, framebuffer, disposed = false, lastFrame = null;
   let width = 1, height = 1, fieldWidth = 1, fieldHeight = 1;
   const shaders = [], programs = [];
   function dispose() {
@@ -271,11 +382,11 @@ export function createSiteBackground(canvas, background = {}) {
       return complete;
     }
     if (!allocateField(1, 1)) throw new Error('Background framebuffer unavailable');
-    const names = ['resolution', 'viewport', 'pointer', 'pointerTrail', 'pointerVelocity', 'motionHistory', 'clock', 'timeScale', 'rotation', 'distortion', 'ice', 'white', 'sky', 'blue', 'darkBlack', 'darkBlue', 'darkCyan', 'darkWarm', 'darkMode', 'pointerActive', 'pointerRadius', 'pointerPush'];
+    const names = ['resolution', 'viewport', 'pointer', 'pointerTrail', 'pointerVelocity', 'motionHistory', 'clock', 'timeScale', 'rotation', 'distortion', 'ice', 'white', 'sky', 'blue', 'navy', 'darkBlack', 'darkBlue', 'darkCyan', 'darkWarm', 'darkMode', 'pointerActive', 'pointerRadius', 'pointerPush', 'lightStats'];
     const uniforms = Object.fromEntries(names.map(name => [name, gl.getUniformLocation(scene.program, name)]));
     const finalUniforms = Object.fromEntries(['field', 'resolution', 'grainStrength', 'grainCellSize'].map(name => [name, gl.getUniformLocation(composite.program, name)]));
     bindQuad(scene);
-    for (const [uniform, key] of [['ice', 'ice'], ['white', 'white'], ['sky', 'sky'], ['blue', 'blue']]) gl.uniform3fv(uniforms[uniform], rgb(palette[key], DEFAULTS.palette[key]));
+    for (const [uniform, key] of [['ice', 'ice'], ['white', 'white'], ['sky', 'sky'], ['blue', 'blue'], ['navy', 'navy']]) gl.uniform3fv(uniforms[uniform], lightColors[key]);
     for (const [uniform, key] of [['darkBlack', 'black'], ['darkBlue', 'blue'], ['darkCyan', 'cyan'], ['darkWarm', 'warm']]) gl.uniform3fv(uniforms[uniform], rgb(darkPalette[key], DEFAULTS.darkPalette[key]));
     for (const [uniform, value] of [['timeScale', settings.timeScale], ['rotation', settings.rotation], ['distortion', settings.distortion], ['pointerRadius', settings.pointerRadius], ['pointerPush', settings.pointerPush]]) gl.uniform1f(uniforms[uniform], value);
     bindQuad(composite);
@@ -315,6 +426,19 @@ export function createSiteBackground(canvas, background = {}) {
         gl.uniform2f(uniforms.pointerVelocity, clamp(finite(pointer?.vx, 0), -2.5, 2.5), clamp(finite(pointer?.vy, 0), -2.5, 2.5));
         gl.uniform4f(uniforms.motionHistory, clamp(finite(history?.x, 0), -.55, .55), -clamp(finite(history?.y, 0), -.55, .55), clamp(finite(history?.spin, 0), -1.1, 1.1), clamp(finite(history?.phase, 0), -Math.PI, Math.PI));
         gl.uniform1f(uniforms.clock, Math.max(0, finite(time, 0)));
+        const [lightMean, lightSpread] = lightFieldStats(width / height, Math.max(0, finite(time, 0)) * settings.timeScale * 1.6);
+        gl.uniform2f(uniforms.lightStats, lightMean, lightSpread);
+        lastFrame = dark ? null : {
+          aspect: width / height, time: Math.max(0, finite(time, 0)) * settings.timeScale * 1.6,
+          mean: lightMean, spread: lightSpread,
+          pointer: {
+            x: clamp(finite(pointer?.x, 0), -1, 1), y: clamp(finite(pointer?.y, 0), -1, 1),
+            trailX: clamp(finite(pointer?.trailX, finite(pointer?.x, 0)), -1, 1),
+            vx: clamp(finite(pointer?.vx, 0), -2.5, 2.5), vy: clamp(finite(pointer?.vy, 0), -2.5, 2.5),
+            active: clamp(finite(pointer?.active, 0), 0, 1),
+          },
+          history: { x: clamp(finite(history?.x, 0), -.55, .55), y: -clamp(finite(history?.y, 0), -.55, .55), spin: clamp(finite(history?.spin, 0), -1.1, 1.1) },
+        };
         gl.uniform1f(uniforms.darkMode, dark ? 1 : 0);
         gl.uniform1f(uniforms.pointerActive, clamp(finite(pointer?.active, 0), 0, 1));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -324,6 +448,14 @@ export function createSiteBackground(canvas, background = {}) {
         bindQuad(composite);
         gl.uniform2f(finalUniforms.resolution, canvas.width, canvas.height);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      },
+      estimate(points) {
+        if (disposed || !lastFrame || !Array.isArray(points)) return null;
+        return points.map(([x, y]) => {
+          const sx = clamp(Math.floor(clamp(finite(x, 0), 0, 1) * fieldWidth), 0, fieldWidth - 1);
+          const sy = clamp(Math.floor((1 - clamp(finite(y, 0), 0, 1)) * fieldHeight), 0, fieldHeight - 1);
+          return estimateLightPoint((sx + .5) / fieldWidth, 1 - (sy + .5) / fieldHeight, lastFrame, lightColors, settings);
+        });
       },
       sample(points) {
         if (disposed || gl.isContextLost()) return null;

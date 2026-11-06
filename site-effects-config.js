@@ -7,6 +7,7 @@ export const siteEffectsConfig = {
       sky: '#acdfff',
       blue: '#4c8ee8',
       ice: '#dcefff',
+      navy: '#10294e',
     },
     darkPalette: {
       black: '#080b13',

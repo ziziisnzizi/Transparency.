@@ -151,7 +151,10 @@ const artifact = process.env.SITE_GRAIN_QA_OUTPUT || path.join(require('node:os'
         // bottom-left crop can be entirely clipped in a broad black/white field,
         // leaving no unclamped pairs; no alignment search or resampling is used.
         comparisons[key] = paired(entries[`dpr1_${budget}`], entries[`dpr2_${budget}`], 0, 0, [W, H]);
-        checks[key] = comparisons[key].samples > 4096 && comparisons[key].p99Error <= 1 && comparisons[key].maxError <= 2 && comparisons[key].correlation > .9;
+        // The lighter 70% white palette clips more channels in the shared
+        // physical crop. Hundreds of overlapping unclamped pairs still give a
+        // meaningful correlation without weakening the signal/error limits.
+        checks[key] = comparisons[key].samples > 512 && comparisons[key].p99Error <= 1 && comparisons[key].maxError <= 2 && comparisons[key].correlation > .9;
       }
       checks.configuredPhysicalGrainSize = Math.abs(config.grainCellSize - expectedCellSize) < .001;
       checks.noGLErrors = runs.every(run => run.on.glError === 0 && run.off.glError === 0);

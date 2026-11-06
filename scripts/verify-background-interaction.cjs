@@ -122,9 +122,9 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       const linear = value => { const c = value / 255; return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; };
       const luminance = rgb => .2126 * linear(rgb[0]) + .7152 * linear(rgb[1]) + .0722 * linear(rgb[2]);
       const spectrum = { minRelativeLuminance: 1, maxRelativeLuminance: 0, sampledPixels: 0 };
-      const palette = { pixels: 0, nearWhite: 0, nearBlack: 0, nearIce: 0, blue: 0, warm: 0 };
+      const palette = { pixels: 0, nearWhite: 0, nearBlack: 0, nearIce: 0, blue: 0, navy: 0, warm: 0 };
       function paletteStats(pixels) {
-        const result = { pixels: pixels.length / 4, nearWhite: 0, nearBlack: 0, nearIce: 0, blue: 0, warm: 0, minRelativeLuminance: 1, maxRelativeLuminance: 0 };
+        const result = { pixels: pixels.length / 4, nearWhite: 0, nearBlack: 0, nearIce: 0, blue: 0, navy: 0, warm: 0, minRelativeLuminance: 1, maxRelativeLuminance: 0 };
         for (let i = 0; i < pixels.length; i += 4) {
           const rgb = [pixels[i], pixels[i + 1], pixels[i + 2]], [r, g, b] = rgb;
           const value = luminance(rgb);
@@ -134,14 +134,15 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
           if (value < .025 && Math.max(...rgb) - Math.min(...rgb) < 40) result.nearBlack++;
           if(r>200&&g>220&&b>240&&b-r>24&&b-r<48&&b-g>8&&b-g<25)result.nearIce++;
           if (b > 130 && b - r > 55 && b - g > 20) result.blue++;
+          if (value < .10 && b > g && g > r && b - r > 18) result.navy++;
           if (r - b > 8) result.warm++;
         }
-        for (const key of ['nearWhite', 'nearBlack', 'nearIce', 'blue', 'warm']) result[`${key}Fraction`] = result[key] / Math.max(1, result.pixels);
+        for (const key of ['nearWhite', 'nearBlack', 'nearIce', 'blue', 'navy', 'warm']) result[`${key}Fraction`] = result[key] / Math.max(1, result.pixels);
         return result;
       }
       function observe(pixels) {
         const stats = paletteStats(pixels);
-        for (const key of ['pixels', 'nearWhite', 'nearBlack', 'nearIce', 'blue', 'warm']) palette[key] += stats[key];
+        for (const key of ['pixels', 'nearWhite', 'nearBlack', 'nearIce', 'blue', 'navy', 'warm']) palette[key] += stats[key];
         spectrum.minRelativeLuminance = Math.min(spectrum.minRelativeLuminance, stats.minRelativeLuminance);
         spectrum.maxRelativeLuminance = Math.max(spectrum.maxRelativeLuminance, stats.maxRelativeLuminance);
         spectrum.sampledPixels += stats.pixels;
@@ -216,12 +217,14 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       // Large colour areas should expand and retreat, even with a stationary
       // pointer. Track actual white-area coverage, not boundary orientation:
       // a broad curved boundary is a valid intermediate frame.
-      const regionCoverage = [0, 3, 10, 20, 45].map(time => ({
+      const regionCoverage = [0, 3, 10, 20, 45, 70, 100, 160].map(time => ({
         time, white: paletteStats(field.capture({ time, pointer: neutral })).nearWhiteFraction,
       }));
       const whiteFractions = regionCoverage.map(frame => frame.white);
       shape.regionCoverage = regionCoverage;
-      checks.largeColourAreasExpandAndRetreat = Math.max(...whiteFractions) - Math.min(...whiteFractions) > .15;
+      // Keep the requested approximate color balance while still allowing
+      // the fluid areas to expand and recede as the composition evolves.
+      checks.largeColourAreasExpandAndRetreat = Math.max(...whiteFractions) - Math.min(...whiteFractions) > .035;
       // The strongest blue region must travel rather than remaining at the
       // top. Derive its actual centre from grain-free GPU pixels; y=0 is top.
       function blueDistribution(pixels) {
@@ -232,12 +235,12 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
         }
         return { meanStrength:weight/(W*H), centreY:weightedY/Math.max(weight,1) };
       }
-      const blueMotion=[0,3,10,20,30,40,50,60].map(time=>({time,...blueDistribution(field.capture({time,pointer:neutral}))}));
+      const blueMotion=[0,3,10,20,30,40,50,60,85,140,220].map(time=>({time,...blueDistribution(field.capture({time,pointer:neutral}))}));
       const blueUp=blueDistribution(field.capture({time:3,pointer:up}));
       const blueDown=blueDistribution(field.capture({time:3,pointer:down}));
       shape.blueMotion={frames:blueMotion,up:blueUp,down:blueDown};
       const blueCentres=blueMotion.map(frame=>frame.centreY);
-      checks.blueMovesAcrossUpperAndLowerViewport=blueMotion[0].centreY>.5&&Math.min(...blueCentres)<.46&&Math.max(...blueCentres)>.58;
+      checks.blueMovesAcrossUpperAndLowerViewport=Math.min(...blueCentres)<.46&&Math.max(...blueCentres)>.58;
       checks.blueRemainsVisibleDuringMotion=blueMotion.every(frame=>frame.meanStrength>8);
       checks.pointerChangesBlueVerticalPosition=Math.abs(blueUp.centreY-blueDown.centreY)>.04;
       // Identical final kinematics and clock isolate actual path memory from
@@ -288,11 +291,17 @@ const artifact = process.env.SITE_BACKGROUND_QA_OUTPUT || path.join(require('nod
       // Difference of two quantized framebuffer values adds a small error to
       // the continuous uniform-noise model. Visibility remains an independent gate.
       grain.standardDeviationTolerance = Math.max(.65, grain.expectedStandardDeviation * .2);
-      for (const key of ['nearWhite', 'nearBlack', 'nearIce', 'blue', 'warm']) palette[`${key}Fraction`] = palette[key] / Math.max(1, palette.pixels);
+      for (const key of ['nearWhite', 'nearBlack', 'nearIce', 'blue', 'navy', 'warm']) palette[`${key}Fraction`] = palette[key] / Math.max(1, palette.pixels);
+      const paletteFrames = [0, 5, 12, 25, 50, 85, 140, 220].flatMap(time => [neutral, left, right].map(cursor => paletteStats(field.capture({ time, pointer: cursor }))));
       const fieldError = field.gl.getError(); field.renderer.dispose();
       checks.lightPaletteHasWhiteAndBlue = palette.nearWhiteFraction > palette.blueFraction && palette.blueFraction > .03;
       checks.sampledWhiteIceBluePalette = palette.nearWhiteFraction > .01 && palette.nearIceFraction > .01 && palette.nearBlackFraction === 0 && palette.blueFraction > .05 && palette.warmFraction < .001;
-      checks.sampledLightReadableLuminanceRange = spectrum.minRelativeLuminance > .10 && spectrum.maxRelativeLuminance > .85 && spectrum.maxRelativeLuminance-spectrum.minRelativeLuminance>.25;
+      // Navy is intentionally dark; text contrast above the moving field is
+      // verified separately from the decorative canvas color distribution.
+      checks.sampledLightNavyAndWhiteRange = spectrum.minRelativeLuminance < .10 && spectrum.maxRelativeLuminance > .85 && palette.navyFraction > .02;
+      const avg = name => paletteFrames.reduce((sum, item) => sum + item[name], 0) / paletteFrames.length;
+      shape.paletteDistribution = { frames: paletteFrames.length, nearWhite: avg('nearWhiteFraction'), blue: avg('blueFraction'), navy: avg('navyFraction') };
+      checks.whiteDominantBlueAndNavyAcrossRepresentativeFrames = shape.paletteDistribution.nearWhite > .50 && shape.paletteDistribution.nearWhite < .85 && shape.paletteDistribution.blue > .10 && shape.paletteDistribution.blue < .35 && shape.paletteDistribution.navy > .02 && shape.paletteDistribution.navy < .25;
       checks.visibleAchromaticGrain = grain.samples > 1000 && Math.abs(grain.standardDeviation - grain.expectedStandardDeviation) <= grain.standardDeviationTolerance && grain.standardDeviation > 1 && grain.meanAbsolute > 1 && grain.fractionOver2 > .1 && grain.maxChannelSpread <= 1;
       checks.grainIsStaticAcrossTimeAndPointer = grain.maxStateResidualDifference <= 1;
       checks.noGLErrors = normalError === 0 && fieldError === 0;

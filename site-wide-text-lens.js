@@ -12,10 +12,18 @@ const number = (value, fallback) => Number.isFinite(Number(value)) ? Number(valu
 const within = (point, rect) => point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
 const separation = (point, rect) => Math.hypot(Math.max(rect.left-point.x,0,point.x-rect.right),Math.max(rect.top-point.y,0,point.y-rect.bottom));
 
-function font(context, style) {
+function font(context, style, element) {
   context.font = `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
   context.textBaseline = 'alphabetic'; context.textAlign = 'left'; context.direction = style.direction;
-  context.fillStyle = style.color;
+  const inverse = Boolean(element?.closest('[data-ink-inverse]'));
+  context.fillStyle = inverse ? '#fff' : style.color;
+  const strokeWidth = parseFloat(style.webkitTextStrokeWidth) || 0;
+  context.lineWidth = Math.max(strokeWidth, .001);
+  context._textStrokeWidth = strokeWidth;
+  context.strokeStyle = style.webkitTextStrokeColor || 'transparent';
+  context.shadowColor = strokeWidth ? (inverse ? 'rgba(18,36,62,.9)' : 'rgba(255,255,255,.85)') : 'transparent';
+  context.shadowBlur = strokeWidth ? 4 : 0;
+  context.shadowOffsetX = context.shadowOffsetY = 0;
   if ('letterSpacing' in context) context.letterSpacing = style.letterSpacing === 'normal' ? '0px' : style.letterSpacing;
   if ('fontKerning' in context) context.fontKerning = style.fontKerning === 'none' ? 'none' : 'normal';
 }
@@ -66,7 +74,7 @@ function staticRuns(element, document, minFontSize) {
         let copy=fragment.text;
         if(style.textTransform==='uppercase')copy=copy.toLocaleUpperCase();
         if(style.textTransform==='lowercase')copy=copy.toLocaleLowerCase();
-        runs.push({copy,rect,style,opacity:opacityFor(node.parentElement)});
+        runs.push({copy,rect,style,element:node.parentElement,opacity:opacityFor(node.parentElement)});
       }
     }
   }
@@ -83,10 +91,12 @@ function rasterRuns(snapshot,ratio,document) {
   const context=image.getContext('2d');if(!context)return null;
   context.scale(ratio,ratio);
   for(const run of snapshot.runs){
-    font(context,run.style);context.globalAlpha=run.opacity;
+    font(context,run.style,run.element);context.globalAlpha=run.opacity;
     const metrics=context.measureText(run.copy);
     const ascent=metrics.fontBoundingBoxAscent??metrics.actualBoundingBoxAscent??parseFloat(run.style.fontSize)*.8;
-    context.fillText(run.copy,run.rect.left-snapshot.bounds.left,run.rect.top-snapshot.bounds.top+ascent);
+    const x=run.rect.left-snapshot.bounds.left,y=run.rect.top-snapshot.bounds.top+ascent;
+    if(context._textStrokeWidth>0)context.strokeText(run.copy,x,y);
+    context.fillText(run.copy,x,y);
   }
   return image;
 }
@@ -234,6 +244,7 @@ export function mountSiteWideTextLens(document,config={}) {
   listen(document,'load',event=>{if(event.target?.classList?.contains('product-texture'))schedule();},true);
   listen(view,'scroll',invalidate,{passive:true,capture:true});listen(view,'resize',invalidate,{passive:true});
   listen(document,'site-backdrop-ink',invalidate);
+  listen(document,'transitionend',event=>{if(event.propertyName==='color'&&event.target?.hasAttribute?.('data-backdrop-ink'))invalidate();});
   listen(document,'visibilitychange',()=>{view.cancelAnimationFrame(frame);frame=0;last=0;if(document.hidden){releaseActive();releaseProducts();rim.hidden=true;}else invalidate();});
   listen(coarse,'change',()=>{view.cancelAnimationFrame(frame);frame=0;releaseActive();releaseProducts();releaseRenderer();failed=false;opacity=reveal=0;rim.hidden=true;if(!coarse.matches)ensureRenderer();mode();dirtyPick=true;schedule();});
   listen(motion,'change',schedule);
