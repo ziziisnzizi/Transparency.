@@ -210,15 +210,70 @@ test('medical suitability, sensitive skin, and disease claims are never promised
   }
 });
 
-test('use instructions preserve the known amount without inventing drop counts or fixed shelf life', () => {
+test('provided use instructions keep drop count, shaking and scooping distinct from daily frequency', () => {
   for (const product of products) {
     const routine = getReferenceAnswer(product, '사용 순서와 사용량을 알려주세요.');
-    assert.ok(routine.answer.includes(product.amount));
     assert.match(routine.answer, /토너 T\.1.*세럼 S\.1.*크림 C\.1/);
-    assert.match(routine.answer, /정해진 방울 수.*하루 사용 횟수는 등록 자료에 없습니다/);
+    assert.ok(product.directions.every(direction => routine.answer.includes(direction)));
+    assert.ok(routine.sources.some(source => source.id === `${product.slug}:routine`));
+    assert.match(routine.answer, /하루 사용 횟수.*기재되지 않았습니다/);
+    assert.doesNotMatch(routine.answer, /정해진 방울 수.*없습니다/);
     const shelfLife = getReferenceAnswer(product, '개봉 후 언제까지 사용하나요?');
-    assert.match(shelfLife.answer, /확정된 개봉 후 사용기간.*없습니다/);
-    assert.match(shelfLife.answer, /임의로 6개월 등 기간을 정할 수 없습니다/);
+    assert.match(shelfLife.answer, /개봉 후 사용기간이 12개월/);
+    assert.match(shelfLife.answer, /용기와 포장에 표시된 날짜/);
+    assert.ok(shelfLife.sources.some(source => source.id === `${product.slug}:shelf-life`));
+  }
+  const serumRoutine = getReferenceAnswer(serum, '세럼은 몇 방울 써요?');
+  assert.match(serumRoutine.answer, /2~3방울/);
+  assert.doesNotMatch(serumRoutine.answer, /0\.5\s*mL/);
+  const tonerRoutine = getReferenceAnswer(findQuestionProduct('toner-t1'), '토너를 몇 번 흔들어야 하나요?');
+  assert.match(tonerRoutine.answer, /1~2번 흔듭니다/);
+  assert.match(tonerRoutine.answer, /흔드는 횟수이며, 덜어내는 횟수나 양이 아닙니다/);
+  assert.ok(tonerRoutine.sources.some(source => source.id === 'toner-t1:routine'));
+  const creamRoutine = getReferenceAnswer(findQuestionProduct('cream-c1'), '크림 사용법을 알려주세요.');
+  assert.match(creamRoutine.answer, /손가락으로 한 번 덜어냅니다/);
+  assert.doesNotMatch(creamRoutine.answer, /하루에 한 번/);
+});
+
+test('batch details are attributed to the supplied record, not every purchased product', () => {
+  for (const product of products) {
+    const result = getReferenceAnswer(product, '제조번호가 뭔가요?');
+    assert.ok(result.answer.includes(`LOT ${product.referenceBatch.lot}`));
+    assert.match(result.answer, /2027\.12\.17/);
+    assert.match(result.answer, /특정 제조분/);
+    assert.match(result.answer, /용기 표기를 우선 확인/);
+    assert.ok(result.sources.some(source => source.id === `${product.slug}:shelf-life`));
+  }
+});
+
+test('full ingredient questions cite the supplied ordered list without inventing unlisted concentrations', () => {
+  for (const product of products) {
+    const answer = getReferenceAnswer(product, '전성분을 알려주세요.');
+    assert.ok(product.fullIngredients.every(name => answer.answer.includes(name)));
+    assert.deepEqual(answer.sources.map(source => source.id), [`${product.slug}:full-ingredients`]);
+    assert.match(answer.answer, /함량이나 개인별 적합성을 확정할 수 없습니다/);
+  }
+  const cream = findQuestionProduct('cream-c1');
+  const match = getReferenceAnswer(cream, '세테아릴알코올이 들어 있나요?');
+  assert.match(match.answer, /전성분 목록에 세테아릴알코올.*기재되어 있습니다/);
+  assert.deepEqual(match.sources.map(source => source.id), ['cream-c1:full-ingredients']);
+  assert.match(match.answer, /별도 함량.*확정할 수 없습니다/);
+});
+
+test('stability-test statements do not become published reports or clinical efficacy claims', () => {
+  for (const product of products) {
+    const answer = getReferenceAnswer(product, '제품 안정성 시험은 무엇인가요?');
+    assert.ok(product.stabilityTests.every(name => answer.answer.includes(name)));
+    assert.match(answer.answer, /시험.*완료로 기재/);
+    assert.match(answer.answer, /기관·조건·결과 및 보고서는 제공되지 않았습니다/);
+    assert.match(answer.answer, /피부 안전성이나 완제품 효능을 입증하는 임상시험 결과가 아닙니다/);
+    assert.deepEqual(answer.sources.map(source => source.id), [`${product.slug}:stability`]);
+    const prompt = createGroundingPrompt(product);
+    assert.match(prompt.system, /흔드는 횟수나 한 번 덜어내는 동작을 하루 사용 횟수로 바꾸지/);
+    assert.match(prompt.system, /제품 안정성·용기 적합성.*피부 안전성·효능 임상/);
+    assert.ok(prompt.sources.some(source => source.id === `${product.slug}:stability`));
+    assert.ok(prompt.sources.some(source => source.id === `${product.slug}:full-ingredients`));
+    assert.doesNotMatch(JSON.stringify(prompt), /080-532-4132|서울 용산구 한강대로 100/);
   }
 });
 

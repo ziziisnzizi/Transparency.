@@ -10,6 +10,7 @@ import { siteEffectsConfig } from './site-effects-config.js';
 import { mountSiteTextEffects } from './site-text-effects.js';
 import { mountScrollPosition } from './scroll-position.js';
 import { renderDatePicker, bindDatePickers } from './date-picker.js';
+import { formatCalendarDate, getOpeningPeriod } from './product-period.js';
 
 
 
@@ -110,7 +111,7 @@ function productResults(list) {
 
 function matchingProducts() {
   const term = query.trim().toLocaleLowerCase('ko-KR');
-  return orderProductsByRoutine(products.filter(p => (filter === '전체' || filter === p.type) && `${p.name} ${p.en} ${p.ingredient} ${p.searchTerms}`.toLocaleLowerCase('ko-KR').includes(term)));
+  return orderProductsByRoutine(products.filter(p => (filter === '전체' || filter === p.type) && `${p.name} ${p.en} ${p.ingredient} ${p.searchTerms} ${(p.fullIngredients || []).join(" ")}`.toLocaleLowerCase('ko-KR').includes(term)));
 }
 
 function explore() {
@@ -119,7 +120,9 @@ function explore() {
 }
 
 function ingredientContent(p) {
-  return `<span class="eyebrow">01 / INGREDIENTS</span><h2>무엇을, 얼마나 담았는지.</h2><div class="ingredient-list">${p.ingredients.map(([name, role, reason]) => `<article><div class="ingredient-row"><h3>${name}</h3><span>${role}</span></div><p>${reason}</p></article>`).join('')}</div><div class="info-note"><strong>성분표 읽는 법</strong><br>주요 성분의 함량과 역할을 함께 확인하세요. 전체 성분은 제품의 전성분 표기를 참고해 주세요. 성분의 함량만으로 제품의 효능을 판단하기는 어렵습니다.</div><p class="data-date">정보 확인일 2026.10.27</p>`;
+  const fullIngredients = Array.isArray(p.fullIngredients) ? p.fullIngredients : [];
+  const fullList = fullIngredients.length ? `<section class="product-full-ingredients" aria-labelledby="full-ingredients-title"><span class="eyebrow">FULL INGREDIENTS</span><h3 id="full-ingredients-title">전성분</h3><p>제공된 자료의 전성분을 표기 순서대로 안내합니다.</p><p class="product-ingredients-text">${fullIngredients.map(escape).join(', ')}</p></section>` : '';
+  return `<span class="eyebrow">01 / INGREDIENTS</span><h2>무엇을, 얼마나 담았는지.</h2><div class="product-ingredient-heading"><h3>주요 성분과 함량</h3><p>제품의 주요 성분과 역할을 확인하세요.</p></div><div class="ingredient-list">${p.ingredients.map(([name, role, reason]) => `<article><div class="ingredient-row"><h3>${name}</h3><span>${role}</span></div><p>${reason}</p></article>`).join('')}</div>${fullList}<div class="info-note"><strong>성분표 읽는 법</strong><br>주요 성분의 함량과 역할, 전성분 목록을 함께 확인하세요. 성분의 함량만으로 제품의 효능을 판단하기는 어렵습니다.</div><p class="data-date">정보 확인일 2026.11.06</p>`;
 }
 
 function evidenceContent(p) {
@@ -128,11 +131,22 @@ function evidenceContent(p) {
 
 function usageContent(p) {
   const packageGuide = p.kind === 'cream' ? '용기와 뚜껑의 재질을 확인해 분리합니다.' : p.kind === 'toner' ? '용기와 캡, 라벨을 분리합니다.' : '병과 스포이트 캡, 라벨을 분리합니다.';
-  return `<span class="eyebrow">03 / HOW TO USE</span><h2>첫 사용부터, 마지막 한 방울까지.</h2><div class="guide-grid"><div><span class="number">01 / ROUTINE</span><h3>${p.routine}</h3><p>사용량 기준은 ${p.amount}입니다. 피부 상태와 사용감에 맞춰 양을 조절하고, 얼굴에 부드럽게 펴 바르세요.</p></div><div><span class="number">02 / STORAGE</span><h3>직사광선과 고온을 피해 보관</h3><p>사용 후 입구를 깨끗하게 유지하고 뚜껑을 닫아 보관합니다.</p></div><div><span class="number">03 / REMAINING</span><h3>용기에서 남은 양을 직접 확인</h3><p>투명 용기의 내용물 높이를 기준으로 확인합니다. 실제 사용량과 내부 잔류량에 따라 차이가 있을 수 있습니다.</p></div><div><span class="number">04 / DISPOSAL</span><h3>부품별 재질 확인 후 분리</h3><p>내용물을 최대한 사용한 뒤 ${packageGuide} 지역 수거 기준을 함께 확인해 주세요.</p></div></div><div class="info-note">사용 전 제품의 사용법과 주의사항을 확인하세요. 사용 중 피부에 이상이 생기면 사용을 멈추고 전문가와 상담하세요.</div>`;
+  const directions = Array.isArray(p.directions) ? p.directions : [];
+  const steps = directions.length ? `<ol class="product-usage-steps">${directions.map(step => `<li>${escape(step)}</li>`).join('')}</ol>` : '';
+  const tests = Array.isArray(p.stabilityTests) ? p.stabilityTests : [];
+  const testList = tests.length ? `<p class="product-test-list">${tests.map(escape).join(' · ')}</p>` : '';
+  const material = p.packaging?.material || '용기 표시 확인';
+  const recycling = p.packaging?.recycling ? `제공 자료에 ‘${escape(p.packaging.recycling)}’으로 기재` : '용기 표시 확인';
+  const afterOpening = Number.isInteger(p.openedPeriodMonths) ? `개봉 후 ${escape(p.openedPeriodMonths)}개월` : '용기 표시 확인';
+  const batch = p.referenceBatch;
+  const printedExpiry = batch && formatCalendarDate(batch.expiry);
+  const batchRows = batch?.lot && printedExpiry ? `<div><dt>제공 자료의 제조번호</dt><dd>LOT ${escape(batch.lot)}</dd></div><div><dt>제공 자료의 사용기한</dt><dd>${escape(printedExpiry)}</dd></div>` : '<div><dt>제조번호 · 사용기한</dt><dd>각 제품 용기에 표시된 내용을 확인해 주세요.</dd></div>';
+  const batchNote = batch?.lot && printedExpiry ? '제조번호와 사용기한은 제공 자료에 기재된 특정 제조분의 값입니다. 실제 제품은 다를 수 있으므로 용기에 표시된 내용을 우선 확인해 주세요.' : '사용기한은 개봉 후 사용기간과 함께 용기 표시를 확인해 주세요.';
+  return `<span class="eyebrow">03 / HOW TO USE</span><h2>첫 사용부터, 마지막 한 방울까지.</h2><div class="guide-grid"><div><span class="number">01 / ROUTINE</span><h3>${escape(p.routine)}</h3><p>제품의 사용 순서와 방법을 확인하세요.</p>${steps}</div><div><span class="number">02 / STORAGE</span><h3>직사광선을 피해 서늘한 곳에 보관</h3><p>사용 후 입구를 깨끗하게 유지하고 뚜껑을 닫아 보관합니다.</p></div><div><span class="number">03 / REMAINING</span><h3>용기에서 남은 양을 직접 확인</h3><p>투명 용기의 내용물 높이를 기준으로 확인합니다. 실제 사용량과 내부 잔류량에 따라 차이가 있을 수 있습니다.</p></div><div><span class="number">04 / DISPOSAL</span><h3>부품별 재질 확인 후 분리</h3><p>내용물을 최대한 사용한 뒤 ${packageGuide} 지역 수거 기준을 함께 확인해 주세요.</p></div></div><section class="product-precautions" aria-labelledby="product-precautions-title"><span class="eyebrow">PRECAUTIONS</span><h3 id="product-precautions-title">사용할 때 주의해 주세요.</h3><ul><li>사용 부위에 붉은 반점, 부어오름 또는 가려움 등의 이상 증상이나 부작용이 있으면 사용을 멈추고 전문의와 상담해 주세요.</li><li>상처가 있는 부위에는 사용을 자제해 주세요.</li><li>직사광선을 피해 서늘한 곳에 보관해 주세요.</li></ul></section><section class="product-disclosure" aria-labelledby="product-disclosure-title"><span class="eyebrow">PRODUCT INFORMATION</span><h3 id="product-disclosure-title">제품 표시 정보</h3><dl><div><dt>화장품 명칭</dt><dd>트랜스페어런시 ${escape(p.name)}</dd></div><div><dt>영업자 상호</dt><dd>(주) 트랜스페어런시</dd></div><div><dt>내용량</dt><dd>${escape(p.volume)}</dd></div><div><dt>개봉 후 사용기간</dt><dd>${afterOpening}</dd></div>${batchRows}<div><dt>용기 소재</dt><dd>${escape(material)}</dd></div><div><dt>재활용</dt><dd>${recycling}</dd></div></dl><p class="product-disclosure-note">${batchNote}</p><details class="product-stability"><summary>안정성 시험 안내</summary><div class="product-stability-body"><p>제공된 자료에 다음 시험이 완료된 것으로 기재되어 있습니다.</p>${testList}<p>시험 기관·조건·보고서는 제공되지 않았습니다. 제품의 효능을 확인하는 인체 적용 시험과는 별개입니다.</p></div></details><p class="product-disclosure-note">본 제품에 이상이 있을 경우 공정거래위원회 고시 소비자분쟁 해결기준에 의거하여 보상해 드립니다.</p></section>`;
 }
 
 function questionContent(p) {
-  const faqs = [['어떤 피부 타입을 위한 제품인가요?', '매일의 수분 관리를 위한 제품입니다. 피부 타입과 현재 피부 상태에 맞춰 성분과 사용감을 확인해 주세요.'], ['1회 사용량은 얼마인가요?', `사용량 기준은 ${p.amount}입니다. 피부 상태와 함께 사용하는 제품에 맞춰 양을 조절해 주세요.`], ['민감한 피부도 사용할 수 있나요?', '피부 상태에 따라 사용감이 다를 수 있습니다. 민감성 피부 대상 시험 자료는 공개되어 있지 않으므로, 사용 전 성분을 확인하고 작은 부위에 먼저 사용해 보세요.'], ['개봉 후 언제까지 사용하나요?', '용기와 패키지에 표시된 사용기한 및 개봉 후 사용기간을 확인하세요. 내 제품에 개봉일을 기록해 관리할 수 있습니다.']];
+  const faqs = [['어떤 피부 타입을 위한 제품인가요?', '매일의 수분 관리를 위한 제품입니다. 피부 타입과 현재 피부 상태에 맞춰 성분과 사용감을 확인해 주세요.'], ['어떻게 사용하나요?', (p.directions || []).join(' ') || `사용량 기준은 ${p.amount}입니다. 피부 상태와 함께 사용하는 제품에 맞춰 양을 조절해 주세요.`], ['민감한 피부도 사용할 수 있나요?', '피부 상태에 따라 사용감이 다를 수 있습니다. 민감성 피부 대상 시험 자료는 공개되어 있지 않으므로, 사용 전 성분을 확인하고 작은 부위에 먼저 사용해 보세요.'], ['개봉 후 언제까지 사용하나요?', Number.isInteger(p.openedPeriodMonths) ? `개봉 후 사용기간은 ${p.openedPeriodMonths}개월입니다. 용기에 표시된 사용기한도 함께 확인하세요. 내 제품에 개봉일을 기록해 관리할 수 있습니다.` : '용기에 표시된 사용기한과 개봉 후 사용기간을 확인하세요. 내 제품에 개봉일을 기록해 관리할 수 있습니다.']];
   return `<span class="eyebrow">04 / QUESTIONS</span><h2>궁금한 것은, 남김없이.</h2>${renderProductQuestions(p)}<h3 class="faq-title">자주 묻는 질문</h3>${faqs.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('')}<div class="info-note">성분과 함량은 ‘성분·함량’, 자료의 출처와 적용 범위는 ‘효능·근거’에서 확인할 수 있습니다.</div>`;
 }
 
@@ -145,7 +159,8 @@ function detail() {
 function my() {
   return `<section class="section page-section my-products-page"><div class="eyebrow">MY PRODUCTS</div><div class="section-head"><div><h1 class="page-title">나의 제품.<br>나의 사용 기록.</h1><p class="page-intro">개봉일부터 마지막 한 방울까지, 한눈에.</p></div><button class="dark" data-page="제품 탐색">제품 등록하기 <span aria-hidden="true">＋</span></button></div><div class="shelf-summary"><span>전체 <strong>${saved.length}</strong></span><span>사용 중 <strong>${saved.filter(s => !s.done && s.date).length}</strong></span><span>미개봉 <strong>${saved.filter(s => !s.done && !s.date).length}</strong></span><span>사용 완료 <strong>${saved.filter(s => s.done).length}</strong></span></div><div class="my-list">${saved.map((s, i) => {
     const p = products.find(p => p.id === s.id);
-    return `<article class="my-row"><div class="my-product-image"><button type="button" class="my-product-open" data-id="${p.id}" aria-label="${p.name} 정보 보기"></button>${bottle(p)}</div><div class="my-product-copy"><span class="status-badge">${s.done ? '사용 완료' : s.date ? '사용 중' : '미개봉'}</span><h2>${p.name}</h2><span class="product-english">${p.en} / ${p.volume}</span>${renderDatePicker(i, s.date, p.name)}<span class="date-hint">개봉일을 비워두면 미개봉으로 기록됩니다.</span></div><div class="my-actions"><button type="button" data-done="${i}" aria-label="${p.name} ${s.done ? '사용 중으로 변경' : '사용 완료'}">${s.done ? '사용 중으로 변경' : '사용 완료'} <span aria-hidden="true">${s.done ? '↺' : '✓'}</span></button><button type="button" data-delete="${i}" class="delete-btn" aria-label="${p.name} 등록 삭제">등록 삭제</button></div></article>`;
+    const openingPeriod = getOpeningPeriod(s.date, p.openedPeriodMonths);
+    return `<article class="my-row"><div class="my-product-image"><button type="button" class="my-product-open" data-id="${p.id}" aria-label="${p.name} 정보 보기"></button>${bottle(p)}</div><div class="my-product-copy"><span class="status-badge">${s.done ? '사용 완료' : s.date ? '사용 중' : '미개봉'}</span><h2>${p.name}</h2><span class="product-english">${p.en} / ${p.volume}</span>${renderDatePicker(i, s.date, p.name)}${openingPeriod ? `<div class="product-opening-period"><span>${escape(openingPeriod.label)}</span><small>용기에 표시된 실제 사용기한도 함께 확인해 주세요.</small></div>` : `<span class="date-hint">개봉일을 비워두면 미개봉으로 기록됩니다.</span>`}</div><div class="my-actions"><button type="button" data-done="${i}" aria-label="${p.name} ${s.done ? '사용 중으로 변경' : '사용 완료'}">${s.done ? '사용 중으로 변경' : '사용 완료'} <span aria-hidden="true">${s.done ? '↺' : '✓'}</span></button><button type="button" data-delete="${i}" class="delete-btn" aria-label="${p.name} 등록 삭제">등록 삭제</button></div></article>`;
   }).join('') || '<div class="empty"><div class="empty-mark" aria-hidden="true">＋</div><span class="eyebrow">YOUR DAILY RECORD</span><h2>첫 제품을 등록해 보세요.</h2><p>개봉일부터 사용 완료까지,<br>나의 제품을 투명하게 기록하세요.</p><button data-page="제품 탐색" class="text-btn">등록할 제품 찾기 ↗</button></div>'}</div><p class="storage-note">제품 기록은 현재 사용 중인 브라우저에 저장됩니다.</p></section>`;
 }
 
