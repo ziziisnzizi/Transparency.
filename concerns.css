@@ -267,10 +267,12 @@
 .concerns-page .concern-news-unavailable > button,
 .concerns-page .concern-ai-sources a { font-size: 14px; line-height: 1.65; }
 .concerns-page .concern-ai-sources h4 { font-size: 15px; }
+.concerns-page .concern-catalog-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
 @media (max-width: 750px) {
   .concerns-page .concern-results { padding: 21px 17px; border-radius: 22px; }
   .concerns-page .concern-result-heading > h2 { font-size: 23px; }
   .concerns-page .concern-section-head > h3 { font-size: 21px; }
+  .concerns-page .concern-catalog-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-transparency: reduce) {
   .concerns-page .concern-results { background: #f9fcff; }

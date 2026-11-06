@@ -56,10 +56,38 @@ test('invalid input is not truncated into a valid concern and cannot force match
     const result = analyzeConcern(query);
     assert.equal(result.status, 'unknown');
     assert.deepEqual(result.recommendations, []);
+    assert.deepEqual(result.catalog, []);
     assert.deepEqual(result.research, []);
     assert.deepEqual(result.externalLinks, []);
     assert.ok(result.validationError);
   }
+});
+
+test('every valid concern includes the published catalog separately from suitability matches', () => {
+  for (const query of [
+    '세안 후 피부가 건조해요',
+    '피부에 좁쌀 여드름이 생겼어요',
+    '화장품을 바르니 빨갛게 붓고 가려워요',
+    '판테놀 알레르기가 있어요',
+    '판테놀 없는 제품을 찾아줘',
+    '비건 인증 제품을 추천해줘',
+    '나이아신아마이드가 들어간 토너를 추천해줘',
+    '레미콘',
+    '다음 주 날씨가 궁금해요',
+  ]) {
+    const result = analyzeConcern(query);
+    assert.deepEqual(result.catalog.map(product => product.slug), products.map(product => product.slug), query);
+    for (const product of result.catalog) assert.ok(products.includes(product), query);
+  }
+
+  for (const query of ['피부에 좁쌀 여드름이 생겼어요', '판테놀 알레르기가 있어요', '판테놀 없는 제품을 찾아줘', '레미콘']) {
+    const result = analyzeConcern(query);
+    assert.deepEqual(result.recommendations, [], query);
+    assert.equal(result.catalog.length, products.length, query);
+  }
+  const catalog = analyzeConcern('피부가 건조해요').catalog;
+  catalog.pop();
+  assert.equal(analyzeConcern('피부가 건조해요').catalog.length, products.length, 'the returned catalog array is independent');
 });
 
 test('recognized concerns use actual product roles instead of recommending every product for everything', () => {

@@ -146,10 +146,15 @@ function aiContent() {
     ${ai.status === 'loading' ? '<div class="concern-ai-state" role="status" aria-live="polite"><span class="concern-loading-dot" aria-hidden="true"></span><p>관련 웹 자료를 찾고 내용을 정리하고 있습니다.</p><button type="button" data-concern-ai-cancel>요청 중단</button></div>' : ai.status === 'ok' ? `<div class="concern-ai-answer"><div class="concern-ai-label">${ai.sourceMode === 'research' ? '공개 연구자료 검색 기반 AI 요약' : 'Google 웹 검색 기반 AI 요약'}</div>${ai.sourceMode === 'research' ? '<p class="concern-ai-origin">Europe PMC에서 찾은 공개 연구자료를 바탕으로 정리합니다.</p>' : ''}<p>${escape(ai.answer)}</p>${ai.sourceMode === 'google' ? '<div class="concern-ai-suggestions" data-concern-ai-suggestions aria-label="Google 검색 제안"></div>' : ''}<div class="concern-ai-sources"><h4>${ai.sourceMode === 'research' ? '참고한 공개 연구자료' : '참고한 웹 자료'}</h4><ul>${sources.map(source => `<li><a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">${escape(source.title)} <span aria-hidden="true">↗</span><span class="sr-only"> (새 창)</span></a></li>`).join('')}</ul></div><p class="concern-ai-limit">AI의 요약은 오류가 있을 수 있으며, 진단이나 제품의 효과를 입증하는 결과가 아닙니다.</p></div>` : `<div class="concern-ai-state concern-ai-unavailable" role="status" aria-live="polite"><p>${escape(ai.status === 'idle' ? 'AI 웹 자료 검색은 질문 내용을 Gemini와 Google 검색에 전달합니다.' : ai.message || '지금 AI 웹 자료를 확인하지 못했습니다. 기존 자료와 제품 정보는 계속 볼 수 있습니다.')}</p><button type="button" data-concern-ai-retry>${ai.status === 'idle' ? 'AI 웹 자료 확인하기' : 'AI 웹 자료 다시 찾기'} <span aria-hidden="true">↗</span></button></div>`}`;
 }
 
+function productCatalog(result) {
+  const products = list(result.catalog).filter(product => product?.slug);
+  if (!products.length) return '';
+  return `<section class="concern-section concern-products concern-catalog" aria-labelledby="concern-products-heading"><div class="concern-section-head"><span class="eyebrow">04 / OUR PRODUCTS</span><h3 id="concern-products-heading">자사 제품 정보 살펴보기</h3><p>아래는 제품의 일반 정보입니다. 질문하신 조건에 맞거나 피부에 적합하다고 확인한 결과는 아니며, 질환의 치료 효과를 의미하지 않습니다. 알려진 알레르기 성분이 포함된 제품은 사용하지 마시고 전성분을 확인해 주세요.</p></div><div class="concern-product-grid concern-catalog-grid">${products.map(product => `<article class="concern-product"><span class="concern-choice-label">제품 정보</span><div class="concern-product-head"><div><span>${escape(product.type)} · ${escape(product.volume)}</span><h4>${escape(product.name)}</h4></div>${product.image ? `<img src="${escape(product.image)}" alt="" width="72" height="88" loading="lazy">` : ''}</div><dl><div><dt>제형</dt><dd>${escape(product.texture)}</dd></div><div><dt>주요 성분·함량</dt><dd>${escape(product.ingredient)}</dd></div></dl><div class="concern-product-actions"><button type="button" data-concern-product="${escape(product.slug)}">제품 정보·전성분 확인 <span aria-hidden="true">↗</span></button></div></article>`).join('')}</div></section>`;
+}
+
 function recommendations(result) {
-  if (result.status !== 'matched') return '';
-  const entries = list(result.recommendations).filter(entry => entry.product?.slug);
-  if (!entries.length) return '';
+  const entries = result.status === 'matched' ? list(result.recommendations).filter(entry => entry.product?.slug) : [];
+  if (!entries.length) return productCatalog(result);
   const primary = entries.find(entry => entry.primary) || entries[0];
   const secondary = entries.find(entry => entry !== primary);
   return `<section class="concern-section concern-products" aria-labelledby="concern-products-heading"><div class="concern-section-head"><span class="eyebrow">04 / A CLOSER CHOICE</span><h3 id="concern-products-heading">고민과 가까운 선택</h3><p>확인한 성분의 역할과 제형을 기준으로 살펴보세요. 나에게 맞는지는 실제 사용 조건에 따라 다를 수 있습니다.</p></div><div class="concern-product-grid">${[primary, secondary].filter(Boolean).map((entry, index) => {
