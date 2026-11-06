@@ -113,6 +113,53 @@ test('an analogy with a prohibited product claim gets one safer regeneration und
   assert(!JSON.stringify(payloads[1]).includes('사랑은 토너 T.1로 피부 보습을 채워줘요.'));
 });
 
+test('unverified weather assertions are regenerated without inventing forecasts', async () => {
+  for (const analogy of [
+    '내일의 맑은 하늘은 토너 T.1처럼 투명해요.',
+    '오늘은 비가 와서 토너 T.1처럼 차분해요.',
+    '모레 기온은 토너 T.1처럼 차분해요.',
+    '내일은 25도라서 토너 T.1이 생각나요.',
+    '이번 주에는 흐린 날씨가 토너 T.1을 닮았어요.',
+    'Tomorrow will be sunny like 토너 T.1.',
+  ]) {
+    const payloads = [];
+    const handler = createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async (_url, options) => {
+      payloads.push(JSON.parse(options.body));
+      return response(payloads.length === 1 ? parsed(analogy) : parsed('날씨 이야기는 토너 T.1처럼 맑은 순간을 떠올리게 해요.'));
+    } });
+    const result = await invoke(handler, request({ query: '내일 날씨 어때?' }));
+    assert.equal(result.body.status, 'ok', analogy);
+    assert.equal(payloads.length, 2, analogy);
+    assert.match(payloads[1].systemInstruction.parts[0].text, /확인하지 않은 날씨를 단정/);
+    assert.ok(!result.body.message.includes(analogy), analogy);
+  }
+});
+
+test('repeated fabricated weather is not shown, while a timeless weather image is allowed', async () => {
+  let calls = 0;
+  const bad = createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => { calls++; return response(parsed('내일의 맑은 하늘은 토너 T.1처럼 투명해요.')); } });
+  const rejected = await invoke(bad, request({ query: '날씨가 궁금해요' }));
+  assert.equal(calls, 2);
+  assert.equal(rejected.status, 503);
+  assert.equal(rejected.body.reason, 'provider_unverified_weather');
+  const good = createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response(parsed('맑은 하늘을 떠올리면 토너 T.1처럼 편안한 순간이 생각나요.')) });
+  const accepted = await invoke(good, request({ query: '날씨가 궁금해요' }));
+  assert.equal(accepted.body.status, 'ok');
+});
+
+test('food-topic retries avoid consumption words and keep the product non-edible', async () => {
+  const payloads = [];
+  const handler = createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async (_url, options) => {
+    payloads.push(JSON.parse(options.body));
+    return response(payloads.length === 1 ? parsed('토너 T.1을 먹으며 오늘을 시작해요.') : parsed('오늘의 작은 선택은 토너 T.1처럼 맑게 시작해요.'));
+  } });
+  const result = await invoke(handler, request({ query: '오늘 뭐 먹지?' }));
+  assert.equal(result.body.status, 'ok');
+  assert.equal(payloads.length, 2);
+  assert.match(payloads[1].systemInstruction.parts[0].text, /먹·마시 단어를 쓰지 말고 메뉴 선택의 분위기만/);
+  assert.ok(!/먹|마시/.test(result.body.message));
+});
+
 test('a clear Korean object-particle mistake is regenerated while valid words are preserved', async () => {
   const payloads = [];
   const handler = createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async (_url, options) => { payloads.push(JSON.parse(options.body)); return response(payloads.length === 1 ? parsed('사랑은 토너 T.1처럼 온기을 전해요.') : parsed('사랑은 토너 T.1처럼 온기를 전해요.')); } });
