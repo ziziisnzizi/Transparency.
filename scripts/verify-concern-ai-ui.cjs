@@ -29,13 +29,13 @@ const safeSuggestions = process.env.CONCERN_AI_SUGGESTION_FIXTURE ? fs.readFileS
         const body = route.request().postDataJSON();
         requests.push(body);
         await new Promise(resolve => setTimeout(resolve, 1200));
-        await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', answer: '검증용 웹 자료 요약입니다. <img src=x onerror="window.__unsafe=1">', sources: [{ title: '신뢰할 수 있는 출처', url: 'https://pubmed.ncbi.nlm.nih.gov/123/' }], searchQueries: ['skin hydration'], searchSuggestions: safeSuggestions }) }).catch(() => {});
+        await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', sourceMode: 'google', answer: '검증용 웹 자료 요약입니다. <img src=x onerror="window.__unsafe=1">', sources: [{ title: '신뢰할 수 있는 출처', url: 'https://pubmed.ncbi.nlm.nih.gov/123/' }], searchQueries: ['skin hydration'], searchSuggestions: safeSuggestions }) }).catch(() => {});
       });
       await page.goto(`${base}?view=concerns`, { waitUntil: 'domcontentloaded' });
       const hint = await page.locator('#concern-search-hint').innerText();
       assert.match(hint, /Gemini/); assert.match(hint, /Google/); assert.match(hint, /30일/); assert.match(hint, /민감/);
       await page.locator('#concern-query').fill('세안 후 피부가 당겨요');
-      await page.locator('[data-concern-form] button[type="submit"]').click();
+      await page.locator('[data-concern-form] button[type="submit"]').click({ noWaitAfter: true });
       await page.locator('[data-concern-ai-cancel]').waitFor();
       assert.equal(requests.length, 1); assert.deepEqual(requests[0], { query: '세안 후 피부가 당겨요' });
       await page.locator('.concern-ai-answer').waitFor();
@@ -47,6 +47,7 @@ const safeSuggestions = process.env.CONCERN_AI_SUGGESTION_FIXTURE ? fs.readFileS
       assert.equal(await sources.first().getAttribute('href'), 'https://pubmed.ncbi.nlm.nih.gov/123/');
       assert.equal(await sources.first().getAttribute('rel'), 'noopener noreferrer');
       assert.equal(await page.evaluate(() => !!document.querySelector('[data-concern-ai-suggestions]')?.shadowRoot?.querySelector('a')), true, 'Google search suggestions must be displayed');
+      assert.match(await page.locator('.concern-ai-label').innerText(), /Google 웹 검색 기반 AI 요약/);
       assert.equal(await page.evaluate(() => {
         const baseResult = document.querySelector('.concern-result-heading');
         const ai = document.querySelector('#concern-ai');
@@ -72,25 +73,25 @@ const safeSuggestions = process.env.CONCERN_AI_SUGGESTION_FIXTURE ? fs.readFileS
     await page.route('**/api/concern-ai', async route => {
       const body = route.request().postDataJSON(); calls++;
       const currentCall = calls;
-      await new Promise(resolve => setTimeout(resolve, currentCall === 1 || currentCall === 3 ? 900 : 100));
-      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', answer: body.query.includes('당겨요') ? '당김에 대한 결과' : '현재 질문의 결과', sources: [{ title: '관련 원문', url: 'https://pubmed.ncbi.nlm.nih.gov/1/' }], searchQueries: [], searchSuggestions: safeSuggestions }) }).catch(() => {});
+      await new Promise(resolve => setTimeout(resolve, currentCall === 1 || currentCall === 3 ? 1800 : 100));
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', sourceMode: 'google', answer: body.query.includes('당겨요') ? '당김에 대한 결과' : '현재 질문의 결과', sources: [{ title: '관련 원문', url: 'https://pubmed.ncbi.nlm.nih.gov/1/' }], searchQueries: [], searchSuggestions: safeSuggestions }) }).catch(() => {});
     });
     await page.goto(`${base}?view=concerns`, { waitUntil: 'domcontentloaded' });
     await page.locator('#concern-query').fill('세안 후 피부가 당겨요');
-    await page.locator('[data-concern-form] button[type="submit"]').click();
-    await page.locator('[data-concern-ai-cancel]').click();
+    await page.locator('[data-concern-form] button[type="submit"]').click({ noWaitAfter: true });
+    await page.locator('[data-concern-ai-cancel]').click({ noWaitAfter: true });
     assert((await page.locator('#concern-ai').innerText()).includes('취소'));
     await page.locator('[data-concern-ai-retry]').click();
     await page.locator('.concern-ai-answer').waitFor();
     assert((await page.locator('.concern-ai-answer').innerText()).includes('당김에 대한 결과'));
     await page.locator('#concern-query').fill('세안 후 피부가 당겨요');
-    await page.locator('[data-concern-form] button[type="submit"]').click();
+    await page.locator('[data-concern-form] button[type="submit"]').click({ noWaitAfter: true });
     await page.locator('[data-concern-ai-cancel]').waitFor();
     await page.locator('#concern-query').fill('가벼운 제형을 찾고 싶어요');
-    await page.locator('[data-concern-form] button[type="submit"]').click();
+    await page.locator('[data-concern-form] button[type="submit"]').click({ noWaitAfter: true });
     await page.locator('.concern-ai-answer').waitFor();
     assert((await page.locator('.concern-ai-answer').innerText()).includes('현재 질문의 결과'));
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1900);
     assert(!(await page.locator('#concern-ai').innerText()).includes('당김에 대한 결과'));
     assert.equal(calls, 4);
     await context.close();
@@ -99,21 +100,54 @@ const safeSuggestions = process.env.CONCERN_AI_SUGGESTION_FIXTURE ? fs.readFileS
     // suggestions block. The entire generated response must be withheld.
     const hostile = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
     const hostilePage = await hostile.newPage();
-    await hostilePage.route('**/api/concern-ai', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', answer: '표시되면 안 되는 결과', sources: [{ title: '원문', url: 'https://pubmed.ncbi.nlm.nih.gov/1/' }], searchQueries: [], searchSuggestions: '<div><img src=x onerror="window.__suggestionUnsafe=1"><a href="https://www.google.com/search?q=skin">Google 검색</a></div>' }) }));
+    await hostilePage.route('**/api/concern-ai', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', sourceMode: 'google', answer: '표시되면 안 되는 결과', sources: [{ title: '원문', url: 'https://pubmed.ncbi.nlm.nih.gov/1/' }], searchQueries: [], searchSuggestions: '<div><img src=x onerror="window.__suggestionUnsafe=1"><a href="https://www.google.com/search?q=skin">Google 검색</a></div>' }) }));
     await hostilePage.route('**/api/concern-news?*', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'unavailable', articles: [] }) }));
     await hostilePage.goto(`${base}?view=concerns`, { waitUntil: 'domcontentloaded' });
     await hostilePage.locator('#concern-query').fill('세안 후 피부가 당겨요');
-    await hostilePage.locator('[data-concern-form] button[type="submit"]').click();
+    await hostilePage.locator('[data-concern-form] button[type="submit"]').click({ noWaitAfter: true });
     await hostilePage.locator('[data-concern-ai-retry]').waitFor();
     assert(!(await hostilePage.locator('#concern-ai').innerText()).includes('표시되면 안 되는 결과'));
     assert.equal(await hostilePage.evaluate(() => window.__suggestionUnsafe), undefined);
     await hostilePage.unroute('**/api/concern-ai');
-    await hostilePage.route('**/api/concern-ai', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', answer: '안전하지 않은 출처의 결과', sources: [{ title: '위험한 주소', url: 'javascript:alert(1)' }], searchQueries: [], searchSuggestions: safeSuggestions }) }));
+    await hostilePage.route('**/api/concern-ai', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', sourceMode: 'google', answer: '안전하지 않은 출처의 결과', sources: [{ title: '위험한 주소', url: 'javascript:alert(1)' }], searchQueries: [], searchSuggestions: safeSuggestions }) }));
     await hostilePage.locator('#concern-query').fill('피부가 건조해요');
-    await hostilePage.locator('[data-concern-form] button[type="submit"]').click();
+    await hostilePage.locator('[data-concern-form] button[type="submit"]').click({ noWaitAfter: true });
     await hostilePage.locator('[data-concern-ai-retry]').waitFor();
     assert(!(await hostilePage.locator('#concern-ai').innerText()).includes('안전하지 않은 출처의 결과'));
     await hostile.close();
+
+    // Research fallback has its own provenance and must never masquerade as
+    // Google search; each mode must provide the evidence it promises.
+    const modesContext = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    const modesPage = await modesContext.newPage();
+    let response = { status: 'ok', sourceMode: 'research', answer: '공개 연구자료 요약', sources: [{ title: '공개 연구 논문', url: 'https://europepmc.org/article/MED/123' }], searchQueries: [] };
+    await modesPage.route('**/api/concern-ai', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify(response) }));
+    await modesPage.route('**/api/concern-news?*', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'unavailable', articles: [] }) }));
+    await modesPage.goto(`${base}?view=concerns`, { waitUntil: 'domcontentloaded' });
+    const submitModeQuestion = async query => {
+      await modesPage.locator('#concern-query').fill(query);
+      await modesPage.locator('[data-concern-form] button[type="submit"]').click({ noWaitAfter: true });
+    };
+    await submitModeQuestion('피부가 건조해요');
+    await modesPage.locator('.concern-ai-answer').waitFor();
+    assert.match(await modesPage.locator('.concern-ai-label').innerText(), /공개 연구자료 검색 기반 AI 요약/);
+    assert.match(await modesPage.locator('#concern-ai').innerText(), /Europe PMC에서 찾은 공개 연구자료/);
+    assert.equal(await modesPage.locator('.concern-ai-sources a').first().getAttribute('href'), 'https://europepmc.org/article/MED/123');
+    assert.equal(await modesPage.locator('[data-concern-ai-suggestions]').count(), 0);
+    assert.equal(await modesPage.evaluate(() => document.documentElement.scrollWidth), 390);
+    response = { status: 'ok', sourceMode: 'research', answer: '출처 없는 결과', sources: [] };
+    await submitModeQuestion('피부가 당겨요');
+    await modesPage.locator('[data-concern-ai-retry]').waitFor();
+    assert(!(await modesPage.locator('#concern-ai').innerText()).includes('출처 없는 결과'));
+    response = { status: 'ok', sourceMode: 'google', answer: '제안 없는 결과', sources: [{ title: '원문', url: 'https://pubmed.ncbi.nlm.nih.gov/1/' }] };
+    await submitModeQuestion('보습이 궁금해요');
+    await modesPage.locator('[data-concern-ai-retry]').waitFor();
+    assert(!(await modesPage.locator('#concern-ai').innerText()).includes('제안 없는 결과'));
+    response = { status: 'ok', sourceMode: 'research', answer: '위험한 링크 결과', sources: [{ title: '위험', url: 'javascript:alert(1)' }] };
+    await submitModeQuestion('건조함이 궁금해요');
+    await modesPage.locator('[data-concern-ai-retry]').waitFor();
+    assert(!(await modesPage.locator('#concern-ai').innerText()).includes('위험한 링크 결과'));
+    await modesContext.close();
 
     // A locally written review must first show the external-transfer notice;
     // only the explicit AI search button may transmit it.
@@ -136,7 +170,7 @@ const safeSuggestions = process.env.CONCERN_AI_SUGGESTION_FIXTURE ? fs.readFileS
     assert(await review.locator('.concern-result-heading').isVisible());
     await reviewContext.close();
 
-    console.log(JSON.stringify({ passed: true, layouts: results, staleResponse: true, cancellation: true, unsafeContent: true, suggestionsSafety: true, reviewConsent: true }));
+    console.log(JSON.stringify({ passed: true, layouts: results, staleResponse: true, cancellation: true, unsafeContent: true, suggestionsSafety: true, researchFallback: true, reviewConsent: true }));
   } finally {
     await browser?.close();
     await server.close();

@@ -1,6 +1,7 @@
 import { validateConcernQuery } from '../lib/concern-search.js';
 import { geminiConfiguration } from '../lib/ai-provider.js';
 import { ConcernAiError, searchConcernWithGemini } from '../lib/concern-ai-provider.js';
+import { searchConcernResearch } from '../lib/concern-research-provider.js';
 
 export const MAX_CONCERN_AI_REQUEST_BYTES = 4096;
 const unavailable = '지금 웹 자료를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.';
@@ -73,10 +74,19 @@ export function createConcernAiHandler({ env = process.env, fetchImpl = globalTh
       if (current.count >= rateLimit || (!buckets.has(address) && buckets.size >= 2000)) return send(res, 429, { status: 'unavailable', error: '요청이 많습니다. 잠시 후 다시 시도해 주세요.' }, { 'Retry-After': String(Math.max(1, Math.ceil((current.expires - time) / 1000))) });
       current.count++; buckets.set(address, current);
       const controller = new AbortController();
+      const started = performance.now();
       const disconnect = () => { if (!res.writableEnded) controller.abort(); };
       res.once?.('close', disconnect);
       try {
-        const result = await searchConcernWithGemini(query, { apiKey: key, model, fetchImpl, timeoutMs, signal: controller.signal });
+        let result;
+        try {
+          result = await searchConcernWithGemini(query, { apiKey: key, model, fetchImpl, timeoutMs: Math.min(timeoutMs, 20000), signal: controller.signal });
+        } catch (error) {
+          if (!(error instanceof ConcernAiError) || error.issue !== 'provider_http_429' || controller.signal.aborted) throw error;
+          const remaining = timeoutMs - (performance.now() - started);
+          if (remaining < 1000) throw error;
+          result = await searchConcernResearch(query, { apiKey: key, fetchImpl, timeoutMs: remaining, signal: controller.signal });
+        }
         return send(res, 200, result);
       } catch (error) {
         // Do not log question, provider responses or credentials.

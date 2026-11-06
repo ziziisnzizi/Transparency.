@@ -97,10 +97,43 @@ test('missing keys, service failures and rate limits leave the web-search result
 test('provider status codes are reported only as fixed diagnostic categories', async () => {
   for (const status of [400, 401, 403, 404, 429, 500, 418]) {
     const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response({ error: { message: 'private provider detail' } }, status) });
+    const result = await invoke(handler, status === 429 ? request({ query: '무슨 말인지 모르겠어요' }) : request());
+    assert.equal(result.status, 503);
+    assert.equal(result.body.reason, status === 429 ? 'research_topic_unavailable' : status === 500 ? 'provider_http_5xx' : status === 418 ? 'provider_http_other' : `provider_http_${status}`);
+    assert(!result.raw.includes('private provider detail'));
+  }
+});
+
+test('grounding quota fallback retrieves real research records and sends only known subject terms to Europe PMC', async () => {
+  const calls = [];
+  const article = { source: 'MED', pmid: '12345678', title: 'A study of moisturizer', abstractText: 'This abstract describes a study of skin hydration and its limitations. '.repeat(3) };
+  const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async (url, options) => {
+    calls.push({ url, options });
+    if (url.includes('/interactions')) return response({}, 429);
+    if (url.includes('europepmc')) return response({ resultList: { result: [article] } });
+    return response({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ answer: '논문의 연구 조건과 한계를 함께 확인하세요.', sourceIds: ['12345678'] }) }] } }] });
+  } });
+  const result = await invoke(handler);
+  assert.equal(result.status, 200); assert.equal(result.body.sourceMode, 'research');
+  assert.deepEqual(result.body.sources, [{ title: article.title, url: 'https://pubmed.ncbi.nlm.nih.gov/12345678/' }]);
+  const europeCall = calls.find(call => call.url.includes('europepmc'));
+  assert(!decodeURIComponent(europeCall.url).includes(query));
+  assert(!JSON.stringify(europeCall.options).includes(fakeKey));
+  const generation = calls.find(call => call.url.includes(':generateContent'));
+  const input = JSON.parse(JSON.parse(generation.options.body).contents[0].parts[0].text);
+  assert.equal(input.question, query); assert.equal(input.articles[0].abstract, article.abstractText.trim());
+});
+
+test('research fallback refuses missing abstracts and invented citations', async () => {
+  for (const missingAbstract of [true, false]) {
+    const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async (url) => {
+      if (url.includes('/interactions')) return response({}, 429);
+      if (url.includes('europepmc')) return response({ resultList: { result: [{ source: 'MED', pmid: '12345678', title: 'Research title', abstractText: missingAbstract ? '' : 'Research details. '.repeat(10) }] } });
+      return response({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ answer: '답변', sourceIds: ['98765432'] }) }] } }] });
+    } });
     const result = await invoke(handler);
     assert.equal(result.status, 503);
-    assert.equal(result.body.reason, status === 500 ? 'provider_http_5xx' : status === 418 ? 'provider_http_other' : `provider_http_${status}`);
-    assert(!result.raw.includes('private provider detail'));
+    assert.equal(result.body.reason, missingAbstract ? 'no_research' : 'invalid_response');
   }
 });
 

@@ -41,7 +41,7 @@ flowchart TD
 - 실시간 뉴스 수집·본문 복제·RSS 피드 재배포는 하지 않습니다. ‘뉴스에서 더
   찾아보기’는 정해진 일반 주제어로 Google News를 여는 링크입니다.
 - 원문 확인 기록은 [출처 검증 문서](concern-source-verification.md)에 있습니다.
-- AI 웹 자료 안내는 별도의 `POST /api/concern-ai`에서 Gemini의 Google 검색 연결을 사용합니다. 웹 검색 결과와 출처가 확인된 경우에만 AI 답변을 표시하며, 제공자의 결과는 기존에 직접 검토한 논문 목록과 구분합니다. 연결 실패 시 기존 자료와 제품 비교는 계속 이용할 수 있습니다.
+- AI 자료 안내는 별도의 `POST /api/concern-ai`에서 Gemini의 Google 검색 연결을 사용합니다. 검색 연결이 제한될 때는 관련 주제에 대해 Europe PMC 공개 연구자료를 검색하고 Gemini가 확인된 논문을 요약하는 대체 경로를 사용합니다. 연구자료 검색은 웹 전체 검색과 구분해 표시합니다. 출처를 확인할 수 없거나 연결이 실패하면 기존 자료와 제품 비교는 계속 이용할 수 있습니다.
 
 ## 리뷰와 개인정보
 
@@ -69,7 +69,7 @@ flowchart TD
 | `concerns.js`, `concerns.css` | 검색 상태·반응형 화면·연구 상세·외부 자료 연결 |
 | `lib/concern-search.js`, `lib/concern-topics.js` | 로컬 고민 해석·정해진 주제·제품 연결 |
 | `lib/concern-news-sources.js`, `api/concern-news.js` | 검토한 외부 출처와 주제 전용 API |
-| `lib/concern-ai-provider.js`, `api/concern-ai.js` | Gemini Google 검색 연결과 출처 검증 API |
+| `lib/concern-ai-provider.js`, `lib/concern-research-provider.js`, `api/concern-ai.js` | Gemini 검색·공개 연구자료 대체 경로와 출처 검증 API |
 | `reviews.js`, `reviews.css` | 실제 작성 리뷰 읽기·불편 검색 버튼 |
 | `concern-optics.css`, `concern-glass.css` | ‘내 고민’의 반응형 검색 영역·투명 검색창 |
 | `concern-atmosphere.css` | 빈 검색 화면의 큰 타이포그래피와 배치; 전용 색상은 공통 효과 CSS에서 조정 |
