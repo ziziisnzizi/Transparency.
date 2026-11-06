@@ -82,7 +82,7 @@ test('authentication failure does not send the question to further providers', a
 });
 
 test('only fixed encyclopedia error categories reach the browser', async () => {
-  for (const reason of ['wikipedia_no_topic', 'wikipedia_privacy_protected', 'untrusted-private-detail']) {
+  for (const reason of ['wikipedia_no_topic', 'wikipedia_privacy_protected', 'wikipedia_search_http_429', 'wikipedia_keyword_http_5xx', 'wikipedia_summary_invalid_finish', 'untrusted-private-detail']) {
     const result = await invoke(createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, providers: {
       primary: failing('provider_http_429'), google25: failing('provider_http_429'), research: failing('research_topic_unavailable'),
       wikipedia: async () => { throw new WikipediaSearchError(reason); },
@@ -91,6 +91,35 @@ test('only fixed encyclopedia error categories reach the browser', async () => {
     assert.equal(result.body.reason, reason.startsWith('wikipedia_') ? reason : 'provider_unavailable');
     assert(!result.raw.includes('untrusted-private-detail')); assert(!result.raw.includes(fakeKey));
   }
+});
+
+test('failed requests include only fixed diagnostics for attempted Google stages', async () => {
+  const result = await invoke(createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, providers: {
+    primary: failing('provider_http_429'), google25: failing('unsafe_suggestions'), research: failing('research_topic_unavailable'),
+    wikipedia: async () => { throw new WikipediaSearchError('wikipedia_summary_unavailable'); },
+  } }));
+  assert.equal(result.status, 503);
+  assert.equal(result.body.reason, 'wikipedia_summary_unavailable');
+  assert.deepEqual(result.body.diagnostics, { google_primary: 'provider_http_429', google_25: 'unsafe_suggestions' });
+  assert(!result.raw.includes(fakeKey)); assert(!result.raw.includes(request.body.query));
+});
+
+test('diagnostics discard unexpected error content and are absent on successful fallbacks', async () => {
+  const privateText = 'do-not-expose-provider-message';
+  const unsafeError = new ConcernAiError('provider_http_429');
+  unsafeError.issue = privateText;
+  const denied = await invoke(createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, providers: {
+    primary: async () => { throw unsafeError; },
+  } }));
+  assert.equal(denied.status, 503); assert.equal(denied.body.reason, 'provider_unavailable');
+  assert.deepEqual(denied.body.diagnostics, { google_primary: 'provider_unavailable' });
+  assert(!denied.raw.includes(privateText)); assert(!denied.raw.includes(fakeKey));
+
+  const recovered = await invoke(createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, providers: {
+    primary: failing('provider_http_429'), google25: async () => google,
+  } }));
+  assert.equal(recovered.status, 200); assert.equal(recovered.body.sourceMode, 'google');
+  assert.equal('diagnostics' in recovered.body, false);
 });
 
 test('the entire request stops on deadline even if a provider ignores cancellation', async () => {

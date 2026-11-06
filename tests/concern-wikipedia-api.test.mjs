@@ -110,6 +110,36 @@ test('Wikipedia errors and pre-aborted requests fail without a fabricated respon
   assert.equal(calls, 0);
 });
 
+test('transient summary errors retry once without changing the verified sources', async () => {
+  let calls = 0;
+  const fetchImpl = async url => {
+    if (String(url).startsWith('https://ko.wikipedia.org/')) return response({ query: { pages: [page] } });
+    calls++;
+    if (calls === 1) return response(nativeReply({ searchTerm: '사랑' }));
+    if (calls === 2) return response({}, 503);
+    return response(nativeReply({ answer: '사랑은 깊은 애정과 관심을 뜻합니다.', sourceIds: ['123'] }));
+  };
+  const result = await searchConcernWikipedia(question, { apiKey: fakeKey, fetchImpl });
+  assert.equal(calls, 3);
+  assert.equal(result.sources[0].title, '사랑');
+});
+
+test('summary HTTP and response-shape failures return fixed diagnostic codes', async () => {
+  for (const [failure, reason] of [
+    [response({}, 400), 'wikipedia_summary_http_400'],
+    [response({ candidates: [{ finishReason: 'MAX_TOKENS' }] }), 'wikipedia_summary_max_tokens'],
+    [response({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'not-json' }] } }] }), 'wikipedia_summary_invalid_json'],
+  ]) {
+    let calls = 0;
+    const fetchImpl = async url => {
+      if (String(url).startsWith('https://ko.wikipedia.org/')) return response({ query: { pages: [page] } });
+      return ++calls === 1 ? response(nativeReply({ searchTerm: '사랑' })) : failure;
+    };
+    await assert.rejects(searchConcernWikipedia(question, { apiKey: fakeKey, fetchImpl }), error => error.reason === reason);
+    assert.equal(calls, 2, reason);
+  }
+});
+
 test('crisis inputs never leave for search or generation', async () => {
   let calls = 0;
   await assert.rejects(searchConcernWikipedia('죽고 싶어요', { apiKey: fakeKey, fetchImpl: async () => { calls++; throw Error('unexpected'); } }));

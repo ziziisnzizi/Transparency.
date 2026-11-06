@@ -12,6 +12,17 @@ const unavailable = '지금 웹 자료를 확인하지 못했습니다. 잠시 �
 const fallbackIssues = new Set(['provider_http_400', 'provider_http_403', 'provider_http_404', 'provider_http_429', 'provider_http_5xx', 'provider_timeout', 'provider_connection_failed', 'no_grounding', 'unsafe_suggestions', 'invalid_response']);
 const researchWithoutSources = new Set(['research_topic_unavailable', 'research_no_abstract', 'research_irrelevant', 'research_search_unavailable', 'research_search_invalid']);
 const wikipediaIssues = new Set(['wikipedia_invalid_summary', 'wikipedia_keyword_unavailable', 'wikipedia_no_sources', 'wikipedia_no_topic', 'wikipedia_privacy_protected', 'wikipedia_search_unavailable', 'wikipedia_summary_unavailable', 'wikipedia_timeout']);
+for (const stage of ['keyword', 'search', 'summary']) {
+  for (const suffix of ['http_400', 'http_401', 'http_403', 'http_404', 'http_429', 'http_5xx', 'http_other', 'connection', 'too_large', 'invalid_json']) wikipediaIssues.add(`wikipedia_${stage}_${suffix}`);
+}
+for (const stage of ['keyword', 'summary']) {
+  for (const suffix of ['max_tokens', 'safety', 'invalid_finish', 'invalid_parts']) wikipediaIssues.add(`wikipedia_${stage}_${suffix}`);
+}
+// Diagnostics deliberately contain only static categories, never provider
+// text, query text, URLs, credentials, or other request data.
+const googleDiagnosticIssues = new Set(['provider_unavailable', 'provider_http_400', 'provider_http_401', 'provider_http_403', 'provider_http_404', 'provider_http_429', 'provider_http_5xx', 'provider_http_other', 'provider_timeout', 'provider_connection_failed', 'no_grounding', 'unsafe_suggestions', 'invalid_response']);
+const googleDiagnostic = error => error instanceof ConcernAiError && googleDiagnosticIssues.has(error.issue) ? error.issue : 'provider_unavailable';
+const researchDiagnosticIssues = new Set(['research_topic_unavailable', 'research_no_abstract', 'research_irrelevant', 'research_search_unavailable', 'research_search_invalid', 'research_generation_unavailable', 'research_generation_http_400', 'research_generation_http_401', 'research_generation_http_403', 'research_generation_http_404', 'research_generation_http_429', 'research_generation_http_5xx', 'research_generation_http_other', 'research_generation_invalid', 'research_generation_max_tokens', 'research_generation_safety', 'research_generation_finish_other', 'research_generation_json', 'research_generation_parts_invalid', 'research_generation_relevance_invalid', 'research_generation_answer_invalid', 'research_generation_sources_invalid', 'research_generation_sources_empty', 'research_generation_citation']);
 class RequestError extends Error { constructor(status, message) { super(message); this.status = status; } }
 const header = (req, name) => {
   const value = req.headers?.[name.toLowerCase()];
@@ -93,16 +104,19 @@ export function createConcernAiHandler({ env = process.env, fetchImpl = globalTh
       const compatibleSearch = providers.google25 || searchConcernWithGoogle25;
       const researchSearch = providers.research || searchConcernResearch;
       const wikiSearch = providers.wikipedia || searchConcernWikipedia;
+      const diagnostics = {};
       try {
         let result;
         try {
           result = await run(primarySearch, { apiKey: key, model, fetchImpl, timeoutMs: Math.min(budget, 10000), signal: controller.signal });
         } catch (error) {
+          diagnostics.google_primary = googleDiagnostic(error);
           if (!(error instanceof ConcernAiError) || !fallbackIssues.has(error.issue) || controller.signal.aborted || remaining() < 1000) throw error;
           try {
             // Leave part of the overall budget for public-source fallbacks.
             result = await run(compatibleSearch, { apiKey: key, fetchImpl, timeoutMs: Math.min(10000, Math.max(100, remaining() - 12000)), signal: controller.signal });
           } catch (compatibleError) {
+            diagnostics.google_25 = googleDiagnostic(compatibleError);
             if (!(compatibleError instanceof ConcernAiError) || compatibleError.issue === 'provider_http_401' || controller.signal.aborted || remaining() < 1000) throw compatibleError;
             try {
               result = await run(researchSearch, { apiKey: key, fetchImpl, timeoutMs: remaining(), signal: controller.signal });
@@ -116,8 +130,8 @@ export function createConcernAiHandler({ env = process.env, fetchImpl = globalTh
         return send(res, 200, result);
       } catch (error) {
         // Do not log question, provider responses or credentials.
-        const reason = error instanceof ConcernAiError ? error.issue : error instanceof WikipediaSearchError && wikipediaIssues.has(error.reason) ? error.reason : 'provider_unavailable';
-        return send(res, 503, { status: 'unavailable', error: unavailable, reason });
+        const reason = error instanceof ConcernAiError && (googleDiagnosticIssues.has(error.issue) || researchDiagnosticIssues.has(error.issue)) ? error.issue : error instanceof WikipediaSearchError && wikipediaIssues.has(error.reason) ? error.reason : 'provider_unavailable';
+        return send(res, 503, { status: 'unavailable', error: unavailable, reason, ...(Object.keys(diagnostics).length ? { diagnostics } : {}) });
       } finally { clearTimeout(timer); res.removeListener?.('close', disconnect); }
     } catch (error) {
       return send(res, error instanceof RequestError ? error.status : 500, { status: 'unavailable', error: error instanceof RequestError ? error.message : unavailable });

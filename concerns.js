@@ -313,7 +313,7 @@ function abortAi() {
 }
 
 function aiFailureMessage(status, reason) {
-  if (status === 429 || ['provider_http_429', 'research_generation_http_429'].includes(reason)) {
+  if (status === 429 || ['provider_http_429', 'research_generation_http_429', 'wikipedia_keyword_http_429', 'wikipedia_summary_http_429', 'wikipedia_search_http_429'].includes(reason)) {
     return '지금은 자료 검색 요청이 많습니다. 잠시 후 다시 시도해 주세요.';
   }
   if (reason === 'wikipedia_privacy_protected') {
