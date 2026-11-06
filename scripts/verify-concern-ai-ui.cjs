@@ -28,7 +28,9 @@ const safeSuggestions = process.env.CONCERN_AI_SUGGESTION_FIXTURE ? fs.readFileS
       await page.route('**/api/concern-ai', async route => {
         const body = route.request().postDataJSON();
         requests.push(body);
-        await new Promise(resolve => setTimeout(resolve, 1200));
+        // Keep the AI request pending after the initial search animation so
+        // the separate cancellation state is observable.
+        await new Promise(resolve => setTimeout(resolve, 2000));
         await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', sourceMode: 'google', answer: '검증용 웹 자료 요약입니다. <img src=x onerror="window.__unsafe=1">', sources: [{ title: '신뢰할 수 있는 출처', url: 'https://pubmed.ncbi.nlm.nih.gov/123/' }], searchQueries: ['skin hydration'], searchSuggestions: safeSuggestions }) }).catch(() => {});
       });
       await page.goto(`${base}?view=concerns`, { waitUntil: 'domcontentloaded' });

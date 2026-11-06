@@ -8,7 +8,7 @@ const list = value => Array.isArray(value) ? value : [];
 const suggestions = ['세안 후 피부가 당겨요', '가벼운 제형을 찾고 싶어요', '세럼의 끈적임이 아쉬워요'];
 const researchHosts = new Set(['doi.org', 'pubmed.ncbi.nlm.nih.gov', 'pmc.ncbi.nlm.nih.gov', 'koreascience.kr', 'www.kci.go.kr', 'kci.go.kr']);
 const bindings = new WeakSet();
-const state = { draft: '', result: null, error: '', fromProductSlug: null, pendingSeed: null, version: 0, newsVersion: 0, news: null, newsController: null, aiVersion: 0, ai: null, aiController: null, expandedResearch: false, expandedLimitations: new Set() };
+const state = { draft: '', result: null, error: '', fromProductSlug: null, pendingSeed: null, version: 0, loading: false, searchTimer: null, composing: false, newsVersion: 0, news: null, newsController: null, aiVersion: 0, ai: null, aiController: null, expandedResearch: false, expandedLimitations: new Set() };
 
 function safeUrl(value) {
   try {
@@ -161,7 +161,7 @@ function recommendations(result) {
 
 function results() {
   const result = state.result;
-  if (!result) return '';
+  if (!result || state.loading) return '';
   const papers = list(result.research);
   const topic = getConcernTopic(result.newsTopic);
   return `<div class="concern-results" id="concern-results"><div class="concern-result-heading"><p class="concern-query-context">“${escape(result.query)}”에서 살펴본 내용</p><h2 id="concern-result-heading" tabindex="-1">${escape(result.title)}</h2><p>${escape(result.summary)}</p>${list(result.topics).length ? `<div class="concern-topic-tags" aria-label="살펴볼 주제">${result.topics.map(item => `<span>${escape(item.label)}</span>`).join('')}</div>` : ''}</div>
@@ -175,7 +175,8 @@ function results() {
 
 function pageContent() {
   const hasResult = !!state.result;
-  return `<div class="concern-visual-stage"><div class="concern-page-intro"><span class="eyebrow">YOUR QUESTIONS, IN THE CLEAR.</span><h1>${hasResult ? '내 고민, 확인할 수 있는 것부터.' : '<span class="concern-heading-line">지금, 피부에</span><span class="concern-heading-line"><span>무엇이</span> <span>궁금한가요?</span></span>'}</h1>${hasResult ? '' : '<p>고민을 남겨 주세요.<br>관련 연구와 확인할 점부터 함께 살펴봅니다.</p>'}</div><div class="concern-search-area">${searchForm()}${hasResult ? '' : `<div class="concern-suggestions" aria-label="이렇게 검색해 보세요">${suggestions.map(text => `<button type="button" data-concern-suggestion="${escape(text)}">${escape(text)} <span aria-hidden="true">↗</span></button>`).join('')}</div>`}</div>${hasResult ? '' : '<div class="concern-scene-caption"><span>INGREDIENTS. EVIDENCE. ROUTINE.</span><span>성분부터 사용법까지, 투명하게.</span></div>'}</div>${results()}<div class="product-evidence concern-dialog-host"><dialog class="evidence-dialog concern-research-dialog" aria-labelledby="product-evidence-concern-research-dialog-title"><div class="evidence-dialog-content" data-concern-dialog-content></div></dialog></div>`;
+  const loading = state.loading ? `<div class="concern-search-loading" role="status" aria-live="polite" tabindex="-1"><div class="concern-search-droplet" aria-hidden="true"><span class="concern-search-droplet-core"></span><span class="concern-search-droplet-ring"></span></div><p>고민을 살펴보고 있어요.</p><span>관련 자료와 제품 정보를 확인합니다.</span></div>` : '';
+  return `<div class="concern-visual-stage"><div class="concern-page-intro"><span class="eyebrow">YOUR QUESTIONS, IN THE CLEAR.</span><h1>${hasResult ? '내 고민, 확인할 수 있는 것부터.' : '<span class="concern-heading-line">지금, 피부에</span><span class="concern-heading-line"><span>무엇이</span> <span>궁금한가요?</span></span>'}</h1>${hasResult ? '' : '<p>고민을 남겨 주세요.<br>관련 연구와 확인할 점부터 함께 살펴봅니다.</p>'}</div><div class="concern-search-area">${searchForm()}${hasResult ? '' : `<div class="concern-suggestions" aria-label="이렇게 검색해 보세요">${suggestions.map(text => `<button type="button" data-concern-suggestion="${escape(text)}">${escape(text)} <span aria-hidden="true">↗</span></button>`).join('')}</div>`}</div>${hasResult ? '' : '<div class="concern-scene-caption"><span>INGREDIENTS. EVIDENCE. ROUTINE.</span><span>성분부터 사용법까지, 투명하게.</span></div>'}</div>${loading}${results()}<div class="product-evidence concern-dialog-host"><dialog class="evidence-dialog concern-research-dialog" aria-labelledby="product-evidence-concern-research-dialog-title"><div class="evidence-dialog-content" data-concern-dialog-content></div></dialog></div>`;
 }
 
 export function renderConcerns() {
@@ -300,6 +301,19 @@ function search(query, fromProductSlug = state.fromProductSlug, { askAi = true }
   state.draft = String(query ?? '');
   state.error = validation.error || '';
   if (state.error) {
+    // An invalid replacement search must not be overwritten by an older timer.
+    if (state.loading) {
+      clearTimeout(state.searchTimer);
+      state.searchTimer = null;
+      state.loading = false;
+      state.version += 1;
+      abortNews();
+      abortAi();
+      state.result = null;
+      state.news = null;
+      state.ai = null;
+      refresh();
+    }
     const input = document.getElementById('concern-query');
     const message = document.getElementById('concern-search-error');
     if (message) { message.textContent = state.error; message.hidden = false; }
@@ -309,7 +323,10 @@ function search(query, fromProductSlug = state.fromProductSlug, { askAi = true }
   }
   abortNews();
   abortAi();
+  clearTimeout(state.searchTimer);
   state.version += 1;
+  const version = state.version;
+  state.loading = true;
   state.news = null;
   state.ai = { status: askAi ? 'loading' : 'idle' };
   state.expandedResearch = false;
@@ -320,10 +337,35 @@ function search(query, fromProductSlug = state.fromProductSlug, { askAi = true }
     state.draft = validation.query;
     const topic = getConcernTopic(state.result?.newsTopic);
     if (topic) state.news = { status: 'loading', articles: [] };
-    refresh(true);
+    refresh();
+    const root = document.getElementById('concerns-page');
+    root?.querySelector('.concern-search-loading')?.focus({ preventScroll: true });
+    root?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     if (topic) void loadNews();
     if (askAi) void loadAi();
+    // Keep the search animation visible briefly while both requests run in
+    // parallel. Never block the basic answer on the slower AI request.
+    const reveal = () => {
+      if (state.version !== version) return;
+      if (state.composing) { state.searchTimer = setTimeout(reveal, 100); return; }
+      state.searchTimer = null;
+      state.loading = false;
+      const previous = document.getElementById('concern-query');
+      const editing = previous && document.activeElement === previous;
+      const start = editing ? previous.selectionStart : null;
+      const end = editing ? previous.selectionEnd : null;
+      refresh(!editing);
+      if (editing) {
+        const input = document.getElementById('concern-query');
+        input?.focus({ preventScroll: true });
+        if (start !== null && end !== null) input?.setSelectionRange(start, end);
+      }
+    };
+    state.searchTimer = setTimeout(reveal, 1200);
   } catch {
+    clearTimeout(state.searchTimer);
+    state.searchTimer = null;
+    state.loading = false;
     state.result = null;
     state.error = '입력하신 내용을 지금 살펴보지 못했습니다. 잠시 후 다시 검색해 주세요.';
     refresh();
@@ -333,6 +375,10 @@ function search(query, fromProductSlug = state.fromProductSlug, { askAi = true }
 export function seedConcernSearch(query, { fromProductSlug } = {}) {
   abortNews();
   abortAi();
+  clearTimeout(state.searchTimer);
+  state.searchTimer = null;
+  state.loading = false;
+  state.composing = false;
   state.version += 1;
   state.draft = String(query ?? '').slice(0, CONCERN_QUERY_LIMIT);
   state.error = '';
@@ -387,8 +433,8 @@ export function bindConcerns(callbacks = {}) {
   }
 
   root.addEventListener('concern-before-refresh', () => closeDialog(false));
-  root.addEventListener('compositionstart', event => { if (event.target.id === 'concern-query') composing = true; });
-  root.addEventListener('compositionend', event => { if (event.target.id === 'concern-query') composing = false; });
+  root.addEventListener('compositionstart', event => { if (event.target.id === 'concern-query') { composing = true; state.composing = true; } });
+  root.addEventListener('compositionend', event => { if (event.target.id === 'concern-query') { composing = false; state.composing = false; } });
   root.addEventListener('keydown', event => { if (event.target.id === 'concern-query' && event.key === 'Enter' && (composing || event.isComposing || event.keyCode === 229)) event.preventDefault(); });
   root.addEventListener('input', event => {
     if (event.target.id !== 'concern-query') return;
@@ -457,6 +503,12 @@ export function bindConcerns(callbacks = {}) {
   const observer = new MutationObserver(() => {
     if (root.isConnected) return;
     closeDialog(false);
+    clearTimeout(state.searchTimer);
+    state.searchTimer = null;
+    state.loading = false;
+    state.composing = false;
+    state.version += 1;
+    if (state.newsController) abortNews();
     if (state.aiController) {
       abortAi();
     }
