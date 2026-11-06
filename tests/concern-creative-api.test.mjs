@@ -78,3 +78,12 @@ test('provider diagnostics expose only fixed categories, never provider messages
   const unsafe = await invoke(createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.5-flash-lite' }, fetchImpl: async () => response(parsed('사랑은 토너 T.1으로 여드름을 치료해요.')) }));
   assert.equal(unsafe.body.reason, 'provider_unsafe_analogy');
 });
+
+test('a configured model that rejects native options retries once on Flash-Lite', async () => {
+  const urls = [];
+  const handler = createConcernCreativeHandler({ env: { GEMINI_API_KEY: fakeKey, GEMINI_MODEL: 'gemini-3.8-flash' }, fetchImpl: async url => { urls.push(url); return urls.length === 1 ? response({ error: { message: 'private provider data' } }, 400) : response(parsed()); } });
+  const result = await invoke(handler);
+  assert.equal(result.status, 200); assert.equal(result.body.status, 'ok');
+  assert.equal(urls.length, 2); assert.match(urls[0], /gemini-3\.8-flash:generateContent$/); assert.match(urls[1], /gemini-3\.5-flash-lite:generateContent$/);
+  assert(!result.raw.includes('private provider data')); assert(!result.raw.includes(fakeKey));
+});
