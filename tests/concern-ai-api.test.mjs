@@ -111,7 +111,7 @@ test('grounding quota fallback retrieves real research records and sends only kn
     calls.push({ url, options });
     if (url.includes('/interactions')) return response({}, 429);
     if (url.includes('europepmc')) return response({ resultList: { result: [article] } });
-    return response({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ answer: '논문의 연구 조건과 한계를 함께 확인하세요.', sourceIds: ['12345678'] }) }] } }] });
+    return response({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ relevant: true, answer: '논문의 연구 조건과 한계를 함께 확인하세요.', sourceIds: ['12345678'] }) }] } }] });
   } });
   const result = await invoke(handler);
   assert.equal(result.status, 200); assert.equal(result.body.sourceMode, 'research');
@@ -129,7 +129,7 @@ test('research fallback refuses missing abstracts and invented citations', async
     const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async (url) => {
       if (url.includes('/interactions')) return response({}, 429);
       if (url.includes('europepmc')) return response({ resultList: { result: [{ source: 'MED', pmid: '12345678', title: 'Research title', abstractText: missingAbstract ? '' : 'Research details. '.repeat(10) }] } });
-      return response({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ answer: '답변', sourceIds: ['98765432'] }) }] } }] });
+      return response({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ relevant: true, answer: '답변', sourceIds: ['98765432'] }) }] } }] });
     } });
     const result = await invoke(handler);
     assert.equal(result.status, 503);
@@ -142,7 +142,11 @@ test('research provider failures have fixed diagnostic categories without provid
     [{ candidates: [{ finishReason: 'MAX_TOKENS' }] }, 'research_generation_max_tokens'],
     [{ candidates: [{ finishReason: 'SAFETY' }] }, 'research_generation_safety'],
     [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'private malformed value' }] } }] }, 'research_generation_json'],
-    [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{}' }] } }] }, 'research_generation_schema'],
+    [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{}' }] } }] }, 'research_generation_relevance_invalid'],
+    [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"relevant":true}' }] } }] }, 'research_generation_answer_invalid'],
+    [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"relevant":true,"answer":"text","sourceIds":[]}' }] } }] }, 'research_generation_sources_empty'],
+    [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"relevant":false,"answer":"none","sourceIds":[]}' }] } }] }, 'no_research'],
+    [{ candidates: [{ finishReason: 'STOP', content: { parts: [] } }] }, 'research_generation_parts_invalid'],
   ];
   for (const [generated, reason] of cases) {
     const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async (url) => {
