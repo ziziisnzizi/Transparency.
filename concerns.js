@@ -144,11 +144,11 @@ function newsContent() {
 function aiContent() {
   const ai = state.ai || { status: 'idle' };
   const sources = list(ai.sources);
-  const label = ai.sourceMode === 'research' ? '공개 연구자료 검색 기반 AI 요약' : ai.sourceMode === 'wikipedia' ? '위키백과 자료 기반 Gemini 요약' : 'Google 웹 검색 기반 AI 요약';
+  const label = ai.sourceMode === 'research' ? '공개 연구자료' : ai.sourceMode === 'wikipedia' ? '위키백과 자료' : 'Google 검색 자료';
   const origin = ai.sourceMode === 'research' ? '<p class="concern-ai-origin">Europe PMC에서 찾은 공개 연구자료를 바탕으로 정리합니다.</p>' : ai.sourceMode === 'wikipedia' ? '<p class="concern-ai-origin">한국어 위키백과에서 찾은 자료를 바탕으로 정리합니다.</p>' : '';
   const attribution = ai.sourceMode === 'wikipedia' ? '<p class="concern-ai-attribution">원문: 한국어 위키백과 기여자 · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a></p>' : '';
-  return `<div class="concern-section-head"><span class="eyebrow">03 / AI WEB SEARCH</span><h3 id="concern-ai-heading">AI와 함께 웹 자료 살펴보기</h3><p>검색한 자료를 Gemini가 정리합니다. 출처와 작성 시점을 직접 확인해 주세요.</p></div>
-    ${ai.status === 'loading' ? '<div class="concern-ai-state" role="status" aria-live="polite"><span class="concern-loading-dot" aria-hidden="true"></span><p>관련 웹 자료를 찾고 내용을 정리하고 있습니다.</p><button type="button" data-concern-ai-cancel>요청 중단</button></div>' : ai.status === 'ok' ? `<div class="concern-ai-answer"><div class="concern-ai-label">${label}</div>${origin}<p>${escape(ai.answer)}</p>${ai.sourceMode === 'google' ? '<div class="concern-ai-suggestions" data-concern-ai-suggestions aria-label="Google 검색 제안"></div>' : ''}<div class="concern-ai-sources"><h4>${ai.sourceMode === 'research' ? '참고한 공개 연구자료' : '참고한 웹 자료'}</h4><ul>${sources.map(source => `<li><a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">${escape(source.title)} <span aria-hidden="true">↗</span><span class="sr-only"> (새 창)</span></a></li>`).join('')}</ul>${attribution}</div><p class="concern-ai-limit">AI의 요약은 오류가 있을 수 있으며, 진단이나 제품의 효과를 입증하는 결과가 아닙니다.</p></div>` : `<div class="concern-ai-state concern-ai-unavailable" role="status" aria-live="polite"><p>${escape(ai.status === 'idle' ? 'AI 웹 자료 검색은 질문이나 검색어를 Gemini, Google 검색 및 위키백과에 전달할 수 있습니다.' : ai.message || '지금 AI 웹 자료를 확인하지 못했습니다. 기존 자료와 제품 정보는 계속 볼 수 있습니다.')}</p><button type="button" data-concern-ai-retry>${ai.status === 'idle' ? 'AI 웹 자료 확인하기' : 'AI 웹 자료 다시 찾기'} <span aria-hidden="true">↗</span></button></div>`}`;
+  return `<div class="concern-section-head"><span class="eyebrow">03 / WEB SOURCES</span><h3 id="concern-ai-heading">관련 자료 살펴보기</h3><p>출처와 작성 시점을 직접 확인해 주세요.</p></div>
+    ${ai.status === 'loading' ? '<div class="concern-ai-state" role="status" aria-live="polite"><span class="concern-loading-dot" aria-hidden="true"></span><p>관련 웹 자료를 찾고 내용을 정리하고 있습니다.</p><button type="button" data-concern-ai-cancel>요청 중단</button></div>' : ai.status === 'ok' ? `<div class="concern-ai-answer"><div class="concern-ai-label">${label}</div>${origin}<p>${escape(ai.answer)}</p>${ai.sourceMode === 'google' ? '<div class="concern-ai-suggestions" data-concern-ai-suggestions aria-label="Google 검색 제안"></div>' : ''}<div class="concern-ai-sources"><h4>${ai.sourceMode === 'research' ? '참고한 공개 연구자료' : '참고한 웹 자료'}</h4><ul>${sources.map(source => `<li><a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">${escape(source.title)} <span aria-hidden="true">↗</span><span class="sr-only"> (새 창)</span></a></li>`).join('')}</ul>${attribution}</div><p class="concern-ai-limit">요약 내용에는 오류가 있을 수 있으며, 진단이나 제품의 효과를 입증하는 결과가 아닙니다.</p></div>` : `<div class="concern-ai-state concern-ai-unavailable" role="status" aria-live="polite"><p>${escape(ai.status === 'idle' ? '자료를 확인하면 질문이나 검색어가 외부 서비스에 전달될 수 있습니다.' : ai.message || '지금 관련 자료를 확인하지 못했습니다. 기존 자료와 제품 정보는 계속 볼 수 있습니다.')}</p><button type="button" data-concern-ai-retry>${ai.status === 'idle' ? '자료 확인하기' : '자료 다시 찾기'} <span aria-hidden="true">↗</span></button></div>`}`;
 }
 
 function creativeContent() {
@@ -157,10 +157,10 @@ function creativeContent() {
   const body = creative.status === 'loading'
     ? '<div class="concern-creative-state" role="status" aria-live="polite"><span class="concern-loading-dot" aria-hidden="true"></span><p>질문과 제품을 연결하는 이야기를 만들고 있어요.</p></div>'
     : ['ok', 'fallback'].includes(creative.status) && product
-      ? `<div class="concern-creative-answer" role="status" aria-live="polite"><span class="concern-creative-label">${creative.status === 'ok' ? 'AI가 만든 제품 이야기' : '제품 정보'}</span><p class="concern-creative-message">${escape(creative.message)}</p><div class="concern-creative-actions"><button type="button" data-concern-product="${escape(product.slug)}">${escape(product.name)} 살펴보기 <span aria-hidden="true">↗</span></button>${creative.status === 'fallback' ? '<button type="button" data-concern-creative-retry>다시 만들기 <span aria-hidden="true">↗</span></button>' : ''}</div></div>`
+      ? `<div class="concern-creative-answer" role="status" aria-live="polite"><span class="concern-creative-label">${creative.status === 'ok' ? '제품 이야기' : '제품 정보'}</span><p class="concern-creative-message">${escape(creative.message)}</p><div class="concern-creative-actions"><button type="button" data-concern-product="${escape(product.slug)}">${escape(product.name)} 살펴보기 <span aria-hidden="true">↗</span></button>${creative.status === 'fallback' ? '<button type="button" data-concern-creative-retry>다시 만들기 <span aria-hidden="true">↗</span></button>' : ''}</div></div>`
       : creative.status === 'caution'
-        ? `<div class="concern-creative-state"><p>${['care', 'unsupported'].includes(state.result?.status) ? '이 질문은 상태와 주의사항을 먼저 확인해 주세요. 아래에서 자사 제품의 일반 정보를 볼 수 있습니다.' : '민감한 내용이 포함된 질문에는 AI 제품 이야기를 표시하지 않습니다. 위급한 상황이라면 가까운 사람이나 지역의 긴급 지원 기관에 도움을 요청해 주세요.'}</p></div>`
-        : `<div class="concern-creative-state" role="status" aria-live="polite"><p>${creative.status === 'idle' ? 'AI 제품 이야기는 질문 내용을 Gemini에 전달합니다.' : '지금 AI 제품 이야기를 만들지 못했어요. 제품 정보는 아래에서 확인할 수 있습니다.'}</p><button type="button" data-concern-creative-retry>${creative.status === 'idle' ? 'AI 제품 이야기 보기' : '다시 만들기'} <span aria-hidden="true">↗</span></button></div>`;
+        ? `<div class="concern-creative-state"><p>${['care', 'unsupported'].includes(state.result?.status) ? '이 질문은 상태와 주의사항을 먼저 확인해 주세요. 아래에서 자사 제품의 일반 정보를 볼 수 있습니다.' : '민감한 내용이 포함된 질문에는 제품 이야기를 표시하지 않습니다. 위급한 상황이라면 가까운 사람이나 지역의 긴급 지원 기관에 도움을 요청해 주세요.'}</p></div>`
+        : `<div class="concern-creative-state" role="status" aria-live="polite"><p>${creative.status === 'idle' ? '제품 이야기를 확인하면 질문 내용이 외부 서비스에 전달됩니다.' : '지금 제품 이야기를 만들지 못했어요. 제품 정보는 아래에서 확인할 수 있습니다.'}</p><button type="button" data-concern-creative-retry>${creative.status === 'idle' ? '제품 이야기 보기' : '다시 만들기'} <span aria-hidden="true">↗</span></button></div>`;
   return body;
 }
 
@@ -196,7 +196,7 @@ function results() {
   const title = result.status === 'unknown' ? '이 질문을 이렇게 살펴볼게요.' : result.title;
   const summary = result.status === 'unknown' ? '이 질문에서 확인할 내용을 살펴보세요.' : result.summary;
   const caution = ['care', 'unsupported'].includes(result.status);
-  const creativeSection = `<section class="concern-section concern-creative" id="concern-creative" aria-label="AI 제품 이야기">${creativeContent()}</section>`;
+  const creativeSection = `<section class="concern-section concern-creative" id="concern-creative" aria-label="제품 이야기">${creativeContent()}</section>`;
   return `<div class="concern-results" id="concern-results"><div class="concern-result-heading"><p class="concern-query-context">“${escape(result.query)}”에서 살펴본 내용</p><h2 id="concern-result-heading" tabindex="-1">${escape(title)}</h2><p>${escape(summary)}</p>${list(result.topics).length ? `<div class="concern-topic-tags" aria-label="살펴볼 주제">${result.topics.map(item => `<span>${escape(item.label)}</span>`).join('')}</div>` : ''}</div>
     ${caution ? findings(result) : ''}
     ${creativeSection}
@@ -332,7 +332,7 @@ function aiFailureMessage(status, reason) {
   if (['research_topic_unavailable', 'research_no_abstract', 'research_irrelevant', 'wikipedia_keyword_unavailable', 'wikipedia_no_sources', 'wikipedia_no_topic'].includes(reason)) {
     return '이 질문과 관련된 자료를 확인하지 못했습니다. 질문을 조금 더 구체적으로 입력해 주세요.';
   }
-  return '지금 AI 웹 자료를 확인하지 못했습니다. 기존 자료와 제품 정보는 계속 볼 수 있습니다.';
+  return '지금 관련 자료를 확인하지 못했습니다. 기존 자료와 제품 정보는 계속 볼 수 있습니다.';
 }
 
 async function loadAi() {
@@ -603,7 +603,7 @@ export function bindConcerns(callbacks = {}) {
     if (target.closest('[data-concern-news-retry]')) return void loadNews();
     if (target.closest('[data-concern-ai-cancel]')) {
       abortAi();
-      state.ai = { status: 'unavailable', message: 'AI 웹 자료 검색을 취소했습니다. 필요하면 다시 검색할 수 있습니다.' };
+      state.ai = { status: 'unavailable', message: '자료 검색을 취소했습니다. 필요하면 다시 검색할 수 있습니다.' };
       refreshAi();
       if (event.detail === 0) root.querySelector('[data-concern-ai-retry]')?.focus({ preventScroll: true });
       return;

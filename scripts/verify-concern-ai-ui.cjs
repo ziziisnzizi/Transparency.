@@ -49,7 +49,7 @@ const safeSuggestions = process.env.CONCERN_AI_SUGGESTION_FIXTURE ? fs.readFileS
       assert.equal(await sources.first().getAttribute('href'), 'https://pubmed.ncbi.nlm.nih.gov/123/');
       assert.equal(await sources.first().getAttribute('rel'), 'noopener noreferrer');
       assert.equal(await page.evaluate(() => !!document.querySelector('[data-concern-ai-suggestions]')?.shadowRoot?.querySelector('a')), true, 'Google search suggestions must be displayed');
-      assert.match(await page.locator('.concern-ai-label').innerText(), /Google 웹 검색 기반 AI 요약/);
+      assert.match(await page.locator('.concern-ai-label').innerText(), /Google 검색 자료/);
       assert.equal(await page.evaluate(() => {
         const baseResult = document.querySelector('.concern-result-heading');
         const ai = document.querySelector('#concern-ai');
@@ -134,7 +134,7 @@ const safeSuggestions = process.env.CONCERN_AI_SUGGESTION_FIXTURE ? fs.readFileS
     };
     await submitModeQuestion('피부가 건조해요');
     await modesPage.locator('.concern-ai-answer').waitFor();
-    assert.match(await modesPage.locator('.concern-ai-label').innerText(), /공개 연구자료 검색 기반 AI 요약/);
+    assert.match(await modesPage.locator('.concern-ai-label').innerText(), /공개 연구자료/);
     assert.match(await modesPage.locator('#concern-ai').innerText(), /Europe PMC에서 찾은 공개 연구자료/);
     assert.equal(await modesPage.locator('.concern-ai-sources a').first().getAttribute('href'), 'https://europepmc.org/article/MED/123');
     assert.equal(await modesPage.locator('[data-concern-ai-suggestions]').count(), 0);
@@ -154,7 +154,7 @@ const safeSuggestions = process.env.CONCERN_AI_SUGGESTION_FIXTURE ? fs.readFileS
     response = { status: 'ok', sourceMode: 'wikipedia', answer: '위키백과 자료 요약', sources: [{ title: '사랑', url: 'https://ko.wikipedia.org/wiki/%EC%82%AC%EB%9E%91' }] };
     await submitModeQuestion('사랑이 뭐야?');
     await modesPage.locator('.concern-ai-answer').waitFor();
-    assert.match(await modesPage.locator('.concern-ai-label').innerText(), /위키백과 자료 기반 Gemini 요약/);
+    assert.match(await modesPage.locator('.concern-ai-label').innerText(), /위키백과 자료/);
     assert.match(await modesPage.locator('#concern-ai').innerText(), /한국어 위키백과 기여자/);
     assert.equal(await modesPage.locator('.concern-ai-attribution a').getAttribute('href'), 'https://creativecommons.org/licenses/by-sa/4.0/');
     assert.equal(await modesPage.locator('.concern-ai-sources li a').getAttribute('href'), 'https://ko.wikipedia.org/wiki/%EC%82%AC%EB%9E%91');
@@ -189,7 +189,7 @@ const safeSuggestions = process.env.CONCERN_AI_SUGGESTION_FIXTURE ? fs.readFileS
     await review.locator('[data-review-concern]').first().click();
     await review.locator('#concern-ai [data-concern-ai-retry]').waitFor();
     assert.equal(reviewCalls, 0, 'Review-origin question must not be sent before explicit click');
-    assert.match(await review.locator('#concern-ai').innerText(), /Gemini.*Google.*위키백과/s);
+    assert.match(await review.locator('#concern-ai').innerText(), /외부 서비스에 전달/);
     await review.locator('#concern-ai [data-concern-ai-retry]').click();
     await review.waitForFunction(() => document.querySelector('#concern-ai')?.innerText.includes('확인하지 못했습니다'));
     assert.equal(reviewCalls, 1);
