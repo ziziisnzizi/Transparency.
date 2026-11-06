@@ -6,6 +6,7 @@
   "functions": {
     "api/ask.js": { "maxDuration": 60 },
     "api/concern-news.js": { "maxDuration": 10 },
-    "api/concern-ai.js": { "maxDuration": 60 }
+    "api/concern-ai.js": { "maxDuration": 60 },
+    "api/concern-creative.js": { "maxDuration": 60 }
   }
 }

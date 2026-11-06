@@ -2,13 +2,14 @@ import { analyzeConcern, CONCERN_QUERY_LIMIT, validateConcernQuery } from './lib
 import { getConcernTopic } from './lib/concern-topics.js';
 import { getWrittenReviews } from './reviews.js';
 import { renderResearchDetail } from './evidence.js';
+import { isCrisisConcern } from './lib/concern-safety.js';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const list = value => Array.isArray(value) ? value : [];
 const suggestions = ['세안 후 피부가 당겨요', '가벼운 제형을 찾고 싶어요', '세럼의 끈적임이 아쉬워요'];
 const researchHosts = new Set(['doi.org', 'pubmed.ncbi.nlm.nih.gov', 'pmc.ncbi.nlm.nih.gov', 'koreascience.kr', 'www.kci.go.kr', 'kci.go.kr']);
 const bindings = new WeakSet();
-const state = { draft: '', result: null, error: '', fromProductSlug: null, pendingSeed: null, version: 0, loading: false, searchTimer: null, composing: false, newsVersion: 0, news: null, newsController: null, aiVersion: 0, ai: null, aiController: null, expandedResearch: false, expandedLimitations: new Set() };
+const state = { draft: '', result: null, error: '', fromProductSlug: null, pendingSeed: null, version: 0, loading: false, searchTimer: null, composing: false, newsVersion: 0, news: null, newsController: null, aiVersion: 0, ai: null, aiController: null, creativeVersion: 0, creative: null, creativeController: null, expandedResearch: false, expandedLimitations: new Set() };
 
 function safeUrl(value) {
   try {
@@ -105,7 +106,7 @@ function validArticle(article) {
 function searchForm() {
   return `<form class="concern-search-form" data-concern-form role="search" aria-label="내 고민 검색" novalidate>
     <div class="concern-search-bar"><span class="concern-search-icon" aria-hidden="true"></span><input id="concern-query" name="concern" type="search" maxlength="${CONCERN_QUERY_LIMIT}" value="${escape(state.draft)}" placeholder="어떤 피부 고민이 있나요?" aria-label="피부 고민 검색" aria-describedby="concern-search-hint concern-search-error" ${state.error ? 'aria-invalid="true"' : ''} autocomplete="off" enterkeyhint="search"><button type="submit" aria-label="고민 검색하기"><span aria-hidden="true">↗</span></button></div>
-    <div class="concern-search-meta"><p id="concern-search-hint">AI 웹 자료 검색을 위해 입력 문장이 Gemini와 Google 검색에 전달됩니다. Google은 질문과 답변을 최대 30일 보관할 수 있습니다. 이름·연락처 등 민감한 정보는 적지 마세요.</p><output for="concern-query" data-concern-count>${state.draft.length}/${CONCERN_QUERY_LIMIT}</output></div>
+    <div class="concern-search-meta"><p id="concern-search-hint">AI 답변과 제품 연결을 위해 입력 문장이 Gemini와 Google 검색에 전달될 수 있습니다. Google은 검색에 사용된 질문과 답변을 최대 30일 보관할 수 있습니다. 이름·연락처 등 민감한 정보는 적지 마세요.</p><output for="concern-query" data-concern-count>${state.draft.length}/${CONCERN_QUERY_LIMIT}</output></div>
     <p class="concern-search-error" id="concern-search-error" role="alert" ${state.error ? '' : 'hidden'}>${escape(state.error)}</p>
   </form>`;
 }
@@ -146,10 +147,23 @@ function aiContent() {
     ${ai.status === 'loading' ? '<div class="concern-ai-state" role="status" aria-live="polite"><span class="concern-loading-dot" aria-hidden="true"></span><p>관련 웹 자료를 찾고 내용을 정리하고 있습니다.</p><button type="button" data-concern-ai-cancel>요청 중단</button></div>' : ai.status === 'ok' ? `<div class="concern-ai-answer"><div class="concern-ai-label">${ai.sourceMode === 'research' ? '공개 연구자료 검색 기반 AI 요약' : 'Google 웹 검색 기반 AI 요약'}</div>${ai.sourceMode === 'research' ? '<p class="concern-ai-origin">Europe PMC에서 찾은 공개 연구자료를 바탕으로 정리합니다.</p>' : ''}<p>${escape(ai.answer)}</p>${ai.sourceMode === 'google' ? '<div class="concern-ai-suggestions" data-concern-ai-suggestions aria-label="Google 검색 제안"></div>' : ''}<div class="concern-ai-sources"><h4>${ai.sourceMode === 'research' ? '참고한 공개 연구자료' : '참고한 웹 자료'}</h4><ul>${sources.map(source => `<li><a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">${escape(source.title)} <span aria-hidden="true">↗</span><span class="sr-only"> (새 창)</span></a></li>`).join('')}</ul></div><p class="concern-ai-limit">AI의 요약은 오류가 있을 수 있으며, 진단이나 제품의 효과를 입증하는 결과가 아닙니다.</p></div>` : `<div class="concern-ai-state concern-ai-unavailable" role="status" aria-live="polite"><p>${escape(ai.status === 'idle' ? 'AI 웹 자료 검색은 질문 내용을 Gemini와 Google 검색에 전달합니다.' : ai.message || '지금 AI 웹 자료를 확인하지 못했습니다. 기존 자료와 제품 정보는 계속 볼 수 있습니다.')}</p><button type="button" data-concern-ai-retry>${ai.status === 'idle' ? 'AI 웹 자료 확인하기' : 'AI 웹 자료 다시 찾기'} <span aria-hidden="true">↗</span></button></div>`}`;
 }
 
+function creativeContent() {
+  const creative = state.creative || { status: 'idle' };
+  const product = list(state.result?.catalog).find(item => item.slug === creative.productSlug);
+  const body = creative.status === 'loading'
+    ? '<div class="concern-creative-state" role="status" aria-live="polite"><span class="concern-loading-dot" aria-hidden="true"></span><p>질문과 제품을 연결하는 이야기를 만들고 있어요.</p></div>'
+    : creative.status === 'ok' && product
+      ? `<div class="concern-creative-answer"><span class="concern-creative-label">AI가 만든 제품 이야기</span><p class="concern-creative-message">${escape(creative.message)}</p><button type="button" data-concern-product="${escape(product.slug)}">${escape(product.name)} 살펴보기 <span aria-hidden="true">↗</span></button><p class="concern-creative-note">질문을 제품의 특징에 빗대어 표현한 문구입니다.</p></div>`
+      : creative.status === 'caution'
+        ? `<div class="concern-creative-state"><p>${['care', 'unsupported'].includes(state.result?.status) ? '이 질문은 상태와 주의사항을 먼저 확인해 주세요. 아래에서 자사 제품의 일반 정보를 볼 수 있습니다.' : '민감한 내용이 포함된 질문에는 AI 제품 이야기를 표시하지 않습니다. 위급한 상황이라면 가까운 사람이나 지역의 긴급 지원 기관에 도움을 요청해 주세요.'}</p></div>`
+        : `<div class="concern-creative-state" role="status" aria-live="polite"><p>${creative.status === 'idle' ? 'AI 제품 이야기는 질문 내용을 Gemini에 전달합니다.' : '지금 AI 제품 이야기를 만들지 못했어요. 제품 정보는 아래에서 확인할 수 있습니다.'}</p><button type="button" data-concern-creative-retry>${creative.status === 'idle' ? 'AI 제품 이야기 보기' : '다시 만들기'} <span aria-hidden="true">↗</span></button></div>`;
+  return `<div class="concern-section-head"><span class="eyebrow">AI / A DIFFERENT CONNECTION</span><h3 id="concern-creative-heading">질문을 제품과 연결하면</h3><p>질문에서 떠올린 이야기를 제품의 특징에 빗대어 표현합니다.</p></div>${body}`;
+}
+
 function productCatalog(result) {
   const products = list(result.catalog).filter(product => product?.slug);
   if (!products.length) return '';
-  return `<section class="concern-section concern-products concern-catalog" aria-labelledby="concern-products-heading"><div class="concern-section-head"><span class="eyebrow">04 / OUR PRODUCTS</span><h3 id="concern-products-heading">자사 제품 정보 살펴보기</h3><p>아래는 제품의 일반 정보입니다. 질문하신 조건에 맞거나 피부에 적합하다고 확인한 결과는 아니며, 질환의 치료 효과를 의미하지 않습니다. 알려진 알레르기 성분이 포함된 제품은 사용하지 마시고 전성분을 확인해 주세요.</p></div><div class="concern-product-grid concern-catalog-grid">${products.map(product => `<article class="concern-product"><span class="concern-choice-label">제품 정보</span><div class="concern-product-head"><div><span>${escape(product.type)} · ${escape(product.volume)}</span><h4>${escape(product.name)}</h4></div>${product.image ? `<img src="${escape(product.image)}" alt="" width="72" height="88" loading="lazy">` : ''}</div><dl><div><dt>제형</dt><dd>${escape(product.texture)}</dd></div><div><dt>주요 성분·함량</dt><dd>${escape(product.ingredient)}</dd></div></dl><div class="concern-product-actions"><button type="button" data-concern-product="${escape(product.slug)}">제품 정보·전성분 확인 <span aria-hidden="true">↗</span></button></div></article>`).join('')}</div></section>`;
+  return `<section class="concern-section concern-products concern-catalog" aria-labelledby="concern-products-heading"><div class="concern-section-head"><span class="eyebrow">04 / OUR PRODUCTS</span><h3 id="concern-products-heading">자사 제품 정보 살펴보기</h3><p>아래는 제품의 일반 정보입니다. 질문하신 조건에 맞거나 피부에 적합하다고 확인한 결과는 아니며, 질환의 치료 효과를 의미하지 않습니다. 저자극·알레르기 관련 인증이나 시험 자료는 확인되지 않았습니다. 알려진 알레르기 성분이 포함된 제품은 사용하지 마시고 전성분을 확인해 주세요.</p></div><div class="concern-product-grid concern-catalog-grid">${products.map(product => `<article class="concern-product"><span class="concern-choice-label">제품 정보</span><div class="concern-product-head"><div><span>${escape(product.type)} · ${escape(product.volume)}</span><h4>${escape(product.name)}</h4></div>${product.image ? `<img src="${escape(product.image)}" alt="" width="72" height="88" loading="lazy">` : ''}</div><dl><div><dt>제형</dt><dd>${escape(product.texture)}</dd></div><div><dt>주요 성분·함량</dt><dd>${escape(product.ingredient)}</dd></div></dl><div class="concern-product-actions"><button type="button" data-concern-product="${escape(product.slug)}">제품 정보·전성분 확인 <span aria-hidden="true">↗</span></button></div></article>`).join('')}</div></section>`;
 }
 
 function recommendations(result) {
@@ -167,10 +181,22 @@ function recommendations(result) {
 function results() {
   const result = state.result;
   if (!result || state.loading) return '';
+  // Keep urgent or vulnerable situations free from product promotion. A
+  // provider caution can also suppress promotion when the local rules miss it.
+  const crisis = isCrisisConcern(result.query);
+  if (crisis || (state.creative?.status === 'caution' && !['care', 'unsupported'].includes(result.status))) {
+    return `<div class="concern-results" id="concern-results"><div class="concern-result-heading concern-sensitive-notice"><p class="concern-query-context">입력하신 내용에 관해</p><h2 id="concern-result-heading" tabindex="-1">${crisis ? '도움이 필요할 때는 혼자 감당하지 마세요.' : '이 질문은 신중하게 살펴볼게요.'}</h2><p>${crisis ? '힘든 상황을 겪고 계시다면 가까운 사람이나 관련 지원 기관에 이야기해 보세요.' : '이 질문에는 AI 제품 이야기를 제공하지 않습니다. 도움이 필요한 상황이라면 가까운 사람이나 관련 지원 기관에 이야기해 보세요.'} 지금 당장 위험하다면 지역 긴급 서비스에 연락해 도움을 요청해 주세요.</p></div></div>`;
+  }
   const papers = list(result.research);
   const topic = getConcernTopic(result.newsTopic);
-  return `<div class="concern-results" id="concern-results"><div class="concern-result-heading"><p class="concern-query-context">“${escape(result.query)}”에서 살펴본 내용</p><h2 id="concern-result-heading" tabindex="-1">${escape(result.title)}</h2><p>${escape(result.summary)}</p>${list(result.topics).length ? `<div class="concern-topic-tags" aria-label="살펴볼 주제">${result.topics.map(item => `<span>${escape(item.label)}</span>`).join('')}</div>` : ''}</div>
-    ${findings(result)}
+  const title = result.status === 'unknown' ? '이 질문을 이렇게 살펴볼게요.' : result.title;
+  const summary = result.status === 'unknown' ? '이 질문에서 확인할 내용을 살펴보세요.' : result.summary;
+  const caution = ['care', 'unsupported'].includes(result.status);
+  const creativeSection = `<section class="concern-section concern-creative" id="concern-creative" aria-labelledby="concern-creative-heading">${creativeContent()}</section>`;
+  return `<div class="concern-results" id="concern-results"><div class="concern-result-heading"><p class="concern-query-context">“${escape(result.query)}”에서 살펴본 내용</p><h2 id="concern-result-heading" tabindex="-1">${escape(title)}</h2><p>${escape(summary)}</p>${list(result.topics).length ? `<div class="concern-topic-tags" aria-label="살펴볼 주제">${result.topics.map(item => `<span>${escape(item.label)}</span>`).join('')}</div>` : ''}</div>
+    ${caution ? findings(result) : ''}
+    ${creativeSection}
+    ${caution ? '' : findings(result)}
     ${papers.length ? `<section class="concern-section concern-research" aria-labelledby="concern-research-heading"><div class="concern-section-head"><span class="eyebrow">02 / READ THE RESEARCH</span><h3 id="concern-research-heading">근거를 직접 살펴보세요.</h3><p>원문의 대상·시험 조건·결과·한계를 함께 살펴보세요.</p></div><div class="concern-paper-grid">${papers.slice(0, 3).map(paperCard).join('')}</div>${papers.length > 3 ? `<details class="concern-more-research" data-concern-more-research ${state.expandedResearch ? 'open' : ''}><summary>관련 연구 ${papers.length - 3}편 더 보기 <span aria-hidden="true">＋</span></summary><div class="concern-paper-grid">${papers.slice(3).map(paperCard).join('')}</div></details>` : ''}</section>` : ''}
     <section class="concern-section concern-ai" id="concern-ai" aria-labelledby="concern-ai-heading">${aiContent()}</section>
     ${recommendations(result)}
@@ -212,6 +238,70 @@ function refreshAi() {
   if (target) {
     target.innerHTML = aiContent();
     mountAiSuggestions(target);
+  }
+}
+
+function refreshCreative() {
+  const target = document.getElementById('concern-creative');
+  if (target) target.innerHTML = creativeContent();
+}
+
+function abortCreative() {
+  state.creativeVersion += 1;
+  state.creativeController?.abort();
+  state.creativeController = null;
+}
+
+async function loadCreative() {
+  if (!state.result?.query) return;
+  abortCreative();
+  if (isCrisisConcern(state.result.query) || ['care', 'unsupported'].includes(state.result.status)) {
+    state.creative = { status: 'caution' };
+    refreshCreative();
+    return;
+  }
+  const query = state.result.query;
+  const version = state.version;
+  const creativeVersion = state.creativeVersion;
+  const controller = new AbortController();
+  state.creativeController = controller;
+  state.creative = { status: 'loading' };
+  refreshCreative();
+  const timeout = setTimeout(() => controller.abort(), 45000);
+  try {
+    const response = await fetch('/api/concern-creative', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query }),
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error('제품 이야기를 확인하지 못했습니다.');
+    const raw = await response.text();
+    if (raw.length > 10000) throw new Error('제품 이야기가 너무 깁니다.');
+    const data = JSON.parse(raw);
+    if (state.version !== version || state.creativeVersion !== creativeVersion) return;
+    if (data.status === 'caution' || ['care', 'unsupported'].includes(state.result?.status)) {
+      state.creative = { status: 'caution' };
+      if (!['care', 'unsupported'].includes(state.result?.status)) {
+        abortAi();
+        abortNews();
+        const target = document.getElementById('concern-results');
+        if (target) target.outerHTML = results();
+      }
+    } else {
+      const product = list(state.result?.catalog).find(item => item.slug === data.productSlug);
+      if (data.status !== 'ok' || !product || typeof data.message !== 'string' || !data.message.trim() || data.message.length > 1200) throw new Error('제품 이야기를 확인하지 못했습니다.');
+      state.creative = { status: 'ok', productSlug: product.slug, message: data.message };
+    }
+  } catch {
+    if (state.version !== version || state.creativeVersion !== creativeVersion) return;
+    state.creative = { status: 'unavailable' };
+  } finally {
+    clearTimeout(timeout);
+    if (state.version === version && state.creativeVersion === creativeVersion) {
+      state.creativeController = null;
+      refreshCreative();
+    }
   }
 }
 
@@ -314,9 +404,11 @@ function search(query, fromProductSlug = state.fromProductSlug, { askAi = true }
       state.version += 1;
       abortNews();
       abortAi();
+      abortCreative();
       state.result = null;
       state.news = null;
       state.ai = null;
+      state.creative = null;
       refresh();
     }
     const input = document.getElementById('concern-query');
@@ -328,17 +420,21 @@ function search(query, fromProductSlug = state.fromProductSlug, { askAi = true }
   }
   abortNews();
   abortAi();
+  abortCreative();
   clearTimeout(state.searchTimer);
   state.version += 1;
   const version = state.version;
   state.loading = true;
   state.news = null;
   state.ai = { status: askAi ? 'loading' : 'idle' };
+  state.creative = { status: askAi ? 'loading' : 'idle' };
   state.expandedResearch = false;
   state.expandedLimitations.clear();
   state.fromProductSlug = fromProductSlug || null;
   try {
     state.result = analyzeConcern(validation.query, { reviews: getWrittenReviews(), fromProductSlug: state.fromProductSlug });
+    const sensitive = isCrisisConcern(validation.query);
+    if (sensitive || ['care', 'unsupported'].includes(state.result.status)) state.creative = { status: 'caution' };
     state.draft = validation.query;
     const topic = getConcernTopic(state.result?.newsTopic);
     if (topic) state.news = { status: 'loading', articles: [] };
@@ -346,8 +442,9 @@ function search(query, fromProductSlug = state.fromProductSlug, { askAi = true }
     const root = document.getElementById('concerns-page');
     root?.querySelector('.concern-search-loading')?.focus({ preventScroll: true });
     root?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-    if (topic) void loadNews();
-    if (askAi) void loadAi();
+    if (!sensitive && topic) void loadNews();
+    if (!sensitive && askAi) void loadAi();
+    if (!sensitive && askAi) void loadCreative();
     // Keep the search animation visible briefly while both requests run in
     // parallel. Never block the basic answer on the slower AI request.
     const reveal = () => {
@@ -380,6 +477,7 @@ function search(query, fromProductSlug = state.fromProductSlug, { askAi = true }
 export function seedConcernSearch(query, { fromProductSlug } = {}) {
   abortNews();
   abortAi();
+  abortCreative();
   clearTimeout(state.searchTimer);
   state.searchTimer = null;
   state.loading = false;
@@ -390,6 +488,7 @@ export function seedConcernSearch(query, { fromProductSlug } = {}) {
   state.result = null;
   state.news = null;
   state.ai = null;
+  state.creative = null;
   state.expandedResearch = false;
   state.expandedLimitations.clear();
   state.fromProductSlug = fromProductSlug || null;
@@ -485,6 +584,7 @@ export function bindConcerns(callbacks = {}) {
       if (event.detail === 0) root.querySelector('[data-concern-ai-cancel]')?.focus({ preventScroll: true });
       return;
     }
+    if (target.closest('[data-concern-creative-retry]')) return void loadCreative();
     const product = target.closest('[data-concern-product]');
     if (product) return callbacks.onProduct?.(product.dataset.concernProduct);
     const review = target.closest('[data-concern-review]');
@@ -514,11 +614,13 @@ export function bindConcerns(callbacks = {}) {
     state.composing = false;
     state.version += 1;
     if (state.newsController) abortNews();
+    if (state.creativeController) abortCreative();
     if (state.aiController) {
       abortAi();
     }
     // Do not retain a generated web result after leaving this page.
     state.ai = state.result ? { status: 'idle' } : null;
+    state.creative = state.result ? { status: ['care', 'unsupported'].includes(state.result.status) ? 'caution' : 'idle' } : null;
     observer.disconnect();
   });
   observer.observe(document.body, { childList: true, subtree: true });

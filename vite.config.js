@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite';
 import ask from './api/ask.js';
 import concernNews from './api/concern-news.js';
 import concernAi from './api/concern-ai.js';
+import concernCreative from './api/concern-creative.js';
 
 function attachQuestionApi(server) {
   server.middlewares.use((request, response, next) => {
@@ -9,6 +10,7 @@ function attachQuestionApi(server) {
     if (path === '/api/ask') return ask(request, response);
     if (path === '/api/concern-news') return concernNews(request, response);
     if (path === '/api/concern-ai') return concernAi(request, response);
+    if (path === '/api/concern-creative') return concernCreative(request, response);
     return next();
   });
 }
