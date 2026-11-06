@@ -133,7 +133,7 @@ test('research fallback refuses missing abstracts and invented citations', async
     } });
     const result = await invoke(handler);
     assert.equal(result.status, 503);
-    assert.equal(result.body.reason, missingAbstract ? 'no_research' : 'research_generation_citation');
+    assert.equal(result.body.reason, missingAbstract ? 'research_no_abstract' : 'research_generation_citation');
   }
 });
 
@@ -145,7 +145,7 @@ test('research provider failures have fixed diagnostic categories without provid
     [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{}' }] } }] }, 'research_generation_relevance_invalid'],
     [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"relevant":true}' }] } }] }, 'research_generation_answer_invalid'],
     [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"relevant":true,"answer":"text","sourceIds":[]}' }] } }] }, 'research_generation_sources_empty'],
-    [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"relevant":false,"answer":"none","sourceIds":[]}' }] } }] }, 'no_research'],
+    [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"relevant":false,"answer":"none","sourceIds":[]}' }] } }] }, 'research_irrelevant'],
     [{ candidates: [{ finishReason: 'STOP', content: { parts: [] } }] }, 'research_generation_parts_invalid'],
   ];
   for (const [generated, reason] of cases) {
