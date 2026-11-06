@@ -30,3 +30,20 @@ html:root #detail-panel .product-stability-body .product-test-list { color: var(
 }
 html:root .my-products-page .product-opening-period { display: grid; gap: 4px; margin-top: 10px; color: var(--ink); font-size: 12px; font-weight: 600; line-height: 1.6; }
 html:root .my-products-page .product-opening-period small { color: var(--muted); font-size: 11px; font-weight: 500; }
+
+/* The record summary also filters the saved products by status. */
+html:root .my-products-page .shelf-summary { gap: 6px; padding: 10px; }
+html:root .my-products-page .shelf-summary > button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 8px 15px; border: 1px solid transparent; border-radius: 999px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+html:root .my-products-page .shelf-summary > button strong { color: var(--ink); font: 600 17px/1 Arial, sans-serif; }
+html:root .my-products-page .shelf-summary > button[aria-pressed="true"] { color: var(--ink); background: var(--liquid-selected); border-color: var(--liquid-selected-edge); box-shadow: var(--liquid-shadow); }
+html:root .my-products-page .shelf-summary > button:hover { color: var(--ink); background: var(--liquid-hover); }
+html:root .my-products-page .shelf-summary > button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+html:root .my-products-page .shelf-filter-empty { padding: 50px 24px; }
+@media (max-width: 750px) {
+  html:root .my-products-page .shelf-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 8px; }
+  html:root .my-products-page .shelf-summary > button { min-width: 0; min-height: 44px; padding: 8px 10px; font-size: 13px; }
+  html:root .my-products-page .shelf-summary > button strong { font-size: 16px; }
+}
+@media (forced-colors: active) {
+  html:root .my-products-page .shelf-summary > button[aria-pressed="true"] { border: 2px solid Highlight; }
+}

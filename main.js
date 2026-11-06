@@ -24,6 +24,7 @@ if (initialUrl.searchParams.get('view') === 'landing') {
 const initialView = initialUrl.searchParams.get('view');
 let disposeTextEffects = null, disposeAmbientBackground = null, disposeScrollPosition = null, disposeDatePickers = null;
 let page = initialView === 'concerns' ? '내 고민' : '홈', query = '', filter = '전체', selected = null, tab = '성분·함량';
+let shelfFilter = 'all';
 let isPurchase = initialView === 'buy';
 let theme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 function applyTheme() {
@@ -157,11 +158,17 @@ function detail() {
 }
 
 function my() {
-  return `<section class="section page-section my-products-page"><div class="eyebrow">MY PRODUCTS</div><div class="section-head"><div><h1 class="page-title">나의 제품.<br>나의 사용 기록.</h1><p class="page-intro">개봉일부터 마지막 한 방울까지, 한눈에.</p></div><button class="dark" data-page="제품 탐색">제품 등록하기 <span aria-hidden="true">＋</span></button></div><div class="shelf-summary"><span>전체 <strong>${saved.length}</strong></span><span>사용 중 <strong>${saved.filter(s => !s.done && s.date).length}</strong></span><span>미개봉 <strong>${saved.filter(s => !s.done && !s.date).length}</strong></span><span>사용 완료 <strong>${saved.filter(s => s.done).length}</strong></span></div><div class="my-list">${saved.map((s, i) => {
+  const status = s => s.done ? 'done' : s.date ? 'active' : 'unopened';
+  const categories = [['all', '전체'], ['active', '사용 중'], ['unopened', '미개봉'], ['done', '사용 완료']];
+  const records = saved.map((record, index) => ({ record, index })).filter(({ record }) => shelfFilter === 'all' || status(record) === shelfFilter);
+  const emptyList = shelfFilter === 'all'
+    ? '<div class="empty"><div class="empty-mark" aria-hidden="true">＋</div><span class="eyebrow">YOUR DAILY RECORD</span><h2>첫 제품을 등록해 보세요.</h2><p>개봉일부터 사용 완료까지,<br>나의 제품을 투명하게 기록하세요.</p><button data-page="제품 탐색" class="text-btn">등록할 제품 찾기 ↗</button></div>'
+    : `<div class="empty shelf-filter-empty"><h2>${categories.find(([key]) => key === shelfFilter)[1]} 제품이 없습니다.</h2><p>다른 상태를 선택해 제품을 확인해 보세요.</p><button type="button" data-shelf-filter="all" class="text-btn">전체 제품 보기 ↗</button></div>`;
+  return `<section class="section page-section my-products-page"><div class="eyebrow">MY PRODUCTS</div><div class="section-head"><div><h1 class="page-title">나의 제품.<br>나의 사용 기록.</h1><p class="page-intro">개봉일부터 마지막 한 방울까지, 한눈에.</p></div><button class="dark" data-page="제품 탐색">제품 등록하기 <span aria-hidden="true">＋</span></button></div><div class="shelf-summary" role="group" aria-label="제품 상태별 보기">${categories.map(([key, label]) => `<button type="button" data-shelf-filter="${key}" aria-pressed="${shelfFilter === key}" aria-controls="my-product-list"><span>${label}</span><strong>${key === 'all' ? saved.length : saved.filter(record => status(record) === key).length}</strong></button>`).join('')}</div><div class="my-list" id="my-product-list" aria-live="polite">${records.map(({ record: s, index: i }) => {
     const p = products.find(p => p.id === s.id);
     const openingPeriod = getOpeningPeriod(s.date, p.openedPeriodMonths);
-    return `<article class="my-row"><div class="my-product-image"><button type="button" class="my-product-open" data-id="${p.id}" aria-label="${p.name} 정보 보기"></button>${bottle(p)}</div><div class="my-product-copy"><span class="status-badge">${s.done ? '사용 완료' : s.date ? '사용 중' : '미개봉'}</span><h2>${p.name}</h2><span class="product-english">${p.en} / ${p.volume}</span>${renderDatePicker(i, s.date, p.name)}${openingPeriod ? `<div class="product-opening-period"><span>${escape(openingPeriod.label)}</span><small>용기에 표시된 실제 사용기한도 함께 확인해 주세요.</small></div>` : `<span class="date-hint">개봉일을 비워두면 미개봉으로 기록됩니다.</span>`}</div><div class="my-actions"><button type="button" data-done="${i}" aria-label="${p.name} ${s.done ? '사용 중으로 변경' : '사용 완료'}">${s.done ? '사용 중으로 변경' : '사용 완료'} <span aria-hidden="true">${s.done ? '↺' : '✓'}</span></button><button type="button" data-delete="${i}" class="delete-btn" aria-label="${p.name} 등록 삭제">등록 삭제</button></div></article>`;
-  }).join('') || '<div class="empty"><div class="empty-mark" aria-hidden="true">＋</div><span class="eyebrow">YOUR DAILY RECORD</span><h2>첫 제품을 등록해 보세요.</h2><p>개봉일부터 사용 완료까지,<br>나의 제품을 투명하게 기록하세요.</p><button data-page="제품 탐색" class="text-btn">등록할 제품 찾기 ↗</button></div>'}</div><p class="storage-note">제품 기록은 현재 사용 중인 브라우저에 저장됩니다.</p></section>`;
+    return `<article class="my-row"><div class="my-product-image"><button type="button" class="my-product-open" data-id="${p.id}" aria-label="${p.name} 정보 보기"></button>${bottle(p)}</div><div class="my-product-copy"><span class="status-badge">${s.done ? '사용 완료' : s.date ? '사용 중' : '미개봉'}</span><h2>${p.name}</h2><span class="product-english">${p.en} / ${p.volume}</span>${renderDatePicker(i, s.date, p.name)}${openingPeriod ? `<div class="product-opening-period"><span>${escape(openingPeriod.label)}</span><small>용기에 표시된 실제 사용기한도 함께 확인해 주세요.</small></div>` : `<span class="date-hint">${s.done ? '개봉일이 기록되지 않았습니다.' : '개봉일을 비워두면 미개봉으로 기록됩니다.'}</span>`}</div><div class="my-actions"><button type="button" data-done="${i}" aria-label="${p.name} ${s.done ? (s.date ? '사용 중으로 변경' : '미개봉으로 변경') : '사용 완료'}">${s.done ? (s.date ? '사용 중으로 변경' : '미개봉으로 변경') : '사용 완료'} <span aria-hidden="true">${s.done ? '↺' : '✓'}</span></button><button type="button" data-delete="${i}" class="delete-btn" aria-label="${p.name} 등록 삭제">등록 삭제</button></div></article>`;
+  }).join('') || emptyList}</div><p class="storage-note">제품 기록은 현재 사용 중인 브라우저에 저장됩니다.</p></section>`;
 }
 
 function more() {
@@ -288,6 +295,11 @@ function bind() {
   document.querySelectorAll('[data-page]').forEach(e => e.onclick = () => { page = e.dataset.page; selected = null; isPurchase = false; writeLocation(); render(); window.scrollTo(0, 0); });
   bindProductLinks();
   document.querySelectorAll('[data-filter]').forEach(e => e.onclick = () => { filter = e.dataset.filter; render(); });
+  document.querySelectorAll('[data-shelf-filter]').forEach(button => button.addEventListener('click', () => {
+    shelfFilter = button.dataset.shelfFilter;
+    render();
+    document.querySelector(`.shelf-summary [data-shelf-filter="${shelfFilter}"]`)?.focus({ preventScroll: true });
+  }));
   document.querySelectorAll('[data-tab]').forEach(e => e.onclick = () => { tab = e.dataset.tab; render(); document.querySelector(`[data-tab="${tab}"]`).focus(); });
   document.querySelector('.tabs')?.addEventListener('keydown', e => {
     const tabs = [...document.querySelectorAll('[data-tab]')];
@@ -311,21 +323,22 @@ function bind() {
   }
   bindSearchReset();
   document.querySelector('#back')?.addEventListener('click', () => { selected = null; page = '제품 탐색'; isPurchase = false; writeLocation(); render(); });
-  document.querySelector('#register')?.addEventListener('click', () => { if (!saved.some(s => s.id === selected.id)) saved.push({ id: selected.id, date: '', done: false }); selected = null; page = '내 제품'; isPurchase = false; writeLocation(); persist(); window.scrollTo(0, 0); });
+  document.querySelector('#register')?.addEventListener('click', () => { if (!saved.some(s => s.id === selected.id)) saved.push({ id: selected.id, date: '', done: false }); shelfFilter = 'all'; selected = null; page = '내 제품'; isPurchase = false; writeLocation(); persist(); window.scrollTo(0, 0); });
   disposeDatePickers = bindDatePickers(document, (index, value) => {
     if (!saved[index]) return;
     saved[index].date = value; persist();
+    if (!document.querySelector(`[data-calendar-trigger="${index}"]`)) document.querySelector(`.shelf-summary [data-shelf-filter="${shelfFilter}"]`)?.focus({ preventScroll: true });
   });
   document.querySelectorAll('[data-done]').forEach(e => e.onclick = event => {
     const index = e.dataset.done, restore = event.detail === 0;
     saved[index].done = !saved[index].done; persist();
-    if (restore) document.querySelector(`[data-done="${index}"]`)?.focus({ preventScroll: true });
+    if (restore) (document.querySelector(`[data-done="${index}"]`) || document.querySelector(`.shelf-summary [data-shelf-filter="${shelfFilter}"]`))?.focus({ preventScroll: true });
   });
   document.querySelectorAll('[data-delete]').forEach(e => e.onclick = event => {
     if (window.confirm('등록한 제품과 사용 기록을 삭제할까요?')) {
       const index = +e.dataset.delete, restore = event.detail === 0;
       saved.splice(index, 1); persist();
-      if (restore) (document.querySelector(`[data-delete="${Math.min(index, saved.length - 1)}"]`) || document.querySelector('.my-products-page .section-head [data-page]'))?.focus({ preventScroll: true });
+      if (restore) (document.querySelector(`[data-delete="${Math.min(index, saved.length - 1)}"]`) || document.querySelector(`.shelf-summary [data-shelf-filter="${shelfFilter}"]`))?.focus({ preventScroll: true });
     }
   });
 }
