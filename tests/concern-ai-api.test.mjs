@@ -133,7 +133,26 @@ test('research fallback refuses missing abstracts and invented citations', async
     } });
     const result = await invoke(handler);
     assert.equal(result.status, 503);
-    assert.equal(result.body.reason, missingAbstract ? 'no_research' : 'invalid_response');
+    assert.equal(result.body.reason, missingAbstract ? 'no_research' : 'research_generation_citation');
+  }
+});
+
+test('research provider failures have fixed diagnostic categories without provider content', async () => {
+  const cases = [
+    [{ candidates: [{ finishReason: 'MAX_TOKENS' }] }, 'research_generation_max_tokens'],
+    [{ candidates: [{ finishReason: 'SAFETY' }] }, 'research_generation_safety'],
+    [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'private malformed value' }] } }] }, 'research_generation_json'],
+    [{ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{}' }] } }] }, 'research_generation_schema'],
+  ];
+  for (const [generated, reason] of cases) {
+    const handler = createConcernAiHandler({ env: { GEMINI_API_KEY: fakeKey }, fetchImpl: async (url) => {
+      if (url.includes('/interactions')) return response({}, 429);
+      if (url.includes('europepmc')) return response({ resultList: { result: [{ source: 'MED', pmid: '12345678', title: 'Research title', abstractText: 'Research details. '.repeat(10) }] } });
+      return response(generated);
+    } });
+    const result = await invoke(handler);
+    assert.equal(result.body.reason, reason);
+    assert(!result.raw.includes('private malformed value'));
   }
 });
 
