@@ -1,12 +1,14 @@
 import { defineConfig, loadEnv } from 'vite';
 import ask from './api/ask.js';
 import concernNews from './api/concern-news.js';
+import concernAi from './api/concern-ai.js';
 
 function attachQuestionApi(server) {
   server.middlewares.use((request, response, next) => {
     const path = request.url?.split('?')[0];
     if (path === '/api/ask') return ask(request, response);
     if (path === '/api/concern-news') return concernNews(request, response);
+    if (path === '/api/concern-ai') return concernAi(request, response);
     return next();
   });
 }

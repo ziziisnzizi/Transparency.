@@ -87,6 +87,58 @@ test('recognized concerns use actual product roles instead of recommending every
   }
 });
 
+test('explicit ingredient and product type requests use the published full formulas', () => {
+  const cases = [
+    ['히알루론산이 들어간 제품을 추천해줘', ['serum-s1', 'toner-t1'], '소듐하이알루로네이트'],
+    ['판테놀 성분이 들어간 토너를 추천해줘', ['toner-t1'], '판테놀'],
+    ['병풀추출물 들어간 세럼 추천', ['serum-s1'], '병풀추출물'],
+    ['알란토인이 포함된 크림을 추천해줘', ['cream-c1'], '알란토인'],
+    ['히알루론산과 판테놀을 함유한 토너 추천', ['toner-t1'], '소듐하이알루로네이트'],
+    ['콜레스테롤 함유 크림 추천', ['cream-c1'], '콜레스테롤'],
+    ['정제수와 글리세린이 들어간 세럼', ['serum-s1'], '정제수'],
+    ['에틸헥실글리세린이 들어간 토너 추천', ['toner-t1'], '에틸헥실글리세린'],
+  ];
+  for (const [query, expected, ingredient] of cases) {
+    const result = analyzeConcern(query);
+    assert.deepEqual(recommended(result), expected, query);
+    for (const recommendation of result.recommendations) {
+      assert.ok(recommendation.product.fullIngredients.includes(ingredient), query);
+      assert.ok(recommendation.reasons.some(reason => reason.includes(ingredient)), query);
+    }
+  }
+  assert.deepEqual(recommended(analyzeConcern('세안 후 당김이 있는데 좋은 토너는?')), ['toner-t1']);
+  for (const query of [
+    '토너에 세라마이드가 들어간 제품을 추천해줘',
+    '병풀과 세라마이드가 들어간 제품을 추천해줘',
+    '건조한데 나이아신아마이드가 들어간 제품을 추천해줘',
+    '피부가 건조한데 레티놀 들어간 토너 추천',
+    '콜레스테롤 함유 세럼을 추천해줘',
+    '세테아릴알코올이 들어간 토너 추천',
+  ]) {
+    const result = analyzeConcern(query);
+    assert.deepEqual(result.recommendations, [], query);
+    assert.match(result.summary, /일치하는 비교 제품이 없습니다/, query);
+  }
+  const unknownIngredient = analyzeConcern('건조한데 만델릭애씨드가 함유된 크림을 추천해줘');
+  assert.equal(unknownIngredient.status, 'unsupported');
+  assert.deepEqual(unknownIngredient.recommendations, []);
+  assert.match(unknownIngredient.summary, /정확히 연결하지 못했습니다/);
+});
+
+test('stated ingredient avoidance or intolerance does not yield an unverified recommendation', () => {
+  for (const query of [
+    '향료 들어간 건 피하고 싶어, 건조해',
+    '글리세린이 맞지 않아 보습 제품 추천',
+    '판테놀이 맞지 않아서 다른 수분 제품',
+    '병풀추출물은 안 맞아서 제외한 제품을 원해요',
+    '페녹시에탄올 들어간 건 피하고 싶어',
+  ]) {
+    const result = analyzeConcern(query);
+    assert.equal(result.status, 'unsupported', query);
+    assert.deepEqual(result.recommendations, [], query);
+  }
+});
+
 test('serum stickiness can suggest the toner’s different texture without using higher stars as proof of suitability', () => {
   const query = '세럼의 끈적임이 불편해서 더 가벼운 제형을 비교하고 싶어요';
   const result = analyzeConcern(query, { fromProductSlug: 'serum-s1', reviews: [writtenReview()] });
