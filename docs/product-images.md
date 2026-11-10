@@ -22,3 +22,10 @@ away restores the primary image. Keyboard focus on product buttons exposes the
 same texture. Touch users can open product details directly. Reduced-motion
 settings disable the fade animation. Product-specific URLs and QR assets remain
 independent of the imagery.
+
+Product photos and texture views have a static monochrome film-grain overlay.
+The shared CSS uses a repeating 160px SVG noise tile with soft-light blending
+and `--product-grain-opacity: .16`. The photo container clips the grain, while
+buttons and captions stay above it. Purchase and concern thumbnails use the
+same `.product-photo` treatment. Source WebP files and standalone QR graphics
+are unchanged; the grain does not add animation or intercept pointer input.

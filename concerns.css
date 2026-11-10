@@ -107,7 +107,7 @@
 .concerns-page .concern-product-head>div { min-width: 0; }
 .concerns-page .concern-product-head span { color: var(--muted); font-size: 10px; line-height: 1.8; }
 .concerns-page .concern-product-head h4 { margin: 12px 0 0; color: var(--ink); font-size: 24px; font-weight: 500; line-height: 1.5; letter-spacing: -.7px; }
-.concerns-page .concern-product-head>img { display: block; flex: 0 0 auto; width: 72px; height: 72px; object-fit: cover; }
+.concerns-page .concern-product-head>.product-photo { flex: 0 0 auto; width: 72px; height: 72px; }
 .concerns-page .concern-product-role { margin: 0 0 21px; color: var(--ink); font-size: 12px; line-height: 1.9; }
 .concerns-page .concern-product dl { margin: 0; }
 .concerns-page .concern-product dl>div { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 13px; padding: 12px 0; border-top: 1px solid var(--line); }
