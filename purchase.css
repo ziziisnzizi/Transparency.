@@ -18,7 +18,7 @@
 .purchase-page .purchase-choice { display: block; position: relative; cursor: pointer; min-width: 0; }
 .purchase-page .purchase-choice input { position: absolute; top: 12px; right: 12px; z-index: 1; width: 15px; height: 15px; margin: 0; padding: 0; accent-color: #171717; }
 .purchase-page .purchase-choice-body { min-width: 0; height: 100%; display: flex; flex-direction: column; gap: 4px; padding: 15px 12px; border: 1px solid var(--line); border-radius: 20px; background: #ffffff12; }
-.purchase-page .purchase-choice img { display: block; width: 100%; height: 160px; object-fit: contain; padding: 8px; }
+.purchase-page .purchase-choice img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; padding: 0; }
 .purchase-page .purchase-choice-kind, .purchase-page .purchase-choice-volume { color: var(--muted); font-size: 9px; }
 .purchase-page .purchase-choice strong { font-size: 12px; font-weight: 500; }
 .purchase-page .purchase-choice-price { margin-top: 7px; font-size: 11px; }
@@ -46,7 +46,7 @@
 .purchase-page .purchase-data-note { margin: 23px 0 0; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; line-height: 1.8; }
 .purchase-page .purchase-summary { position: sticky; top: 96px; }
 .purchase-page .purchase-summary-product { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 18px; align-items: center; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
-.purchase-page .purchase-summary-product img { display: block; width: 72px; height: 108px; object-fit: contain; }
+.purchase-page .purchase-summary-product img { display: block; width: 72px; height: 72px; object-fit: cover; }
 .purchase-page .purchase-summary-product h3 { margin: 9px 0 5px; font-size: 16px; }
 .purchase-page .purchase-summary-product p { margin: 0 0 7px; font-size: 12px; color: var(--ink); }
 .purchase-page .purchase-summary-type, .purchase-page .purchase-summary-quantity { color: var(--muted); font-size: 9px; }
@@ -89,7 +89,6 @@
   .purchase-page .purchase-grid { grid-template-columns: minmax(0, 1fr); }
   .purchase-page .purchase-summary { position: static; }
   .purchase-page .purchase-page-head { align-items: start; flex-direction: column; }
-  .purchase-page .purchase-choice img { height: 175px; }
 }
 @media (max-width: 750px) {
   .purchase-page .purchase-back { margin-bottom: 25px; }
@@ -99,7 +98,6 @@
   .purchase-page .purchase-product-grid { gap: 7px; }
   .purchase-page .purchase-choice-body { padding: 13px 7px; border-radius: 15px; gap: 5px; }
   .purchase-page .purchase-choice input { right: 8px; top: 9px; width: 13px; height: 13px; }
-  .purchase-page .purchase-choice img { height: 115px; padding: 15px 2px 3px; }
   .purchase-page .purchase-choice strong { font-size: 11px; }
   .purchase-page .purchase-choice-kind, .purchase-page .purchase-choice-volume { font-size: 8px; }
   .purchase-page .purchase-choice-price { font-size: 10px; margin-top: 5px; }
@@ -107,7 +105,7 @@
   .purchase-page .purchase-progress li { font-size: 9px; gap: 6px; }
   .purchase-page .purchase-fields { grid-template-columns: minmax(0, 1fr); gap: 19px; }
   .purchase-page .purchase-summary-product { grid-template-columns: 64px minmax(0, 1fr); gap: 16px; }
-  .purchase-page .purchase-summary-product img { width: 64px; height: 96px; }
+  .purchase-page .purchase-summary-product img { width: 64px; height: 64px; }
   .purchase-page .purchase-quantity-control button { width: 37px; }
   .purchase-page .purchase-quantity-control input { width: 42px; }
   .purchase-page .purchase-total dd { font-size: 22px; }
