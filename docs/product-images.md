@@ -5,13 +5,13 @@ catalog always use the same product and texture pair.
 
 | Product | Primary image | Texture image | Supplied primary file |
 | --- | --- | --- | --- |
-| Serum S.1 | `public/images/products/serum-s1.webp` | `public/images/textures/serum-s1.webp` | `serum_front(1).webp` |
-| Toner T.1 | `public/images/products/toner-t1.webp` | `public/images/textures/toner-t1.webp` | `toner_front(1).webp` |
-| Cream C.1 | `public/images/products/cream-c1.webp` | `public/images/textures/cream-c1.webp` | `cream_front(1).webp` |
+| Serum S.1 | `public/images/products/serum-s1.webp` | `public/images/textures/serum-s1.webp` | `serum_45(1).webp` |
+| Toner T.1 | `public/images/products/toner-t1.webp` | `public/images/textures/toner-t1.webp` | `toner_editorial(1).webp` |
+| Cream C.1 | `public/images/products/cream-c1.webp` | `public/images/textures/cream-c1.webp` | `cream_front(2).webp` |
 
-Primary images were replaced on 2026-11-10 with the three supplied 1600 × 1600
+Primary images were replaced on 2026-11-11 with the three supplied 1600 × 1600
 WebP photographs, preserving the original bytes, framing, labels, QR codes, and
-flower-and-grass backgrounds. Their combined size is 731,462 bytes. The shared
+flower-and-grass backgrounds. Their combined size is 652,454 bytes. The shared
 product metadata uses the actual square image dimensions. Existing texture
 images and image-view interactions are unchanged. Purchase and concern-product
 thumbnails also read the same shared primary image paths.
